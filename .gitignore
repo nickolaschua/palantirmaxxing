@@ -1,0 +1,26 @@
+# env — keys live here, never commit
+.env
+.env.local
+.env.*.local
+
+# deps / build
+node_modules/
+dist/
+dist-lib/
+*.tsbuildinfo
+
+# editor / os
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# scratch
+*.log
+
+# playwright-mcp scratch
+.playwright-mcp/
+
+# AI assistant instructions — kept local, not shared
+CLAUDE.md
+claude-code-prompt.md

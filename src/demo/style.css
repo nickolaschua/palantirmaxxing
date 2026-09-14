@@ -1,0 +1,115 @@
+:root {
+  --ink: #0d1117;
+  --panel: rgba(13, 17, 23, 0.86);
+  --line: rgba(255, 255, 255, 0.13);
+  --text: #e8eaed;
+  --muted: #8b949e;
+  --edge: #d98b4a;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  background: var(--ink);
+  overflow: hidden;
+}
+
+#scene {
+  width: 100%;
+  height: 100%;
+}
+
+#panel {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  width: 200px;
+  max-height: calc(100vh - 96px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 14px;
+  background: var(--panel);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--text);
+  font: 13px/1.5 ui-sans-serif, -apple-system, "Segoe UI", sans-serif;
+}
+
+#panel h1 {
+  position: sticky;
+  top: -14px;
+  margin: -14px -14px 2px;
+  padding: 14px 14px 0;
+  background: var(--panel);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+#status {
+  margin: 0 0 12px;
+  font-size: 11.5px;
+  color: var(--muted);
+}
+
+#panel button {
+  display: block;
+  width: 100%;
+  margin-bottom: 5px;
+  padding: 7px 10px;
+  text-align: left;
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+#panel button:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.07);
+}
+
+#panel button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+#panel button:focus-visible {
+  outline: 2px solid var(--edge);
+  outline-offset: 1px;
+}
+
+#panel .group {
+  margin: 14px 0 6px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+/* The cage is invisible by nature; this is the only cue that it exists. */
+body::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  box-shadow: inset 0 0 0 0 var(--edge);
+  transition: box-shadow 0.25s ease-out;
+}
+
+body.at-edge::after {
+  box-shadow: inset 0 0 0 2px var(--edge);
+}
+
+/* Required attribution. Not chrome — do not hide. */
+.cesium-viewer-bottom {
+  padding: 4px 8px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #panel button,
+  body::after {
+    transition: none;
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "name": "singapore-canvas",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "build:lib": "tsc --noEmit && vite build --config vite.lib.config.ts",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "cesium": "^1.145.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "vite": "^8.3.0",
+    "vite-plugin-cesium": "^1.2.23"
+  }
+}

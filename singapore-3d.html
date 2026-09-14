@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Singapore 3D — base scene</title>
+
+<!-- Pin a known-good CesiumJS release. Check https://github.com/CesiumGS/cesium/releases
+     for the current one; pinned 1.145: the default ion token bundled in 1.124 is revoked (401). -->
+<script src="https://cesium.com/downloads/cesiumjs/releases/1.145/Build/Cesium/Cesium.js"></script>
+<link href="https://cesium.com/downloads/cesiumjs/releases/1.145/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
+
+<style>
+  :root {
+    --ink:    #0d1117;
+    --panel:  rgba(13, 17, 23, 0.88);
+    --line:   rgba(255, 255, 255, 0.14);
+    --text:   #e8eaed;
+    --muted:  #8b949e;
+    --live:   #4ec9b0;
+  }
+
+  html, body { margin: 0; height: 100%; overflow: hidden; background: var(--ink); }
+
+  #scene { width: 100%; height: 100%; }
+
+  /* Cesium ships a lot of chrome. Keep the credit container — it carries the
+     Google + Cesium attribution that the Map Tiles terms of service require. */
+  .cesium-viewer-bottom { padding: 4px 8px; }
+
+  #controls {
+    position: absolute;
+    top: 16px; left: 16px;
+    width: 210px;
+    background: var(--panel);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 14px;
+    font: 13px/1.5 ui-sans-serif, -apple-system, "Segoe UI", sans-serif;
+    color: var(--text);
+  }
+
+  #controls h1 {
+    margin: 0 0 2px;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+  }
+
+  #status {
+    margin: 0 0 12px;
+    font-size: 11.5px;
+    color: var(--muted);
+  }
+  #status.live { color: var(--live); }
+
+  button {
+    display: block;
+    width: 100%;
+    margin-bottom: 5px;
+    padding: 7px 10px;
+    text-align: left;
+    background: transparent;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    color: var(--text);
+    font: inherit;
+    cursor: pointer;
+    transition: background 0.12s;
+  }
+  button:hover  { background: rgba(255,255,255,0.07); }
+  button:focus-visible { outline: 2px solid var(--live); outline-offset: 1px; }
+
+  .group-label {
+    margin: 14px 0 6px;
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    button { transition: none; }
+  }
+</style>
+</head>
+<body>
+
+<div id="scene"></div>
+
+<div id="controls">
+  <h1>Singapore 3D</h1>
+  <p id="status">Starting…</p>
+
+  <button data-view="island">Whole island</button>
+  <button data-view="mbs">Marina Bay Sands</button>
+  <button data-view="merlion">Merlion</button>
+  <button data-view="artscience">ArtScience Museum</button>
+  <button data-view="cbd">CBD from the bay</button>
+
+  <p class="group-label">Camera</p>
+  <button id="orbit">Start slow orbit</button>
+</div>
+
+<script type="module">
+// ---------------------------------------------------------------------------
+// KEYS
+//
+// ION_TOKEN   — free account at https://ion.cesium.com
+// GOOGLE_KEY  — Google Cloud project with the *Map Tiles API* enabled, billing on.
+//               Photorealistic 3D Tiles bill per root-tile request (a "session"),
+//               and one session covers at least three hours of tile requests, so
+//               a day of development is a handful of sessions. Enable billing
+//               before demo day, not during.
+//
+// Leave GOOGLE_KEY empty to run the free fallback (OSM Buildings + world
+// terrain). That gives you flat-topped extrusions, NOT exact landmark shapes.
+// ---------------------------------------------------------------------------
+const ION_TOKEN  = "";
+const GOOGLE_KEY = "";
+
+const status = document.getElementById("status");
+const setStatus = (text, live = false) => {
+  status.textContent = text;
+  status.classList.toggle("live", live);
+};
+
+if (ION_TOKEN) Cesium.Ion.defaultAccessToken = ION_TOKEN;
+
+const viewer = new Cesium.Viewer("scene", {
+  // Strip the widgets you don't need. Keep the credit container (CSS above).
+  geocoder: false,
+  homeButton: false,
+  sceneModePicker: false,
+  baseLayerPicker: false,
+  navigationHelpButton: false,
+  animation: false,
+  timeline: false,
+  fullscreenButton: false,
+  infoBox: false,
+  selectionIndicator: false,
+});
+
+const scene = viewer.scene;
+
+// Atmosphere and lighting. This is most of what separates "looks like a
+// student project" from "looks like the screenshot."
+scene.globe.enableLighting = true;
+scene.skyAtmosphere.show = true;
+scene.fog.enabled = true;
+scene.highDynamicRange = true;
+
+// Midday sun over Singapore. Swap the date for a blue-hour look.
+viewer.clock.currentTime = Cesium.JulianDate.fromIso8601("2026-03-15T05:30:00Z");
+
+// ---------------------------------------------------------------------------
+// The city
+// ---------------------------------------------------------------------------
+let cityTileset = null;
+
+async function loadCity() {
+  if (GOOGLE_KEY) {
+    Cesium.GoogleMaps.defaultApiKey = GOOGLE_KEY;
+    try {
+      cityTileset = await Cesium.createGooglePhotorealistic3DTileset({
+        onlyUsingWithGoogleGeocoder: true,
+      });
+      scene.primitives.add(cityTileset);
+
+      // Google tiles carry their own surface, so the ellipsoid underneath
+      // z-fights with them. Turn it off.
+      scene.globe.show = false;
+
+      // Raise this to load fewer, coarser tiles. Default is 16.
+      // 24 roughly halves the tile traffic at a visible but acceptable cost.
+      cityTileset.maximumScreenSpaceError = 16;
+
+      setStatus("Photorealistic tiles — exact geometry", true);
+      return;
+    } catch (err) {
+      console.error(err);
+      setStatus("Google tiles failed. Check the key and Map Tiles API.");
+    }
+  }
+
+  // Fallback: free, fast, flat-topped. Good enough to build UI against.
+  try {
+    viewer.terrainProvider = await Cesium.createWorldTerrainAsync();
+    cityTileset = await Cesium.Cesium3DTileset.fromIonAssetId(96188); // OSM Buildings
+    scene.primitives.add(cityTileset);
+    setStatus("OSM extrusions — no exact landmarks");
+  } catch (err) {
+    console.error(err);
+    setStatus("Nothing loaded. Check your ion token.");
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Camera presets
+//
+// Cesium orientation: heading = compass bearing, pitch = downward angle.
+// Negative pitch looks down. -20° is a low cinematic angle, -90° is top-down.
+// ---------------------------------------------------------------------------
+const VIEWS = {
+  island: {
+    lon: 103.8198, lat: 1.2200, height: 26000,
+    heading: 0, pitch: -55,
+  },
+  mbs: {
+    lon: 103.8595, lat: 1.2770, height: 420,
+    heading: 15, pitch: -18,
+  },
+  merlion: {
+    lon: 103.8548, lat: 1.2845, height: 130,
+    heading: 40, pitch: -12,
+  },
+  artscience: {
+    lon: 103.8590, lat: 1.2835, height: 300,
+    heading: 340, pitch: -22,
+  },
+  cbd: {
+    lon: 103.8570, lat: 1.2760, height: 600,
+    heading: 305, pitch: -16,
+  },
+};
+
+function flyTo(name, seconds = 2.5) {
+  const v = VIEWS[name];
+  if (!v) return;
+  stopOrbit();
+  viewer.camera.flyTo({
+    destination: Cesium.Cartesian3.fromDegrees(v.lon, v.lat, v.height),
+    orientation: {
+      heading: Cesium.Math.toRadians(v.heading),
+      pitch: Cesium.Math.toRadians(v.pitch),
+      roll: 0,
+    },
+    duration: seconds,
+  });
+}
+
+document.querySelectorAll("[data-view]").forEach((btn) => {
+  btn.addEventListener("click", () => flyTo(btn.dataset.view));
+});
+
+// ---------------------------------------------------------------------------
+// Slow orbit — the "hero shot" camera move
+// ---------------------------------------------------------------------------
+let orbitListener = null;
+const orbitBtn = document.getElementById("orbit");
+
+function startOrbit() {
+  const centre = Cesium.Cartesian3.fromDegrees(103.8595, 1.2834, 0);
+  orbitListener = () => {
+    viewer.camera.rotateRight(0.0012);
+    viewer.camera.lookAt(
+      centre,
+      new Cesium.HeadingPitchRange(
+        viewer.camera.heading,
+        Cesium.Math.toRadians(-20),
+        900
+      )
+    );
+  };
+  scene.preRender.addEventListener(orbitListener);
+  orbitBtn.textContent = "Stop orbit";
+}
+
+function stopOrbit() {
+  if (!orbitListener) return;
+  scene.preRender.removeEventListener(orbitListener);
+  viewer.camera.lookAtTransform(Cesium.Matrix4.IDENTITY);
+  orbitListener = null;
+  orbitBtn.textContent = "Start slow orbit";
+}
+
+orbitBtn.addEventListener("click", () => {
+  orbitListener ? stopOrbit() : startOrbit();
+});
+
+// ---------------------------------------------------------------------------
+// Clipping polygon + custom model
+//
+// This is how you replace a landmark the photogrammetry renders badly —
+// the Merlion is ~8.6 m tall and usually comes through as a white lump.
+// Cut a hole in the Google mesh, drop your own glTF in it.
+//
+// Call insetModel() once you actually have a .glb. Check the licence on any
+// model you pull from Sketchfab: a lot of Singapore landmark models are
+// CC-BY-NC, which may not suit a hackathon submission.
+// ---------------------------------------------------------------------------
+function insetModel({ lon, lat, radiusMetres, url, heightOffset = 0 }) {
+  if (!cityTileset) return;
+
+  // Build a circular clip ring around the spot.
+  const ring = [];
+  const steps = 24;
+  const dLat = radiusMetres / 111320;
+  const dLon = dLat / Math.cos(Cesium.Math.toRadians(lat));
+  for (let i = 0; i < steps; i++) {
+    const a = (i / steps) * Math.PI * 2;
+    ring.push(lon + dLon * Math.cos(a), lat + dLat * Math.sin(a));
+  }
+
+  cityTileset.clippingPolygons = new Cesium.ClippingPolygonCollection({
+    polygons: [
+      new Cesium.ClippingPolygon({
+        positions: Cesium.Cartesian3.fromDegreesArray(ring),
+      }),
+    ],
+  });
+
+  viewer.entities.add({
+    position: Cesium.Cartesian3.fromDegrees(lon, lat, heightOffset),
+    model: { uri: url, minimumPixelSize: 32 },
+  });
+}
+
+// Example, once you have a model:
+// insetModel({ lon: 103.8548, lat: 1.2868, radiusMetres: 30,
+//              url: "./models/merlion.glb" });
+
+// ---------------------------------------------------------------------------
+await loadCity();
+flyTo("island", 0);
+setTimeout(() => flyTo("mbs", 4), 600);
+</script>
+</body>
+</html>

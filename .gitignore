@@ -24,3 +24,32 @@ Thumbs.db
 # AI assistant instructions — kept local, not shared
 CLAUDE.md
 claude-code-prompt.md
+
+# Generated assessment outputs; keep directories and Markdown documentation trackable
+/data/results/**
+!/data/results/**/
+!/data/results/**/*.md
+
+# Curated reference handoffs and benchmark/study evidence
+!/data/results/pec-benchmark.json
+!/data/results/static-mvp-benchmark.json
+!/data/results/static-mvp-planning-result.json
+!/data/results/static-mvp-planning-result-benchmark.json
+!/data/results/demo-planning-result.json
+!/data/results/demo-planning-result-benchmark.json
+!/data/results/mvp-sensitivity.json
+
+# Local Python environment and interpreter caches
+/.venv/
+__pycache__/
+*.pyc
+
+# Reproducible population artifacts (guides/reports remain versionable)
+/data/raw/population-*.json
+/data/raw/population.csv
+/data/raw/boundaries.geojson
+/data/raw/acquisition.json
+/data/raw/*-source.html
+/data/processed/population-display.geojson
+/data/processed/population-projected.json
+/frontend/public/population.geojson

@@ -1,0 +1,39 @@
+{
+  "success": true,
+  "result": {
+    "resource_id": "d_d95ae740c0f8961a0b10435836660ce0",
+    "total": 6,
+    "records": [
+      {
+        "_id": 1,
+        "Number": "Total",
+        "Total_Total": "4044210"
+      },
+      {
+        "_id": 2,
+        "Number": "Ang Mo Kio - Total",
+        "Total_Total": "162280"
+      },
+      {
+        "_id": 3,
+        "Number": "Ang Mo Kio Town Centre",
+        "Total_Total": "4810"
+      },
+      {
+        "_id": 4,
+        "Number": "Cheng San",
+        "Total_Total": "28070"
+      },
+      {
+        "_id": 5,
+        "Number": "Chong Boon",
+        "Total_Total": "26500"
+      },
+      {
+        "_id": 6,
+        "Number": "Kebun Bahru",
+        "Total_Total": "22620"
+      }
+    ]
+  }
+}

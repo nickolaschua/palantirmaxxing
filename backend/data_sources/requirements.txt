@@ -1,0 +1,5 @@
+# Python 3.9–3.12; pinned shared population-preparation and PEC stack, no backend service framework.
+numpy==1.26.4
+shapely==2.0.7
+pyproj==3.6.1
+certifi==2025.1.31

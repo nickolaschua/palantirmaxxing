@@ -1,0 +1,90 @@
+{
+  "boundary_source_period": "2021-09",
+  "boundary_vintage": 2019,
+  "coverage": {
+    "counts": {
+      "ambiguous_boundaries": 0,
+      "display_zones": 332,
+      "duplicate_boundary_keys": 0,
+      "duplicate_population_keys": 0,
+      "duplicate_zone_ids": 0,
+      "eligible": 275,
+      "excluded": 57,
+      "invalid_geometry": 6,
+      "invalid_population": 0,
+      "matched": 332,
+      "national_rows": 1,
+      "overlap_pairs": 7,
+      "overlapping_zones": 11,
+      "planning_area_rows": 55,
+      "population_statuses": {
+        "known": 286,
+        "qualified_nil_or_negligible": 46
+      },
+      "population_subzone_rows": 332,
+      "raw_boundary_features": 332,
+      "raw_population_rows": 388,
+      "unknown_population": 46,
+      "unmatched_boundaries": 0,
+      "unmatched_population": 0
+    },
+    "status": "partial_coverage",
+    "totals": {
+      "difference_from_national": 130,
+      "eligible_population": 3982190,
+      "eligible_zone_area_m2": 502764650.00881994,
+      "known_display_population": 4044340,
+      "known_planning_area_sum": 4044250,
+      "published_national": 4044210
+    }
+  },
+  "dataset_version": "sg-residents-2020-mp2019-cbb1c395f60918c1",
+  "libraries": {
+    "geos": "3.11.4",
+    "proj": "9.3.0",
+    "pyproj": "3.6.1",
+    "shapely": "2.0.7"
+  },
+  "population_source_published": "2021-06-18",
+  "population_year": 2020,
+  "retrieval_meaning": "Official download time (UTC)",
+  "retrieved_at": "2026-09-14T12:09:43.531554+00:00",
+  "runtime_python": "3.9.6",
+  "settings": {
+    "aliases": {},
+    "always_xy": true,
+    "area_denominator": "supplied zone geometry area",
+    "display_simplification": "none",
+    "geometry_repair": "none",
+    "name_normalisation": "NFC, whitespace collapse, uppercase; punctuation preserved",
+    "overlap_tolerance_m2": 0,
+    "population_column": "Total_Total",
+    "projected_crs": "EPSG:3414",
+    "qualified_values": "nullable; never infer zero"
+  },
+  "source_checksums": {
+    "boundaries": "77e30aa02b1784b649d9b6f23e3b2ebb825af787de554f3a3fb76bbee3013c42",
+    "population": "b188d34d6943f7ff99975ec40937d8313c304f192134ea0d173d6235261e5903"
+  },
+  "source_dates_note": "Source release/portal dates are separate from Census 2020 and Master Plan 2019",
+  "sources": {
+    "boundaries": {
+      "access_url": "https://api-open.data.gov.sg/v1/public/api/datasets/d_8594ae9ff96d0c708bc2af633048edfb/poll-download",
+      "bytes": 3180569,
+      "dataset_id": "d_8594ae9ff96d0c708bc2af633048edfb",
+      "file": "boundaries.geojson",
+      "sha256": "77e30aa02b1784b649d9b6f23e3b2ebb825af787de554f3a3fb76bbee3013c42",
+      "source_url": "https://data.gov.sg/datasets/d_8594ae9ff96d0c708bc2af633048edfb/view"
+    },
+    "population": {
+      "access_url": "https://data.gov.sg/api/action/datastore_search?resource_id=d_d95ae740c0f8961a0b10435836660ce0",
+      "bytes": 484580,
+      "dataset_id": "d_d95ae740c0f8961a0b10435836660ce0",
+      "file": "population-api.json",
+      "sha256": "b188d34d6943f7ff99975ec40937d8313c304f192134ea0d173d6235261e5903",
+      "source_url": "https://data.gov.sg/datasets/d_d95ae740c0f8961a0b10435836660ce0/view"
+    }
+  },
+  "title": "Singapore Resident Population — Census 2020",
+  "transformation_version": "population-preparation/1.0.0"
+}

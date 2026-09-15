@@ -1,0 +1,1527 @@
+{
+  "aggregates": [
+    {
+      "level": "national",
+      "planning_area": null,
+      "population": 4044210,
+      "population_raw": "4044210",
+      "population_status": "known",
+      "source_id": 1,
+      "source_label": "Total",
+      "source_row": 1
+    },
+    {
+      "level": "planning_area",
+      "planning_area": "Ang Mo Kio",
+      "population": 162280,
+      "population_raw": "162280",
+      "population_status": "known",
+      "source_id": 2,
+      "source_label": "Ang Mo Kio - Total",
+      "source_row": 2
+    },
+    {
+      "level": "planning_area",
+      "planning_area": "Bedok",
+      "population": 276990,
+      "population_raw": "276990",
+      "population_status": "known",
+      "source_id": 15,
+      "source_label": "Bedok - Total",
+      "source_row": 15
+    },
+    {
+      "level": "planning_area",
+      "planning_area": "Bishan",
+      "population": 87320,
+      "population_raw": "87320",
+      "population_status": "known",
+      "source_id": 24,
+      "source_label": "Bishan - Total",
+      "source_row": 24
+    },
+    {
+      "level": "planning_area",
+      "planning_area": "Boon Lay",
+      "population": 40,
+      "population_raw": "40",
+      "population_status": "known",
+      "source_id": 28,
+      "source_label": "Boon Lay - Total",
+      "source_row": 28
+    },
+    {
+      "level": "planning_area",
+      "planning_area": "Bukit Batok",
+      "population": 158030,
+      "population_raw": "158030",
+      "population_status": "known",
+      "source_id": 33,
+      "source_label": "Bukit Batok - Total",
+      "source_row": 33
+    },
+    {
+      "level": "planning_area",
+      "planning_area": "Bukit Merah",
+      "population": 151250,
+      "population_raw": "151250",
+      "population_status": "known",
+      "source_id": 43,
+      "source_label": "Bukit Merah - Total",
+      "source_row": 43
+    },
+    {
+      "level": "planning_area",
+      "planning_area": "Bukit Panjang",
+      "population": 138270,
+      "population_raw": "138270",
+      "population_status": "known",
+      "source_id": 61,
+      "source_label": "Bukit Panjang - Total",
+      "source_row": 61
+    },
+    {
+      "level": "planning_area",
+      "planning_area": "Bukit Timah",
+      "population": 77860,
+      "population_raw": "77860",
+      "population_status": "known",
+      "source_id": 69,
+      "source_label": "Bukit Timah - Total",
+      "source_row": 69
+    },
+    {
+      "level": "planning_area",
+      "planning_area": "Central Water Catchment",
+      "population": null,
+      "population_raw": "-",
+      "population_status": "qualified_nil_or_negligible",
+      "source_id": 78,
+      "source_label": "Central Water Catchment - Total",
+      "source_row": 78
+    },
+    {
+      "level": "planning_area",
+      "planning_area": "Changi",
+      "population": 1850,
+      "population_raw": "1850",
+      "population_status": "known",
+      "source_id": 80,
+      "source_label": "Changi- Total",
+      "source_row": 80
+    },
+    {
+      "level": "planning_area",
+      "planning_area": "Changi Bay",
+      "population": null,
+      "population_raw": "-",
+      "population_status": "qualified_nil_or_negligible",
+      "source_id": 84,
+      "source_label": "Changi Bay - Total",
+      "source_row": 84
+    },
+    {
+      "level": "planning_area",
+      "planning_area": "Choa Chu Kang",
+      "population": 192070,
+      "population_raw": "192070",
+      "population_status": "known",
+      "source_id": 86,
+      "source_label": "Choa Chu Kang - Total",
+      "source_row": 86
+    },
+    {
+      "level": "planning_area",
+      "planning_area": "Clementi",
+      "population": 91990,
+      "population_raw": "91990",
+      "population_status": "known",
+      "source_id": 93,
+      "source_label": "Clementi - Total",
+      "source_row": 93
+    },
+    {
+      "level": "planning_area",
+      "planning_area": "Downtown Core",
+      "population": 3190,
+      "population_raw": "3190",
+      "population_status": "known",
+      "source_id": 103,
+      "source_label": "Downtown Core - Total",
+      "source_row": 103
+    },
+    {
+      "level": "planning_area",
+      "planning_area": "Geylang",
+      "population": 110110,
+      "population_raw": "110110",
+      "population_status": "known",
+      "source_id": 117,
+      "source_label": "Geylang - Total",
+      "source_row": 117
+    },
+    {
+      "level": "planning_area",
+      "planning_area": "Hougang",
+      "population": 227560,
+      "population_raw": "227560",
+      "population_status": "known",
+      "source_id": 123,
+      "source_label": "Hougang - Total",
+      "source_row": 123
+    },
+    {
+      "level": "planning_area",
+      "planning_area": "Jurong East",
+      "population": 78600,
+      "population_raw": "78600",
+      "population_status": "known",
+      "source_id": 134,
+      "source_label": "Jurong East - Total",
+      "source_row": 134
+    },
+    {
+      "level": "planning_area",
+      "planning_area": "Jurong West",
+      "population": 262730,
+      "population_raw": "262730",
+      "population_status": "known",
+      "source_id": 146,
+      "source_label": "Jurong West - Total",
+      "source_row": 146
+    },
+    {
+      "level": "planning_area",
+      "planning_area": "Kallang",
+      "population": 101290,
+      "population_raw": "101290",
+      "population_status": "known",
+      "source_id": 156,
+      "source_label": "Kallang - Total",
+      "source_row": 156
+    },
+    {
+      "level": "planning_area",
+      "planning_area": "Lim Chu Kang",
+      "population": 110,
+      "population_raw": "110",
+      "population_status": "known",
+      "source_id": 166,
+      "source_label": "Lim Chu Kang - Total",
+      "source_row": 166
+    },
+    {
+      "level": "planning_area",
+      "planning_area": "Mandai",
+      "population": 2090,
+      "population_raw": "2090",
+      "population_status": "known",
+      "source_id": 168,
+      "source_label": "Mandai - Total",
+      "source_row": 168
+    },
+    {
+      "level": "planning_area",
+      "planning_area": "Marina East",
+      "population": null,
+      "population_raw": "-",
+      "population_status": "qualified_nil_or_negligible",
+      "source_id": 172,
+      "source_label": "Marina East - Total",
+      "source_row": 172
+    },
+    {
+      "level": "planning_area",
+      "planning_area": "Marina South",
+      "population": null,
+      "population_raw": "-",
+      "population_status": "qualified_nil_or_negligible",
+      "source_id": 174,
+      "source_label": "Marina South - Total",
+      "source_row": 174
+    },
+    {
+      "level": "planning_area",
+      "planning_area": "Marine Parade",
+      "population": 46220,
+      "population_raw": "46220",
+      "population_status": "known",
+      "source_id": 176,
+      "source_label": "Marine Parade - Total",
+      "source_row": 176
+    },
+    {
+      "level": "planning_area",
+      "planning_area": "Museum",
+      "population": 510,
+      "population_raw": "510",
+      "population_status": "known",
+      "source_id": 182,
+      "source_label": "Museum - Total",
+      "source_row": 182
+    },
+    {
+      "level": "planning_area",
+      "planning_area": "Newton",
+      "population": 8260,
+      "population_raw": "8260",
+      "population_status": "known",
+      "source_id": 186,
+      "source_label": "Newton - Total",
+      "source_row": 186
+    },
+    {
+      "level": "planning_area",
+      "planning_area": "North-Eastern Islands",
+      "population": 50,
+      "population_raw": "50",
+      "population_status": "known",
+      "source_id": 193,
+      "source_label": "North-Eastern Islands - Total",
+      "source_row": 193
+    },
+    {
+      "level": "planning_area",
+      "planning_area": "Novena",
+      "population": 49330,
+      "population_raw": "49330",
+      "population_status": "known",
+      "source_id": 195,
+      "source_label": "Novena - Total",
+      "source_row": 195
+    },
+    {
+      "level": "planning_area",
+      "planning_area": "Orchard",
+      "population": 920,
+      "population_raw": "920",
+      "population_status": "known",
+      "source_id": 201,
+      "source_label": "Orchard - Total",
+      "source_row": 201
+    },
+    {
+      "level": "planning_area",
+      "planning_area": "Outram",
+      "population": 18340,
+      "population_raw": "18340",
+      "population_status": "known",
+      "source_id": 205,
+      "source_label": "Outram - Total",
+      "source_row": 205
+    },
+    {
+      "level": "planning_area",
+      "planning_area": "Pasir Ris",
+      "population": 147110,
+      "population_raw": "147110",
+      "population_status": "known",
+      "source_id": 210,
+      "source_label": "Pasir Ris - Total",
+      "source_row": 210
+    },
+    {
+      "level": "planning_area",
+      "planning_area": "Paya Lebar",
+      "population": 40,
+      "population_raw": "40",
+      "population_status": "known",
+      "source_id": 219,
+      "source_label": "Paya Lebar - Total",
+      "source_row": 219
+    },
+    {
+      "level": "planning_area",
+      "planning_area": "Pioneer",
+      "population": 80,
+      "population_raw": "80",
+      "population_status": "known",
+      "source_id": 225,
+      "source_label": "Pioneer - Total",
+      "source_row": 225
+    },
+    {
+      "level": "planning_area",
+      "planning_area": "Punggol",
+      "population": 174450,
+      "population_raw": "174450",
+      "population_status": "known",
+      "source_id": 231,
+      "source_label": "Punggol - Total",
+      "source_row": 231
+    },
+    {
+      "level": "planning_area",
+      "planning_area": "Queenstown",
+      "population": 95930,
+      "population_raw": "95930",
+      "population_status": "known",
+      "source_id": 239,
+      "source_label": "Queenstown - Total",
+      "source_row": 239
+    },
+    {
+      "level": "planning_area",
+      "planning_area": "River Valley",
+      "population": 10070,
+      "population_raw": "10070",
+      "population_status": "known",
+      "source_id": 255,
+      "source_label": "River Valley - Total",
+      "source_row": 255
+    },
+    {
+      "level": "planning_area",
+      "planning_area": "Rochor",
+      "population": 13120,
+      "population_raw": "13120",
+      "population_status": "known",
+      "source_id": 261,
+      "source_label": "Rochor - Total",
+      "source_row": 261
+    },
+    {
+      "level": "planning_area",
+      "planning_area": "Seletar",
+      "population": 300,
+      "population_raw": "300",
+      "population_status": "known",
+      "source_id": 272,
+      "source_label": "Seletar - Total",
+      "source_row": 272
+    },
+    {
+      "level": "planning_area",
+      "planning_area": "Sembawang",
+      "population": 102640,
+      "population_raw": "102640",
+      "population_status": "known",
+      "source_id": 277,
+      "source_label": "Sembawang - Total",
+      "source_row": 277
+    },
+    {
+      "level": "planning_area",
+      "planning_area": "Sengkang",
+      "population": 249370,
+      "population_raw": "249370",
+      "population_status": "known",
+      "source_id": 287,
+      "source_label": "Sengkang - Total",
+      "source_row": 287
+    },
+    {
+      "level": "planning_area",
+      "planning_area": "Serangoon",
+      "population": 116900,
+      "population_raw": "116900",
+      "population_status": "known",
+      "source_id": 295,
+      "source_label": "Serangoon - Total",
+      "source_row": 295
+    },
+    {
+      "level": "planning_area",
+      "planning_area": "Simpang",
+      "population": null,
+      "population_raw": "-",
+      "population_status": "qualified_nil_or_negligible",
+      "source_id": 303,
+      "source_label": "Simpang - Total",
+      "source_row": 303
+    },
+    {
+      "level": "planning_area",
+      "planning_area": "Singapore River",
+      "population": 3260,
+      "population_raw": "3260",
+      "population_status": "known",
+      "source_id": 308,
+      "source_label": "Singapore River - Total",
+      "source_row": 308
+    },
+    {
+      "level": "planning_area",
+      "planning_area": "Southern Islands",
+      "population": 1940,
+      "population_raw": "1940",
+      "population_status": "known",
+      "source_id": 312,
+      "source_label": "Southern Islands - Total",
+      "source_row": 312
+    },
+    {
+      "level": "planning_area",
+      "planning_area": "Straits View",
+      "population": null,
+      "population_raw": "-",
+      "population_status": "qualified_nil_or_negligible",
+      "source_id": 315,
+      "source_label": "Straits View - Total",
+      "source_row": 315
+    },
+    {
+      "level": "planning_area",
+      "planning_area": "Sungei Kadut",
+      "population": 750,
+      "population_raw": "750",
+      "population_status": "known",
+      "source_id": 317,
+      "source_label": "Sungei Kadut - Total",
+      "source_row": 317
+    },
+    {
+      "level": "planning_area",
+      "planning_area": "Tampines",
+      "population": 259900,
+      "population_raw": "259900",
+      "population_status": "known",
+      "source_id": 323,
+      "source_label": "Tampines - Total",
+      "source_row": 323
+    },
+    {
+      "level": "planning_area",
+      "planning_area": "Tanglin",
+      "population": 21810,
+      "population_raw": "21810",
+      "population_status": "known",
+      "source_id": 329,
+      "source_label": "Tanglin - Total",
+      "source_row": 329
+    },
+    {
+      "level": "planning_area",
+      "planning_area": "Tengah",
+      "population": 10,
+      "population_raw": "10",
+      "population_status": "known",
+      "source_id": 334,
+      "source_label": "Tengah - Total",
+      "source_row": 334
+    },
+    {
+      "level": "planning_area",
+      "planning_area": "Toa Payoh",
+      "population": 121850,
+      "population_raw": "121850",
+      "population_status": "known",
+      "source_id": 341,
+      "source_label": "Toa Payoh - Total",
+      "source_row": 341
+    },
+    {
+      "level": "planning_area",
+      "planning_area": "Tuas",
+      "population": 70,
+      "population_raw": "70",
+      "population_status": "known",
+      "source_id": 354,
+      "source_label": "Tuas - Total",
+      "source_row": 354
+    },
+    {
+      "level": "planning_area",
+      "planning_area": "Western Islands",
+      "population": 10,
+      "population_raw": "10",
+      "population_status": "known",
+      "source_id": 361,
+      "source_label": "Western Islands - Total",
+      "source_row": 361
+    },
+    {
+      "level": "planning_area",
+      "planning_area": "Western Water Catchment",
+      "population": 640,
+      "population_raw": "640",
+      "population_status": "known",
+      "source_id": 365,
+      "source_label": "Western Water Catchment - Total",
+      "source_row": 365
+    },
+    {
+      "level": "planning_area",
+      "planning_area": "Woodlands",
+      "population": 255130,
+      "population_raw": "255130",
+      "population_status": "known",
+      "source_id": 369,
+      "source_label": "Woodlands - Total",
+      "source_row": 369
+    },
+    {
+      "level": "planning_area",
+      "planning_area": "Yishun",
+      "population": 221610,
+      "population_raw": "221610",
+      "population_status": "known",
+      "source_id": 379,
+      "source_label": "Yishun - Total",
+      "source_row": 379
+    }
+  ],
+  "counts": {
+    "ambiguous_boundaries": 0,
+    "display_zones": 332,
+    "duplicate_boundary_keys": 0,
+    "duplicate_population_keys": 0,
+    "duplicate_zone_ids": 0,
+    "eligible": 275,
+    "excluded": 57,
+    "invalid_geometry": 6,
+    "invalid_population": 0,
+    "matched": 332,
+    "national_rows": 1,
+    "overlap_pairs": 7,
+    "overlapping_zones": 11,
+    "planning_area_rows": 55,
+    "population_statuses": {
+      "known": 286,
+      "qualified_nil_or_negligible": 46
+    },
+    "population_subzone_rows": 332,
+    "raw_boundary_features": 332,
+    "raw_population_rows": 388,
+    "unknown_population": 46,
+    "unmatched_boundaries": 0,
+    "unmatched_population": 0
+  },
+  "dataset_version": "sg-residents-2020-mp2019-cbb1c395f60918c1",
+  "excluded": [
+    {
+      "reasons": [
+        "population_qualified_nil_or_negligible"
+      ],
+      "zone_id": "DTSZ12"
+    },
+    {
+      "reasons": [
+        "population_qualified_nil_or_negligible"
+      ],
+      "zone_id": "DTSZ06"
+    },
+    {
+      "reasons": [
+        "population_qualified_nil_or_negligible"
+      ],
+      "zone_id": "MSSZ01"
+    },
+    {
+      "reasons": [
+        "population_qualified_nil_or_negligible"
+      ],
+      "zone_id": "MESZ01"
+    },
+    {
+      "reasons": [
+        "population_qualified_nil_or_negligible"
+      ],
+      "zone_id": "MPSZ05"
+    },
+    {
+      "reasons": [
+        "population_qualified_nil_or_negligible"
+      ],
+      "zone_id": "WISZ03"
+    },
+    {
+      "reasons": [
+        "population_qualified_nil_or_negligible"
+      ],
+      "zone_id": "WISZ02"
+    },
+    {
+      "reasons": [
+        "source: Ring Self-intersection[103.85041030543 1.22911084430392]",
+        "projected: Ring Self-intersection[29902.2074000343 23534.3641997714]",
+        "population_qualified_nil_or_negligible"
+      ],
+      "zone_id": "SISZ02"
+    },
+    {
+      "reasons": [
+        "source: Ring Self-intersection[103.823303956149 1.25745321410074]",
+        "projected: Ring Self-intersection[26885.4439000356 26668.3120998164]"
+      ],
+      "zone_id": "SISZ01"
+    },
+    {
+      "reasons": [
+        "population_qualified_nil_or_negligible"
+      ],
+      "zone_id": "SVSZ01"
+    },
+    {
+      "reasons": [
+        "source: Ring Self-intersection[103.823615961275 1.2602588451659]",
+        "projected: Ring Self-intersection[26920.1690000358 26978.5440998196]"
+      ],
+      "zone_id": "BMSZ01"
+    },
+    {
+      "reasons": [
+        "population_qualified_nil_or_negligible"
+      ],
+      "zone_id": "DTSZ07"
+    },
+    {
+      "reasons": [
+        "population_qualified_nil_or_negligible"
+      ],
+      "zone_id": "MPSZ04"
+    },
+    {
+      "reasons": [
+        "source: Ring Self-intersection[103.932080154816 1.30554765129205]",
+        "projected: Ring Self-intersection[38991.2589000333 31986.5599998909]"
+      ],
+      "zone_id": "BDSZ07"
+    },
+    {
+      "reasons": [
+        "population_qualified_nil_or_negligible"
+      ],
+      "zone_id": "PNSZ05"
+    },
+    {
+      "reasons": [
+        "population_qualified_nil_or_negligible"
+      ],
+      "zone_id": "RCSZ04"
+    },
+    {
+      "reasons": [
+        "population_qualified_nil_or_negligible"
+      ],
+      "zone_id": "JWSZ07"
+    },
+    {
+      "reasons": [
+        "source: Ring Self-intersection[103.720393805048 1.29951635954019]",
+        "projected: Ring Self-intersection[15432.475000033 31319.715999881]",
+        "population_qualified_nil_or_negligible"
+      ],
+      "zone_id": "JESZ10"
+    },
+    {
+      "reasons": [
+        "population_qualified_nil_or_negligible"
+      ],
+      "zone_id": "THSZ02"
+    },
+    {
+      "reasons": [
+        "population_qualified_nil_or_negligible"
+      ],
+      "zone_id": "BLSZ04"
+    },
+    {
+      "reasons": [
+        "positive_area_overlap"
+      ],
+      "zone_id": "HGSZ09"
+    },
+    {
+      "reasons": [
+        "population_qualified_nil_or_negligible"
+      ],
+      "zone_id": "CBSZ01"
+    },
+    {
+      "reasons": [
+        "population_qualified_nil_or_negligible"
+      ],
+      "zone_id": "JWSZ05"
+    },
+    {
+      "reasons": [
+        "positive_area_overlap"
+      ],
+      "zone_id": "SGSZ07"
+    },
+    {
+      "reasons": [
+        "positive_area_overlap"
+      ],
+      "zone_id": "HGSZ08"
+    },
+    {
+      "reasons": [
+        "population_qualified_nil_or_negligible"
+      ],
+      "zone_id": "TSSZ01"
+    },
+    {
+      "reasons": [
+        "population_qualified_nil_or_negligible"
+      ],
+      "zone_id": "TPSZ10"
+    },
+    {
+      "reasons": [
+        "positive_area_overlap"
+      ],
+      "zone_id": "YSSZ05"
+    },
+    {
+      "reasons": [
+        "population_qualified_nil_or_negligible"
+      ],
+      "zone_id": "HGSZ10"
+    },
+    {
+      "reasons": [
+        "population_qualified_nil_or_negligible"
+      ],
+      "zone_id": "PLSZ03"
+    },
+    {
+      "reasons": [
+        "population_qualified_nil_or_negligible"
+      ],
+      "zone_id": "SESZ01"
+    },
+    {
+      "reasons": [
+        "positive_area_overlap"
+      ],
+      "zone_id": "SESZ07"
+    },
+    {
+      "reasons": [
+        "population_qualified_nil_or_negligible",
+        "positive_area_overlap"
+      ],
+      "zone_id": "AMSZ11"
+    },
+    {
+      "reasons": [
+        "positive_area_overlap"
+      ],
+      "zone_id": "SLSZ01"
+    },
+    {
+      "reasons": [
+        "population_qualified_nil_or_negligible"
+      ],
+      "zone_id": "MDSZ01"
+    },
+    {
+      "reasons": [
+        "population_qualified_nil_or_negligible"
+      ],
+      "zone_id": "PGSZ07"
+    },
+    {
+      "reasons": [
+        "population_qualified_nil_or_negligible",
+        "positive_area_overlap"
+      ],
+      "zone_id": "WCSZ03"
+    },
+    {
+      "reasons": [
+        "population_qualified_nil_or_negligible",
+        "positive_area_overlap"
+      ],
+      "zone_id": "WCSZ02"
+    },
+    {
+      "reasons": [
+        "population_qualified_nil_or_negligible"
+      ],
+      "zone_id": "JESZ05"
+    },
+    {
+      "reasons": [
+        "population_qualified_nil_or_negligible"
+      ],
+      "zone_id": "THSZ03"
+    },
+    {
+      "reasons": [
+        "population_qualified_nil_or_negligible"
+      ],
+      "zone_id": "THSZ04"
+    },
+    {
+      "reasons": [
+        "population_qualified_nil_or_negligible"
+      ],
+      "zone_id": "THSZ06"
+    },
+    {
+      "reasons": [
+        "population_qualified_nil_or_negligible"
+      ],
+      "zone_id": "THSZ05"
+    },
+    {
+      "reasons": [
+        "population_qualified_nil_or_negligible",
+        "positive_area_overlap"
+      ],
+      "zone_id": "PLSZ04"
+    },
+    {
+      "reasons": [
+        "population_qualified_nil_or_negligible"
+      ],
+      "zone_id": "PGSZ06"
+    },
+    {
+      "reasons": [
+        "population_qualified_nil_or_negligible"
+      ],
+      "zone_id": "CCSZ01"
+    },
+    {
+      "reasons": [
+        "population_qualified_nil_or_negligible"
+      ],
+      "zone_id": "SBSZ07"
+    },
+    {
+      "reasons": [
+        "population_qualified_nil_or_negligible"
+      ],
+      "zone_id": "SLSZ03"
+    },
+    {
+      "reasons": [
+        "positive_area_overlap"
+      ],
+      "zone_id": "WCSZ01"
+    },
+    {
+      "reasons": [
+        "population_qualified_nil_or_negligible"
+      ],
+      "zone_id": "SLSZ02"
+    },
+    {
+      "reasons": [
+        "population_qualified_nil_or_negligible"
+      ],
+      "zone_id": "SMSZ04"
+    },
+    {
+      "reasons": [
+        "population_qualified_nil_or_negligible"
+      ],
+      "zone_id": "SMSZ01"
+    },
+    {
+      "reasons": [
+        "population_qualified_nil_or_negligible"
+      ],
+      "zone_id": "SMSZ02"
+    },
+    {
+      "reasons": [
+        "source: Ring Self-intersection[103.928049842741 1.41966801994]",
+        "projected: Ring Self-intersection[38542.225600033 44605.4089000677]"
+      ],
+      "zone_id": "NESZ01"
+    },
+    {
+      "reasons": [
+        "population_qualified_nil_or_negligible"
+      ],
+      "zone_id": "SMSZ03"
+    },
+    {
+      "reasons": [
+        "population_qualified_nil_or_negligible"
+      ],
+      "zone_id": "PLSZ05"
+    },
+    {
+      "reasons": [
+        "population_qualified_nil_or_negligible"
+      ],
+      "zone_id": "MDSZ02"
+    }
+  ],
+  "geography": {
+    "invalid": [
+      {
+        "reasons": [
+          "source: Ring Self-intersection[103.85041030543 1.22911084430392]",
+          "projected: Ring Self-intersection[29902.2074000343 23534.3641997714]"
+        ],
+        "zone_id": "SISZ02"
+      },
+      {
+        "reasons": [
+          "source: Ring Self-intersection[103.823303956149 1.25745321410074]",
+          "projected: Ring Self-intersection[26885.4439000356 26668.3120998164]"
+        ],
+        "zone_id": "SISZ01"
+      },
+      {
+        "reasons": [
+          "source: Ring Self-intersection[103.823615961275 1.2602588451659]",
+          "projected: Ring Self-intersection[26920.1690000358 26978.5440998196]"
+        ],
+        "zone_id": "BMSZ01"
+      },
+      {
+        "reasons": [
+          "source: Ring Self-intersection[103.932080154816 1.30554765129205]",
+          "projected: Ring Self-intersection[38991.2589000333 31986.5599998909]"
+        ],
+        "zone_id": "BDSZ07"
+      },
+      {
+        "reasons": [
+          "source: Ring Self-intersection[103.720393805048 1.29951635954019]",
+          "projected: Ring Self-intersection[15432.475000033 31319.715999881]"
+        ],
+        "zone_id": "JESZ10"
+      },
+      {
+        "reasons": [
+          "source: Ring Self-intersection[103.928049842741 1.41966801994]",
+          "projected: Ring Self-intersection[38542.225600033 44605.4089000677]"
+        ],
+        "zone_id": "NESZ01"
+      }
+    ],
+    "maximum_absolute_difference_from_source_shape_area_m2": 0.0009626299142837524,
+    "outside_viewer_bounds": [],
+    "overlap_area_tolerance_m2": 0,
+    "overlap_scope": "Pairs of valid, positive-area source/projected zones; invalid zones excluded without repair",
+    "overlaps": [
+      {
+        "area_m2": 0.0006134482993012114,
+        "zone_ids": [
+          "HGSZ09",
+          "PLSZ04"
+        ]
+      },
+      {
+        "area_m2": 4.9698775488549174e-05,
+        "zone_ids": [
+          "SGSZ07",
+          "HGSZ08"
+        ]
+      },
+      {
+        "area_m2": 0.3192289764976613,
+        "zone_ids": [
+          "YSSZ05",
+          "SESZ07"
+        ]
+      },
+      {
+        "area_m2": 0.0005457402967294911,
+        "zone_ids": [
+          "YSSZ05",
+          "SLSZ01"
+        ]
+      },
+      {
+        "area_m2": 0.0007888799178701333,
+        "zone_ids": [
+          "SESZ07",
+          "AMSZ11"
+        ]
+      },
+      {
+        "area_m2": 0.0007818989852239611,
+        "zone_ids": [
+          "WCSZ03",
+          "WCSZ01"
+        ]
+      },
+      {
+        "area_m2": 0.00012659269714276888,
+        "zone_ids": [
+          "WCSZ02",
+          "WCSZ01"
+        ]
+      }
+    ],
+    "projected_axis_order": "easting, northing; metres",
+    "projected_crs": "EPSG:3414",
+    "repairs": [],
+    "source_coordinate_convention": "RFC 7946 WGS84 longitude, latitude; degrees (no crs member in inspected source)",
+    "transformation": "axis order change (2D) + Inverse of SVY21 to WGS 84 (1) + Singapore Transverse Mercator + axis order change (2D)"
+  },
+  "joins": {
+    "ambiguous_boundaries": [],
+    "duplicate_boundary_keys": [],
+    "duplicate_population_keys": [],
+    "duplicate_zone_ids": [],
+    "unmatched_boundaries": [],
+    "unmatched_population": []
+  },
+  "limitations": [
+    "Historical resident population (citizens and permanent residents), not everyone physically present or live crowd levels.",
+    "SingStat notes that rounded counts may not add to totals; no values are adjusted to reconcile.",
+    "Source '-' means nil or negligible or not significant; treated as qualified unknown, not numeric zero. No suppressed numeric values are invented.",
+    "Density is an average over supplied zone geometry, including any water in that geometry; no independent water mask was applied.",
+    "Invalid geometry and both participants in every positive-area overlap are excluded without repair; full-resolution source geometry remains in the display artifact.",
+    "The existing city/coastline tiles omit some offshore geometry. Population polygons are independent of that clipping; all boundary extents fit the current camera bounds.",
+    "PEC-candidate coverage is partial, not a claim that the whole dataset is PEC-ready; downstream consumers must respect exclusions and nullable population."
+  ],
+  "planning_area_reconciliation": [
+    {
+      "difference": -10,
+      "known_subzone_sum": 162270,
+      "planning_area": "Ang Mo Kio",
+      "published": 162280,
+      "published_raw": "162280",
+      "unknown_subzones": 1
+    },
+    {
+      "difference": 0,
+      "known_subzone_sum": 276990,
+      "planning_area": "Bedok",
+      "published": 276990,
+      "published_raw": "276990",
+      "unknown_subzones": 0
+    },
+    {
+      "difference": 0,
+      "known_subzone_sum": 87320,
+      "planning_area": "Bishan",
+      "published": 87320,
+      "published_raw": "87320",
+      "unknown_subzones": 0
+    },
+    {
+      "difference": -10,
+      "known_subzone_sum": 30,
+      "planning_area": "Boon Lay",
+      "published": 40,
+      "published_raw": "40",
+      "unknown_subzones": 1
+    },
+    {
+      "difference": 20,
+      "known_subzone_sum": 158050,
+      "planning_area": "Bukit Batok",
+      "published": 158030,
+      "published_raw": "158030",
+      "unknown_subzones": 0
+    },
+    {
+      "difference": 20,
+      "known_subzone_sum": 151270,
+      "planning_area": "Bukit Merah",
+      "published": 151250,
+      "published_raw": "151250",
+      "unknown_subzones": 0
+    },
+    {
+      "difference": 10,
+      "known_subzone_sum": 138280,
+      "planning_area": "Bukit Panjang",
+      "published": 138270,
+      "published_raw": "138270",
+      "unknown_subzones": 0
+    },
+    {
+      "difference": -10,
+      "known_subzone_sum": 77850,
+      "planning_area": "Bukit Timah",
+      "published": 77860,
+      "published_raw": "77860",
+      "unknown_subzones": 0
+    },
+    {
+      "difference": null,
+      "known_subzone_sum": 0,
+      "planning_area": "Central Water Catchment",
+      "published": null,
+      "published_raw": "-",
+      "unknown_subzones": 1
+    },
+    {
+      "difference": 0,
+      "known_subzone_sum": 1850,
+      "planning_area": "Changi",
+      "published": 1850,
+      "published_raw": "1850",
+      "unknown_subzones": 0
+    },
+    {
+      "difference": null,
+      "known_subzone_sum": 0,
+      "planning_area": "Changi Bay",
+      "published": null,
+      "published_raw": "-",
+      "unknown_subzones": 1
+    },
+    {
+      "difference": 0,
+      "known_subzone_sum": 192070,
+      "planning_area": "Choa Chu Kang",
+      "published": 192070,
+      "published_raw": "192070",
+      "unknown_subzones": 0
+    },
+    {
+      "difference": 0,
+      "known_subzone_sum": 91990,
+      "planning_area": "Clementi",
+      "published": 91990,
+      "published_raw": "91990",
+      "unknown_subzones": 0
+    },
+    {
+      "difference": 20,
+      "known_subzone_sum": 3210,
+      "planning_area": "Downtown Core",
+      "published": 3190,
+      "published_raw": "3190",
+      "unknown_subzones": 3
+    },
+    {
+      "difference": -10,
+      "known_subzone_sum": 110100,
+      "planning_area": "Geylang",
+      "published": 110110,
+      "published_raw": "110110",
+      "unknown_subzones": 0
+    },
+    {
+      "difference": 10,
+      "known_subzone_sum": 227570,
+      "planning_area": "Hougang",
+      "published": 227560,
+      "published_raw": "227560",
+      "unknown_subzones": 1
+    },
+    {
+      "difference": 0,
+      "known_subzone_sum": 78600,
+      "planning_area": "Jurong East",
+      "published": 78600,
+      "published_raw": "78600",
+      "unknown_subzones": 2
+    },
+    {
+      "difference": 0,
+      "known_subzone_sum": 262730,
+      "planning_area": "Jurong West",
+      "published": 262730,
+      "published_raw": "262730",
+      "unknown_subzones": 2
+    },
+    {
+      "difference": 0,
+      "known_subzone_sum": 101290,
+      "planning_area": "Kallang",
+      "published": 101290,
+      "published_raw": "101290",
+      "unknown_subzones": 0
+    },
+    {
+      "difference": 0,
+      "known_subzone_sum": 110,
+      "planning_area": "Lim Chu Kang",
+      "published": 110,
+      "published_raw": "110",
+      "unknown_subzones": 0
+    },
+    {
+      "difference": 0,
+      "known_subzone_sum": 2090,
+      "planning_area": "Mandai",
+      "published": 2090,
+      "published_raw": "2090",
+      "unknown_subzones": 2
+    },
+    {
+      "difference": null,
+      "known_subzone_sum": 0,
+      "planning_area": "Marina East",
+      "published": null,
+      "published_raw": "-",
+      "unknown_subzones": 1
+    },
+    {
+      "difference": null,
+      "known_subzone_sum": 0,
+      "planning_area": "Marina South",
+      "published": null,
+      "published_raw": "-",
+      "unknown_subzones": 1
+    },
+    {
+      "difference": 0,
+      "known_subzone_sum": 46220,
+      "planning_area": "Marine Parade",
+      "published": 46220,
+      "published_raw": "46220",
+      "unknown_subzones": 2
+    },
+    {
+      "difference": 10,
+      "known_subzone_sum": 520,
+      "planning_area": "Museum",
+      "published": 510,
+      "published_raw": "510",
+      "unknown_subzones": 0
+    },
+    {
+      "difference": 10,
+      "known_subzone_sum": 8270,
+      "planning_area": "Newton",
+      "published": 8260,
+      "published_raw": "8260",
+      "unknown_subzones": 0
+    },
+    {
+      "difference": 0,
+      "known_subzone_sum": 50,
+      "planning_area": "North-Eastern Islands",
+      "published": 50,
+      "published_raw": "50",
+      "unknown_subzones": 0
+    },
+    {
+      "difference": 0,
+      "known_subzone_sum": 49330,
+      "planning_area": "Novena",
+      "published": 49330,
+      "published_raw": "49330",
+      "unknown_subzones": 0
+    },
+    {
+      "difference": 0,
+      "known_subzone_sum": 920,
+      "planning_area": "Orchard",
+      "published": 920,
+      "published_raw": "920",
+      "unknown_subzones": 0
+    },
+    {
+      "difference": -10,
+      "known_subzone_sum": 18330,
+      "planning_area": "Outram",
+      "published": 18340,
+      "published_raw": "18340",
+      "unknown_subzones": 0
+    },
+    {
+      "difference": 10,
+      "known_subzone_sum": 147120,
+      "planning_area": "Pasir Ris",
+      "published": 147110,
+      "published_raw": "147110",
+      "unknown_subzones": 0
+    },
+    {
+      "difference": 0,
+      "known_subzone_sum": 40,
+      "planning_area": "Paya Lebar",
+      "published": 40,
+      "published_raw": "40",
+      "unknown_subzones": 3
+    },
+    {
+      "difference": -10,
+      "known_subzone_sum": 70,
+      "planning_area": "Pioneer",
+      "published": 80,
+      "published_raw": "80",
+      "unknown_subzones": 1
+    },
+    {
+      "difference": 10,
+      "known_subzone_sum": 174460,
+      "planning_area": "Punggol",
+      "published": 174450,
+      "published_raw": "174450",
+      "unknown_subzones": 2
+    },
+    {
+      "difference": 30,
+      "known_subzone_sum": 95960,
+      "planning_area": "Queenstown",
+      "published": 95930,
+      "published_raw": "95930",
+      "unknown_subzones": 0
+    },
+    {
+      "difference": 0,
+      "known_subzone_sum": 10070,
+      "planning_area": "River Valley",
+      "published": 10070,
+      "published_raw": "10070",
+      "unknown_subzones": 0
+    },
+    {
+      "difference": 0,
+      "known_subzone_sum": 13120,
+      "planning_area": "Rochor",
+      "published": 13120,
+      "published_raw": "13120",
+      "unknown_subzones": 1
+    },
+    {
+      "difference": 0,
+      "known_subzone_sum": 300,
+      "planning_area": "Seletar",
+      "published": 300,
+      "published_raw": "300",
+      "unknown_subzones": 2
+    },
+    {
+      "difference": 0,
+      "known_subzone_sum": 102640,
+      "planning_area": "Sembawang",
+      "published": 102640,
+      "published_raw": "102640",
+      "unknown_subzones": 1
+    },
+    {
+      "difference": 10,
+      "known_subzone_sum": 249380,
+      "planning_area": "Sengkang",
+      "published": 249370,
+      "published_raw": "249370",
+      "unknown_subzones": 1
+    },
+    {
+      "difference": 0,
+      "known_subzone_sum": 116900,
+      "planning_area": "Serangoon",
+      "published": 116900,
+      "published_raw": "116900",
+      "unknown_subzones": 0
+    },
+    {
+      "difference": null,
+      "known_subzone_sum": 0,
+      "planning_area": "Simpang",
+      "published": null,
+      "published_raw": "-",
+      "unknown_subzones": 4
+    },
+    {
+      "difference": 10,
+      "known_subzone_sum": 3270,
+      "planning_area": "Singapore River",
+      "published": 3260,
+      "published_raw": "3260",
+      "unknown_subzones": 0
+    },
+    {
+      "difference": 0,
+      "known_subzone_sum": 1940,
+      "planning_area": "Southern Islands",
+      "published": 1940,
+      "published_raw": "1940",
+      "unknown_subzones": 1
+    },
+    {
+      "difference": null,
+      "known_subzone_sum": 0,
+      "planning_area": "Straits View",
+      "published": null,
+      "published_raw": "-",
+      "unknown_subzones": 1
+    },
+    {
+      "difference": 0,
+      "known_subzone_sum": 750,
+      "planning_area": "Sungei Kadut",
+      "published": 750,
+      "published_raw": "750",
+      "unknown_subzones": 0
+    },
+    {
+      "difference": 0,
+      "known_subzone_sum": 259900,
+      "planning_area": "Tampines",
+      "published": 259900,
+      "published_raw": "259900",
+      "unknown_subzones": 0
+    },
+    {
+      "difference": 0,
+      "known_subzone_sum": 21810,
+      "planning_area": "Tanglin",
+      "published": 21810,
+      "published_raw": "21810",
+      "unknown_subzones": 0
+    },
+    {
+      "difference": 0,
+      "known_subzone_sum": 10,
+      "planning_area": "Tengah",
+      "published": 10,
+      "published_raw": "10",
+      "unknown_subzones": 5
+    },
+    {
+      "difference": -10,
+      "known_subzone_sum": 121840,
+      "planning_area": "Toa Payoh",
+      "published": 121850,
+      "published_raw": "121850",
+      "unknown_subzones": 1
+    },
+    {
+      "difference": 0,
+      "known_subzone_sum": 70,
+      "planning_area": "Tuas",
+      "published": 70,
+      "published_raw": "70",
+      "unknown_subzones": 1
+    },
+    {
+      "difference": 0,
+      "known_subzone_sum": 10,
+      "planning_area": "Western Islands",
+      "published": 10,
+      "published_raw": "10",
+      "unknown_subzones": 2
+    },
+    {
+      "difference": 0,
+      "known_subzone_sum": 640,
+      "planning_area": "Western Water Catchment",
+      "published": 640,
+      "published_raw": "640",
+      "unknown_subzones": 2
+    },
+    {
+      "difference": -10,
+      "known_subzone_sum": 255120,
+      "planning_area": "Woodlands",
+      "published": 255130,
+      "published_raw": "255130",
+      "unknown_subzones": 0
+    },
+    {
+      "difference": 0,
+      "known_subzone_sum": 221610,
+      "planning_area": "Yishun",
+      "published": 221610,
+      "published_raw": "221610",
+      "unknown_subzones": 0
+    }
+  ],
+  "source_completeness": {
+    "boundary_evidence": "Complete poll-download blob with Content-Length check; 332 features in inspected MP2019 snapshot; no independent feature-count metadata available",
+    "boundary_features": 332,
+    "population_evidence": "API total and consecutive _id 1..388, or official CSV row count; dataset page publishes 388",
+    "population_records": 388
+  },
+  "status": "partial_coverage",
+  "totals": {
+    "difference_from_national": 130,
+    "eligible_population": 3982190,
+    "eligible_zone_area_m2": 502764650.00881994,
+    "known_display_population": 4044340,
+    "known_planning_area_sum": 4044250,
+    "published_national": 4044210
+  }
+}

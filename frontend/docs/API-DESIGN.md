@@ -1,5 +1,7 @@
 # Singapore canvas — API design
 
+Population milestone update (14 September 2026): the viewer now has an independent `addPolygonLayer` capability, population explorer and offline data-preparation tests. See the [current implementation and verification](POPULATION-VERIFICATION.md). The original review/design below is retained as historical context; planned playback, tracks and camera-follow features remain unimplemented.
+
 Last updated 2026-09-14. Reflects what is built through step 5 and the signed-off
 scope for step 6.
 
@@ -262,7 +264,315 @@ identity-matching handlers leaks whenever a caller passes an inline arrow functi
 
 ---
 
-## Demo ↔ backend contract — PROPOSAL, not agreed
+## Demo ↔ backend contract — planning-result/1
+
+This section is the **single source of truth for the frontend-facing planning
+result**. It supersedes the historical `Scenario` proposal below for this path.
+It describes backend JSON, not the Singapore Canvas library API. The frontend
+owns rendering, clock playback, camera, markers, footprint drawing, cards and
+the human go/no-go decision. No UI changes accompany this contract.
+
+### Handoff and regeneration
+
+The generated golden file is
+[`data/results/static-mvp-planning-result.json`](../../data/results/static-mvp-planning-result.json).
+From the repository root, regenerate it with:
+
+```sh
+.venv/bin/python -B scripts/export_static_mvp_planning_result.py
+```
+
+The script evaluates `data/scenarios/static-mvp-scenario.json` against
+`tests/fixtures/static-mvp-population.json`, then converts the authoritative
+result. It does not manufacture candidate evidence. The adapter entry point is
+`backend.presentation.planning_result_to_dict(result, settings, *, threat_id,
+footprint_radius_m)`. Settings are `PresentationSettings(scenario_start_time,
+visualization_height_m)`. This adapter is scoped to the existing synthetic
+linear-success, fixed-circle static scenario; those model labels are not a
+claim about arbitrary future planners.
+
+### Exact wire types
+
+All numbers are finite JSON numbers. Optional fields are omitted when their
+downstream evaluation did not occur; explicit `null` means unavailable evidence
+within a present record. Arrays preserve deterministic backend order.
+Unknown schema versions require a separately agreed consumer adaptation.
+
+```ts
+type CandidateCategory =
+  | "earliest_viable"
+  | "highest_success"
+  | "lowest_exposure";
+
+interface PlanningTimedSample {
+  time: string; // ISO 8601 UTC, six fractional digits, trailing Z
+  lon: number;  // WGS84 longitude in degrees
+  lat: number;  // WGS84 latitude in degrees
+  height: number; // synthetic visualization metres above WGS84 ellipsoid
+}
+
+interface PlanningCandidate {
+  id: string;
+  sampleIndex: number; // existing one-based backend sample index
+  timeFromStartS: number;
+  time: string;
+  position: { lon: number; lat: number; height: number };
+  reachable: boolean;
+  requiredTravelTimeS: number | null;
+  timeMarginS: number | null;
+  suppliedSuccessProbability?: number;
+  exposure?: {
+    status: "complete" | "partial_coverage";
+    peoplePotentiallyExposed: number | null;
+    knownAreaExposure: number;
+    coveredAreaFraction: number | null;
+  };
+  footprint?: { id: string; radiusM: number };
+  paretoEfficient: boolean;
+  categories: readonly CandidateCategory[];
+  eligibleForRecommendation: boolean;
+  ineligibilityReasons: readonly string[];
+}
+
+interface CandidateComparison {
+  referenceCandidateId: string;
+  comparisonCandidateId: string;
+  deltaTimeS: number;
+  deltaSuccessProbability: number | null;
+  deltaSuccessPercentagePoints: number | null;
+  deltaPeoplePotentiallyExposed: number | null;
+  relativeExposureChange: number | null;
+}
+
+interface PlanningResult {
+  schemaVersion: "planning-result/1";
+  scenarioId: string;
+  start: string;
+  end: string;
+  threat: { id: string; samples: readonly PlanningTimedSample[] };
+  candidates: readonly PlanningCandidate[];
+  paretoCandidateIds: readonly string[];
+  categoryAssignments: {
+    earliestViable: string | null;
+    highestSuccess: string | null;
+    lowestExposure: string | null;
+  };
+  representativeCandidateIds: readonly string[];
+  comparisons: readonly CandidateComparison[];
+  diagnostics: {
+    totalCandidates: number;
+    reachableCandidates: number;
+    eligibleCandidates: number;
+    paretoCandidates: number;
+  };
+  assumptions: {
+    successModel: "synthetic_linear_decay";
+    footprintModel: "supplied_fixed_circle";
+    footprintRadiusM: number;
+    populationExposureMeaning: "estimated_people_potentially_exposed";
+    kinematicsCalibration: "synthetic_not_operational";
+    visualizationHeightM: number;
+    heightMeaning: "synthetic_visualization_only";
+    scenarioTimeMeaning: "synthetic_presentation_clock";
+  };
+  populationProvenance: {
+    datasetId: string;
+    datasetVersion: string;
+    coordinateReferenceSystem: string;
+    calculatorVersion?: string;
+  };
+}
+```
+
+`scenarioId` is the backend result identity, currently
+`synthetic-high-speed-threat__synthetic-interceptor__static-scenario`; the fixture's
+descriptive ID `scaled-synthetic-static-mvp` is not substituted for it.
+
+### Coordinates, synthetic height and time
+
+The adapter converts final positions from EPSG:3414 to EPSG:4326 with pinned
+`pyproj` and `always_xy=True`, returning longitude then latitude. All frontend
+positions are WGS84 degrees. The provenance CRS remains `EPSG:3414` because it
+describes the source population calculation; consumers need not transform it.
+There are no metre-coordinate positions in the wire payload.
+
+The scenario's presentation-only settings are:
+
+```json
+{
+  "scenario_start_time": "2026-09-15T00:00:00Z",
+  "visualization_height_m": 1000
+}
+```
+
+Neither setting has model significance. The 2D backend calculates no altitude.
+The configured height is a synthetic visualization height above the WGS84
+ellipsoid, copied to path samples and candidate positions. It does not describe
+terrain clearance or elevate the ground consequence footprints.
+
+Absolute time is `scenario_start_time + time_from_start_s`. Input timestamps
+must include a timezone and are normalized to UTC. Wire timestamps use six
+fractional digits (Python datetime microsecond precision); relative seconds
+retain their original backend values and are used for comparisons.
+`start` is the supplied clock origin and `end` is the last sample time, or
+`start` for an empty trajectory. The golden path contains the original 50 future
+samples at approximately 0.4-second intervals, from +0.4 s to +20 s, with no added
+zero-time sample or resampling. This date is a fixed synthetic clock origin.
+
+The Canvas library's `TimedSample.time` above remains a JavaScript `Date`.
+The separate `PlanningTimedSample` name avoids conflating its API with JSON.
+For example, consumer-side conversion is:
+
+```ts
+const canvasSamples = result.threat.samples.map(({ time, ...position }) => ({
+  ...position,
+  time: new Date(time),
+}));
+```
+
+### Golden scenario geography
+
+The complete synthetic geometry was translated by **(-20,000 m, +10,000 m)**
+in EPSG:3414. Threat start is now `(30000, 30000)`; interceptor origin is
+`(-20000, 10000)`; every population polygon received the identical translation.
+Velocities, relative positions, populations, zone dimensions and the supplied
+500 m radius are unchanged. Derived candidate and footprint centers follow the
+translated threat automatically. Population dataset version is now `2`.
+
+The intended Canvas bounds are west `103.56`, south `1.13`, east `104.14`, north
+`1.52` degrees. The path runs approximately from `(103.854884, 1.287584)` to
+`(104.030997, 1.287576)`. Population zones occupy EPSG:3414 x `[25000, 55000]`,
+y `[20000, 40000]`, approximately lon `[103.80636, 104.07593]`, lat
+`[1.19714, 1.37802]`. Path positions, candidate positions, supplied footprint
+perimeters and population zones fit with visual margin. Tests check the wire
+coordinates and fixture geometry against these bounds and detect drift from
+the actual Canvas constant.
+
+The interceptor origin remains outside this box and is not a frontend position
+in this contract. The original complete geometry spans 75 km east-west, wider
+than the Canvas box; translation alone cannot fit all of it. No interceptor
+trajectory or marker is supplied. This preserves the synthetic reachability
+problem without changing the frontend camera or model.
+
+### Evidence, eligibility and trade-offs
+
+All 50 opportunities are retained, including unreachable ones. The current
+fixture has 14 unreachable followed by 36 reachable candidates with complete
+population coverage. Unreachable records preserve time, position and available
+travel-time/margin evidence, have `eligibleForRecommendation: false` and
+`ineligibilityReasons: ["unreachable"]`, and omit success, exposure and footprint.
+Null travel metrics mean no finite reachability solution was supplied.
+`timeMarginS` is the backend's available-time-minus-required-travel-time evidence.
+
+Enriched candidates copy the supplied success, exposure, fixed footprint,
+eligibility and reasons exactly. `suppliedSuccessProbability` is the assumed
+synthetic linear-decay profile, not a measured or operational success estimate.
+
+A footprint is a **supplied circular ground consequence area** centered at the
+candidate's longitude/latitude with the provided radius in metres. It is not a
+calculated debris envelope, probability contour or guarantee of impact.
+PEC evaluates its existing polygonal circle approximation; a displayed circle
+does not imply a different exposure calculation.
+
+`peoplePotentiallyExposed` estimates people within the footprint using the
+supplied population-zone evidence. Fractional estimates are intentional. It is
+not a casualty count, fatality estimate, expected loss, or success-weighted score.
+Candidates represent alternatives; do not sum their exposures as simultaneous
+events or interpret their difference as a count of identified people saved.
+
+For `partial_coverage`, `peoplePotentiallyExposed` is null, `knownAreaExposure`
+retains the available-area subtotal, and `coveredAreaFraction` retains PEC's
+fraction or null when undefined. A subtotal is not a complete exposure or zero.
+Such candidates have `partial_population_coverage` as the existing backend
+reason and are ineligible for recommendation. Complete status does not imply
+that coverage fractions are mathematically exactly one beyond PEC tolerances.
+
+`paretoEfficient` means membership in the backend frontier over higher supplied
+success and lower complete population exposure, using backend tolerances.
+The adapter copies that frontier; the frontend need not run dominance tests.
+Categories identify descriptive choices **within that frontier**:
+
+- `earliest_viable`: earliest Pareto candidate according to backend ordering.
+- `highest_success`: highest supplied success on the frontier.
+- `lowest_exposure`: lowest complete exposure on the frontier.
+
+Top-level assignments use camelCase keys; candidate labels use the snake_case
+values above. A candidate may own multiple categories. Representatives are the
+backend's unique IDs in category order; they are not forced to be three distinct
+choices. An empty eligible set has null assignments and empty representatives
+and comparisons. The backend does not choose one universal “best” candidate or
+make the human go/no-go decision.
+
+### Pairwise comparison evidence and example
+
+`comparisons` contains every ordered pair of distinct unique representatives,
+in representative-list order. Each delta is **comparison minus reference**:
+
+- `deltaTimeS = tComparison - tReference`.
+- `deltaSuccessProbability = pComparison - pReference`.
+- `deltaSuccessPercentagePoints = 100 * deltaSuccessProbability`.
+- `deltaPeoplePotentiallyExposed = eComparison - eReference`.
+- `relativeExposureChange = deltaPeoplePotentiallyExposed / eReference`.
+
+Success deltas are null if either success value is unavailable. Exposure deltas
+require both complete finite values; partial/missing exposure gives null for
+both exposure comparison fields. Relative change also requires nonzero reference
+exposure; zero reference still permits an absolute delta. No NaN or Infinity is
+emitted. Backend values are unrounded; display rounding belongs to the consumer.
+
+Compact golden-file excerpt (IDs abbreviated and numbers rounded here only):
+
+```json
+{
+  "schemaVersion": "planning-result/1",
+  "categoryAssignments": {
+    "earliestViable": "…__k15",
+    "highestSuccess": "…__k15",
+    "lowestExposure": "…__k37"
+  },
+  "representativeCandidateIds": ["…__k15", "…__k37"],
+  "comparisons": [{
+    "referenceCandidateId": "…__k15",
+    "comparisonCandidateId": "…__k37",
+    "deltaTimeS": 8.8,
+    "deltaSuccessProbability": -0.0352,
+    "deltaSuccessPercentagePoints": -3.52,
+    "deltaPeoplePotentiallyExposed": -314.0331,
+    "relativeExposureChange": -0.8
+  }]
+}
+```
+
+This is an explanatory excerpt, not a complete payload. The generated file
+contains both ordered comparisons and full IDs. Consumers must resolve category
+IDs dynamically; `k15` and `k37` are current results, not contract requirements.
+Compact population provenance copies dataset ID/version, source CRS and
+calculator version from PEC. Machine-readable `assumptions` accompany every
+payload so the frontend can surface model limitations.
+
+### Timing and scope
+
+The golden JSON omits variable timing fields; `diagnostics` contains deterministic
+counts only. Run `.venv/bin/python -B scripts/benchmark_planning_result.py` for
+the separate `data/results/static-mvp-planning-result-benchmark.json` report.
+It uses prepared population outside timing, one warm-up, seven measured runs,
+and `perf_counter_ns`. Planning, presentation and total each report median,
+minimum and maximum. The boundary ends at validated JSON-ready packaging and
+excludes JSON text encoding, file writing, networking and frontend rendering.
+The engineering target is a total median below 100 ms for 50 candidates.
+
+The backend supplies **no fragment trajectories, particle tracks, physical fall
+simulation, interceptor animation path or selected intercept action**. Optional
+frontend visual effects must not be presented as backend-calculated physics.
+The historical `ScenarioSource` proposal below needs frontend adaptation to
+consume `planning-result/1`; the new payload does not pretend to satisfy its
+fragment-bearing shape.
+
+## Demo ↔ backend contract — historical Scenario proposal (superseded)
+
+The following unagreed proposal is retained as historical design context only.
+For the current planning-result path, use `planning-result/1` above. Statements
+below about replacing the mock or supplying fragments are not backend promises.
 
 **Not part of the library API.** This is the shape `src/demo/` expects from
 whoever computes the intercept — something to take to the backend owner. Nothing

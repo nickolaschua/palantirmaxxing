@@ -1,0 +1,89 @@
+{
+  "schemaVersion": "planning-result-benchmark/1",
+  "scenarioFixture": "data/scenarios/static-mvp-scenario.json",
+  "populationDatasetVersion": "2",
+  "method": {
+    "warmUpRuns": 1,
+    "measuredRuns": 7,
+    "populationPreparedOutsideTiming": true,
+    "clock": "time.perf_counter_ns",
+    "boundary": "static evaluation through validated JSON-ready dictionary",
+    "excludes": [
+      "file IO",
+      "JSON text encoding",
+      "network",
+      "frontend rendering"
+    ],
+    "interpretation": "Small engineering benchmark, not rigorous performance characterization"
+  },
+  "environment": {
+    "python": "3.9.6",
+    "platform": "macOS-26.5.1-arm64-arm-64bit",
+    "pyproj": "3.6.1",
+    "shapely": "2.0.7",
+    "geos": "3.11.4"
+  },
+  "runs": [
+    {
+      "run": 1,
+      "planningMs": 32.031791,
+      "presentationMs": 0.476542,
+      "totalMs": 32.508333
+    },
+    {
+      "run": 2,
+      "planningMs": 32.056375,
+      "presentationMs": 0.604834,
+      "totalMs": 32.661209
+    },
+    {
+      "run": 3,
+      "planningMs": 34.122375,
+      "presentationMs": 0.611833,
+      "totalMs": 34.734208
+    },
+    {
+      "run": 4,
+      "planningMs": 28.802375,
+      "presentationMs": 0.491625,
+      "totalMs": 29.294
+    },
+    {
+      "run": 5,
+      "planningMs": 29.646416,
+      "presentationMs": 0.905042,
+      "totalMs": 30.551458
+    },
+    {
+      "run": 6,
+      "planningMs": 27.344292,
+      "presentationMs": 0.483708,
+      "totalMs": 27.828
+    },
+    {
+      "run": 7,
+      "planningMs": 24.652791,
+      "presentationMs": 0.496667,
+      "totalMs": 25.149458
+    }
+  ],
+  "summary": {
+    "planningMs": {
+      "median": 29.646416,
+      "minimum": 24.652791,
+      "maximum": 34.122375
+    },
+    "presentationMs": {
+      "median": 0.496667,
+      "minimum": 0.476542,
+      "maximum": 0.905042
+    },
+    "totalMs": {
+      "median": 30.551458,
+      "minimum": 25.149458,
+      "maximum": 34.734208
+    }
+  },
+  "targetMs": 100,
+  "targetMetByMedian": true
+}

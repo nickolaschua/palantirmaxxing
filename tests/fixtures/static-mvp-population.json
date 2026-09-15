@@ -1,0 +1,32 @@
+{
+  "schema_version": "pec-population/1",
+  "dataset_id": "static-mvp-synthetic-population",
+  "version": "2",
+  "coordinate_reference_system": "EPSG:3414",
+  "zones": [
+    {
+      "zone_id": "lower-exposure-early",
+      "population": 130000,
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[25000, 20000], [38000, 20000], [38000, 40000], [25000, 40000], [25000, 20000]]]
+      }
+    },
+    {
+      "zone_id": "higher-exposure-middle",
+      "population": 2400000,
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[38000, 20000], [44000, 20000], [44000, 40000], [38000, 40000], [38000, 20000]]]
+      }
+    },
+    {
+      "zone_id": "lower-exposure-late",
+      "population": 22000,
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[44000, 20000], [55000, 20000], [55000, 40000], [44000, 40000], [44000, 20000]]]
+      }
+    }
+  ]
+}

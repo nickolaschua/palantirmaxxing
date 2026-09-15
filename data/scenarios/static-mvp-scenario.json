@@ -1,0 +1,35 @@
+{
+  "schema_version": "static-mvp-scenario-fixture/1",
+  "scenario_id": "scaled-synthetic-static-mvp",
+  "description": "Intentionally scaled synthetic test inputs chosen to preserve the Phase A-C reachability pattern and exercise a low-high-low population trade-space; no value is an operational performance estimate.",
+  "population_fixture": "tests/fixtures/static-mvp-population.json",
+  "number_of_samples": 50,
+  "presentation": {
+    "scenario_start_time": "2026-09-15T00:00:00Z",
+    "visualization_height_m": 1000
+  },
+  "synthetic_geometry_translation_m": {"x": -20000, "y": 10000},
+  "threat": {
+    "threat_id": "synthetic-high-speed-threat",
+    "position_x_m": 30000,
+    "position_y_m": 30000,
+    "velocity_x_mps": 1000,
+    "velocity_y_mps": 0,
+    "maximum_time_to_go_s": 20
+  },
+  "interceptor": {
+    "interceptor_id": "synthetic-interceptor",
+    "position_x_m": -20000,
+    "position_y_m": 10000,
+    "heading_rad": 0,
+    "speed_mps": 10000,
+    "max_turn_rate_rad_s": 0.2617993877991494
+  },
+  "synthetic_success_profile": {
+    "initial_success_probability": 0.97,
+    "decrease_per_second": 0.004,
+    "minimum_success_probability": 0.70,
+    "maximum_success_probability": 1.00
+  },
+  "footprint_radius_m": 500
+}

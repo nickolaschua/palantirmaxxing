@@ -1,0 +1,84 @@
+{
+  "calculations": {
+    "128": {
+      "median_seconds": 0.15411462500000006,
+      "seconds": [
+        0.16156879199999996,
+        0.15411462500000006,
+        0.153977292
+      ],
+      "status": "partial_coverage"
+    },
+    "256": {
+      "median_seconds": 0.203964292,
+      "seconds": [
+        0.20941904100000008,
+        0.203964292,
+        0.20195658400000016
+      ],
+      "status": "partial_coverage"
+    }
+  },
+  "changed_events": [
+    {
+      "event_id": "event-090",
+      "status_128": "complete",
+      "status_256": "partial_coverage",
+      "uncovered_area_128_m2": 0.0,
+      "uncovered_area_256_m2": 0.011656080614812764
+    }
+  ],
+  "dataset_checksum_sha256": "4fa83ffefec87ddeb85e77d9b77d41fd8aea6beb9068eaaf926e9e79352054c4",
+  "dataset_id": "sg-residents-2020-mp2019",
+  "dataset_version": "sg-residents-2020-mp2019-cbb1c395f60918c1",
+  "environment": {
+    "libraries": {
+      "geos": "3.11.4",
+      "pyproj": "3.6.1",
+      "shapely": "2.0.7"
+    },
+    "platform": "macOS-26.5.1-arm64-arm-64bit",
+    "processor": "arm",
+    "python": "3.9.6"
+  },
+  "event_coverage_status_changes": 1,
+  "events": 100,
+  "maximum_event_exposure_increase": 97.59653573273681,
+  "minimum_event_exposure_increase": 1.657755782930037e-05,
+  "population": 3982190,
+  "preparation_median_seconds": 0.09342237499999995,
+  "preparation_seconds": [
+    0.12358958299999998,
+    0.09339566699999996,
+    0.09342237499999995
+  ],
+  "scenario": "100 evenly indexed eligible-zone representative points; radii cycle 250, 750, 1500, 2500 metres",
+  "sensitivity": {
+    "known_area_multiple_exposure": {
+      "absolute_change": 626.7511071513873,
+      "edges_128": 1852697.710433617,
+      "edges_256": 1853324.4615407684,
+      "relative_change": 0.0003382910787991952
+    },
+    "known_area_person_exposures": {
+      "absolute_change": 1760.0094496468082,
+      "edges_128": 6606352.86776567,
+      "edges_256": 6608112.8772153165,
+      "relative_change": 0.00026641166236130223
+    },
+    "known_area_unique_exposure": {
+      "absolute_change": 287.6994475563988,
+      "edges_128": 3391618.301751674,
+      "edges_256": 3391906.0011992306,
+      "relative_change": 8.48265995639339e-05
+    },
+    "uncovered_area_m2": {
+      "absolute_change": 33449.607924193144,
+      "edges_128": 89468378.6055186,
+      "edges_256": 89501828.21344279,
+      "relative_change": 0.0003738707289161704
+    }
+  },
+  "timing_scope": "In-process wall time; preparation includes validation/index/union/checksum; calculation excludes file I/O",
+  "zones": 275
+}

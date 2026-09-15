@@ -1,0 +1,14 @@
+{
+  "schema_version": "footprint-assessment-request/1",
+  "assessment_id": "synthetic-footprints",
+  "mode": "alternatives",
+  "population_dataset_id": "pec-example-population",
+  "population_dataset_version": "1",
+  "coordinate_reference_system": "EPSG:3414",
+  "geometry_settings": {"circle_edges": 128},
+  "records": [
+    {"record_id": "A", "footprint": {"footprint_id": "footprint-A", "center_x_m": -5, "center_y_m": 0, "radius_m": 1}},
+    {"record_id": "B", "footprint": {"footprint_id": "footprint-B", "center_x_m": 5, "center_y_m": 0, "radius_m": 1}}
+  ],
+  "comparisons": [{"reference_record_id": "A", "comparison_record_id": "B"}]
+}

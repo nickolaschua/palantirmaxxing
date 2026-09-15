@@ -1,0 +1,101 @@
+{
+  "episode_id": "pec-example",
+  "events": [
+    {
+      "center_x_m": 0,
+      "center_y_m": 0,
+      "covered_area_fraction": 0.9999999999999994,
+      "event_id": "event-1",
+      "footprint_area_m2": 12.561324627819017,
+      "footprint_id": "footprint-1",
+      "known_area_exposure": 37.68397388345703,
+      "people_potentially_exposed": 37.68397388345703,
+      "radius_m": 2,
+      "status": "complete",
+      "uncovered_area_m2": 0.0,
+      "zone_breakdown": [
+        {
+          "estimated_people_exposed": 25.122649255638017,
+          "overlap_area_m2": 6.280662313909504,
+          "zone_density_people_per_m2": 4.0,
+          "zone_id": "east",
+          "zone_population": 800
+        },
+        {
+          "estimated_people_exposed": 12.561324627819012,
+          "overlap_area_m2": 6.280662313909506,
+          "zone_density_people_per_m2": 2.0,
+          "zone_id": "west",
+          "zone_population": 400
+        }
+      ]
+    },
+    {
+      "center_x_m": 5,
+      "center_y_m": 0,
+      "covered_area_fraction": 0.9999999999999997,
+      "event_id": "event-2",
+      "footprint_area_m2": 3.140331156954754,
+      "footprint_id": "footprint-2",
+      "known_area_exposure": 12.561324627819012,
+      "people_potentially_exposed": 12.561324627819012,
+      "radius_m": 1,
+      "status": "complete",
+      "time_from_episode_start_s": 30,
+      "uncovered_area_m2": 0.0,
+      "zone_breakdown": [
+        {
+          "estimated_people_exposed": 12.561324627819012,
+          "overlap_area_m2": 3.140331156954753,
+          "zone_density_people_per_m2": 4.0,
+          "zone_id": "east",
+          "zone_population": 800
+        }
+      ]
+    }
+  ],
+  "known_area_multiple_exposure": 0.0,
+  "known_area_person_exposures": 50.24529851127604,
+  "known_area_unique_exposure": 50.245298511276054,
+  "metadata": {
+    "assumptions": [
+      "Population is fixed throughout the episode and uniformly distributed within each eligible zone.",
+      "Supplied circles are scenario inputs, not predictions; everyone within a footprint is counted equally.",
+      "Episode totals describe the complete episode, not simultaneous exposure; time is descriptive only.",
+      "No injury, casualty, shelter, movement, uncertainty, or hazard-validity modelling.",
+      "Unknown and excluded population zones do not extend known population coverage."
+    ],
+    "calculator_version": "0.1.0",
+    "checksum_encoding": "UTF-8 JSON, sorted keys, compact separators, ensure_ascii=False, entire input envelope",
+    "circle_approximation": {
+      "edges": 128,
+      "method": "inscribed regular polygon; clockwise from positive x axis",
+      "quad_segs": 32
+    },
+    "coordinate_reference_system": "EPSG:3414",
+    "dataset_checksum_sha256": "6638c2ec33825294cd4a08d5554ced16a505a36528467e79e6a72dcc3c7cde20",
+    "input_schema_versions": {
+      "episode": "pec-episode/1",
+      "population": "pec-population/1"
+    },
+    "libraries": {
+      "geos": "3.11.4",
+      "pyproj": "3.6.1",
+      "shapely": "2.0.7"
+    },
+    "numerical_tolerances": {
+      "coverage_area_m2": 1e-06,
+      "coverage_fraction_clamp": 1e-12,
+      "population_overlap_area_m2": 0
+    },
+    "output_schema_version": "pec-result/1",
+    "population_dataset_id": "pec-example-population",
+    "population_dataset_version": "1"
+  },
+  "people_exposed_to_multiple_events": 0.0,
+  "schema_version": "pec-result/1",
+  "status": "complete",
+  "total_person_exposures": 50.24529851127604,
+  "uncovered_area_m2": 0.0,
+  "unique_people_potentially_exposed": 50.245298511276054
+}

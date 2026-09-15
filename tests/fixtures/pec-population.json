@@ -1,0 +1,70 @@
+{
+  "schema_version": "pec-population/1",
+  "dataset_id": "pec-example-population",
+  "version": "1",
+  "coordinate_reference_system": "EPSG:3414",
+  "zones": [
+    {
+      "zone_id": "west",
+      "population": 400,
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              0.0,
+              -10.0
+            ],
+            [
+              0.0,
+              10.0
+            ],
+            [
+              -10.0,
+              10.0
+            ],
+            [
+              -10.0,
+              -10.0
+            ],
+            [
+              0.0,
+              -10.0
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "zone_id": "east",
+      "population": 800,
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              10.0,
+              -10.0
+            ],
+            [
+              10.0,
+              10.0
+            ],
+            [
+              0.0,
+              10.0
+            ],
+            [
+              0.0,
+              -10.0
+            ],
+            [
+              10.0,
+              -10.0
+            ]
+          ]
+        ]
+      }
+    }
+  ]
+}

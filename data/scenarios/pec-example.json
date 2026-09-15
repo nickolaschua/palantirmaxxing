@@ -1,0 +1,24 @@
+{
+  "schema_version": "pec-episode/1",
+  "episode_id": "pec-example",
+  "population_dataset_id": "pec-example-population",
+  "population_dataset_version": "1",
+  "coordinate_reference_system": "EPSG:3414",
+  "events": [
+    {
+      "event_id": "event-1",
+      "footprint_id": "footprint-1",
+      "center_x_m": 0,
+      "center_y_m": 0,
+      "radius_m": 2
+    },
+    {
+      "event_id": "event-2",
+      "footprint_id": "footprint-2",
+      "center_x_m": 5,
+      "center_y_m": 0,
+      "radius_m": 1,
+      "time_from_episode_start_s": 30
+    }
+  ]
+}

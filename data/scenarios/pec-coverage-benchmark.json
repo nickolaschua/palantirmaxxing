@@ -1,0 +1,709 @@
+{
+  "coordinate_reference_system": "EPSG:3414",
+  "episode_id": "pec-benchmark-100",
+  "events": [
+    {
+      "center_x_m": 29488.210261264674,
+      "center_y_m": 39452.755949995335,
+      "event_id": "event-000",
+      "footprint_id": "footprint-000",
+      "radius_m": 250
+    },
+    {
+      "center_x_m": 30521.38842801826,
+      "center_y_m": 38315.70704997957,
+      "event_id": "event-001",
+      "footprint_id": "footprint-001",
+      "radius_m": 750
+    },
+    {
+      "center_x_m": 28650.79396520459,
+      "center_y_m": 39444.271499994895,
+      "event_id": "event-002",
+      "footprint_id": "footprint-002",
+      "radius_m": 1500
+    },
+    {
+      "center_x_m": 28731.07516727292,
+      "center_y_m": 40479.76895001005,
+      "event_id": "event-003",
+      "footprint_id": "footprint-003",
+      "radius_m": 2500
+    },
+    {
+      "center_x_m": 36347.291123589144,
+      "center_y_m": 35312.5233999374,
+      "event_id": "event-004",
+      "footprint_id": "footprint-004",
+      "radius_m": 250
+    },
+    {
+      "center_x_m": 37242.91755341239,
+      "center_y_m": 34140.72654992136,
+      "event_id": "event-005",
+      "footprint_id": "footprint-005",
+      "radius_m": 750
+    },
+    {
+      "center_x_m": 40514.37985880447,
+      "center_y_m": 33842.08259991676,
+      "event_id": "event-006",
+      "footprint_id": "footprint-006",
+      "radius_m": 1500
+    },
+    {
+      "center_x_m": 18393.295053099573,
+      "center_y_m": 38276.740199978594,
+      "event_id": "event-007",
+      "footprint_id": "footprint-007",
+      "radius_m": 2500
+    },
+    {
+      "center_x_m": 20227.42009262566,
+      "center_y_m": 37605.3572499687,
+      "event_id": "event-008",
+      "footprint_id": "footprint-008",
+      "radius_m": 250
+    },
+    {
+      "center_x_m": 18732.897043715613,
+      "center_y_m": 36702.21484995671,
+      "event_id": "event-009",
+      "footprint_id": "footprint-009",
+      "radius_m": 750
+    },
+    {
+      "center_x_m": 14052.206901805694,
+      "center_y_m": 34320.462899922844,
+      "event_id": "event-010",
+      "footprint_id": "footprint-010",
+      "radius_m": 1500
+    },
+    {
+      "center_x_m": 26445.612117991855,
+      "center_y_m": 29380.74804985428,
+      "event_id": "event-011",
+      "footprint_id": "footprint-011",
+      "radius_m": 2500
+    },
+    {
+      "center_x_m": 28133.89934235224,
+      "center_y_m": 29124.658299850464,
+      "event_id": "event-012",
+      "footprint_id": "footprint-012",
+      "radius_m": 250
+    },
+    {
+      "center_x_m": 25355.357854354235,
+      "center_y_m": 30010.87299986231,
+      "event_id": "event-013",
+      "footprint_id": "footprint-013",
+      "radius_m": 750
+    },
+    {
+      "center_x_m": 27901.470260305046,
+      "center_y_m": 29511.26569985597,
+      "event_id": "event-014",
+      "footprint_id": "footprint-014",
+      "radius_m": 1500
+    },
+    {
+      "center_x_m": 25293.69477245822,
+      "center_y_m": 28762.619449845253,
+      "event_id": "event-015",
+      "footprint_id": "footprint-015",
+      "radius_m": 2500
+    },
+    {
+      "center_x_m": 28280.64347767022,
+      "center_y_m": 28728.11669984476,
+      "event_id": "event-016",
+      "footprint_id": "footprint-016",
+      "radius_m": 250
+    },
+    {
+      "center_x_m": 19864.5154122214,
+      "center_y_m": 40791.205050014,
+      "event_id": "event-017",
+      "footprint_id": "footprint-017",
+      "radius_m": 750
+    },
+    {
+      "center_x_m": 21417.543218680214,
+      "center_y_m": 39883.796900001675,
+      "event_id": "event-018",
+      "footprint_id": "footprint-018",
+      "radius_m": 1500
+    },
+    {
+      "center_x_m": 21902.82898411097,
+      "center_y_m": 37297.60539996468,
+      "event_id": "event-019",
+      "footprint_id": "footprint-019",
+      "radius_m": 2500
+    },
+    {
+      "center_x_m": 30157.978683371497,
+      "center_y_m": 37131.85549996221,
+      "event_id": "event-020",
+      "footprint_id": "footprint-020",
+      "radius_m": 250
+    },
+    {
+      "center_x_m": 23373.355517664702,
+      "center_y_m": 35878.55879994573,
+      "event_id": "event-021",
+      "footprint_id": "footprint-021",
+      "radius_m": 750
+    },
+    {
+      "center_x_m": 25114.6401567811,
+      "center_y_m": 34978.02614993264,
+      "event_id": "event-022",
+      "footprint_id": "footprint-022",
+      "radius_m": 1500
+    },
+    {
+      "center_x_m": 24767.458085590733,
+      "center_y_m": 33188.59024990762,
+      "event_id": "event-023",
+      "footprint_id": "footprint-023",
+      "radius_m": 2500
+    },
+    {
+      "center_x_m": 46807.956289400914,
+      "center_y_m": 37056.06714996204,
+      "event_id": "event-024",
+      "footprint_id": "footprint-024",
+      "radius_m": 250
+    },
+    {
+      "center_x_m": 18481.19041842234,
+      "center_y_m": 39744.328699998805,
+      "event_id": "event-025",
+      "footprint_id": "footprint-025",
+      "radius_m": 750
+    },
+    {
+      "center_x_m": 18356.167894833474,
+      "center_y_m": 41509.394500023554,
+      "event_id": "event-026",
+      "footprint_id": "footprint-026",
+      "radius_m": 1500
+    },
+    {
+      "center_x_m": 20922.02852523342,
+      "center_y_m": 34223.94149992155,
+      "event_id": "event-027",
+      "footprint_id": "footprint-027",
+      "radius_m": 2500
+    },
+    {
+      "center_x_m": 19285.05933550808,
+      "center_y_m": 33175.070349907735,
+      "event_id": "event-028",
+      "footprint_id": "footprint-028",
+      "radius_m": 250
+    },
+    {
+      "center_x_m": 20750.57548993941,
+      "center_y_m": 31639.073699886038,
+      "event_id": "event-029",
+      "footprint_id": "footprint-029",
+      "radius_m": 750
+    },
+    {
+      "center_x_m": 30608.10108331993,
+      "center_y_m": 31288.0446498811,
+      "event_id": "event-030",
+      "footprint_id": "footprint-030",
+      "radius_m": 1500
+    },
+    {
+      "center_x_m": 29722.91380600273,
+      "center_y_m": 29732.740549858936,
+      "event_id": "event-031",
+      "footprint_id": "footprint-031",
+      "radius_m": 2500
+    },
+    {
+      "center_x_m": 29435.572742696095,
+      "center_y_m": 28746.35684984405,
+      "event_id": "event-032",
+      "footprint_id": "footprint-032",
+      "radius_m": 250
+    },
+    {
+      "center_x_m": 30256.304182282056,
+      "center_y_m": 28717.050399843618,
+      "event_id": "event-033",
+      "footprint_id": "footprint-033",
+      "radius_m": 750
+    },
+    {
+      "center_x_m": 33778.836959126216,
+      "center_y_m": 34367.53319992329,
+      "event_id": "event-034",
+      "footprint_id": "footprint-034",
+      "radius_m": 1500
+    },
+    {
+      "center_x_m": 35275.153438476445,
+      "center_y_m": 33269.21879990831,
+      "event_id": "event-035",
+      "footprint_id": "footprint-035",
+      "radius_m": 2500
+    },
+    {
+      "center_x_m": 35120.97025486443,
+      "center_y_m": 39776.61975000029,
+      "event_id": "event-036",
+      "footprint_id": "footprint-036",
+      "radius_m": 250
+    },
+    {
+      "center_x_m": 33443.888304223845,
+      "center_y_m": 40313.64620000761,
+      "event_id": "event-037",
+      "footprint_id": "footprint-037",
+      "radius_m": 750
+    },
+    {
+      "center_x_m": 16705.888437200047,
+      "center_y_m": 36624.80769995527,
+      "event_id": "event-038",
+      "footprint_id": "footprint-038",
+      "radius_m": 1500
+    },
+    {
+      "center_x_m": 16453.008963527114,
+      "center_y_m": 35244.55394993577,
+      "event_id": "event-039",
+      "footprint_id": "footprint-039",
+      "radius_m": 2500
+    },
+    {
+      "center_x_m": 16303.944107900239,
+      "center_y_m": 33500.878899911535,
+      "event_id": "event-040",
+      "footprint_id": "footprint-040",
+      "radius_m": 250
+    },
+    {
+      "center_x_m": 17065.013330712503,
+      "center_y_m": 31889.96189988947,
+      "event_id": "event-041",
+      "footprint_id": "footprint-041",
+      "radius_m": 750
+    },
+    {
+      "center_x_m": 15492.657943135713,
+      "center_y_m": 36846.36194995847,
+      "event_id": "event-042",
+      "footprint_id": "footprint-042",
+      "radius_m": 1500
+    },
+    {
+      "center_x_m": 12599.935445404044,
+      "center_y_m": 36346.10934995118,
+      "event_id": "event-043",
+      "footprint_id": "footprint-043",
+      "radius_m": 2500
+    },
+    {
+      "center_x_m": 32156.02769385145,
+      "center_y_m": 33814.44984991553,
+      "event_id": "event-044",
+      "footprint_id": "footprint-044",
+      "radius_m": 250
+    },
+    {
+      "center_x_m": 32157.786572905927,
+      "center_y_m": 32284.16849989519,
+      "event_id": "event-045",
+      "footprint_id": "footprint-045",
+      "radius_m": 750
+    },
+    {
+      "center_x_m": 29792.364335793405,
+      "center_y_m": 32817.330599902016,
+      "event_id": "event-046",
+      "footprint_id": "footprint-046",
+      "radius_m": 1500
+    },
+    {
+      "center_x_m": 15304.34272309322,
+      "center_y_m": 45858.67010008586,
+      "event_id": "event-047",
+      "footprint_id": "footprint-047",
+      "radius_m": 2500
+    },
+    {
+      "center_x_m": 35656.70849124028,
+      "center_y_m": 32211.957149893697,
+      "event_id": "event-048",
+      "footprint_id": "footprint-048",
+      "radius_m": 250
+    },
+    {
+      "center_x_m": 29328.23807359917,
+      "center_y_m": 31275.696549879962,
+      "event_id": "event-049",
+      "footprint_id": "footprint-049",
+      "radius_m": 750
+    },
+    {
+      "center_x_m": 27666.10960017859,
+      "center_y_m": 32490.86784989752,
+      "event_id": "event-050",
+      "footprint_id": "footprint-050",
+      "radius_m": 1500
+    },
+    {
+      "center_x_m": 28439.960289572467,
+      "center_y_m": 32076.563599891648,
+      "event_id": "event-051",
+      "footprint_id": "footprint-051",
+      "radius_m": 2500
+    },
+    {
+      "center_x_m": 29900.49647236412,
+      "center_y_m": 34076.9413999196,
+      "event_id": "event-052",
+      "footprint_id": "footprint-052",
+      "radius_m": 250
+    },
+    {
+      "center_x_m": 28089.958160937415,
+      "center_y_m": 33970.923949918,
+      "event_id": "event-053",
+      "footprint_id": "footprint-053",
+      "radius_m": 750
+    },
+    {
+      "center_x_m": 27133.43558439483,
+      "center_y_m": 31914.734599889445,
+      "event_id": "event-054",
+      "footprint_id": "footprint-054",
+      "radius_m": 1500
+    },
+    {
+      "center_x_m": 28703.984055257573,
+      "center_y_m": 29762.058199859002,
+      "event_id": "event-055",
+      "footprint_id": "footprint-055",
+      "radius_m": 2500
+    },
+    {
+      "center_x_m": 29524.432401833845,
+      "center_y_m": 29641.879299856664,
+      "event_id": "event-056",
+      "footprint_id": "footprint-056",
+      "radius_m": 250
+    },
+    {
+      "center_x_m": 35584.86699435189,
+      "center_y_m": 43392.285550050685,
+      "event_id": "event-057",
+      "footprint_id": "footprint-057",
+      "radius_m": 750
+    },
+    {
+      "center_x_m": 36940.37657456257,
+      "center_y_m": 42638.39495004053,
+      "event_id": "event-058",
+      "footprint_id": "footprint-058",
+      "radius_m": 1500
+    },
+    {
+      "center_x_m": 11076.411068039135,
+      "center_y_m": 34299.431999922854,
+      "event_id": "event-059",
+      "footprint_id": "footprint-059",
+      "radius_m": 2500
+    },
+    {
+      "center_x_m": 10655.05695218433,
+      "center_y_m": 31604.146599884632,
+      "event_id": "event-060",
+      "footprint_id": "footprint-060",
+      "radius_m": 250
+    },
+    {
+      "center_x_m": 39994.34913562732,
+      "center_y_m": 40196.28230000481,
+      "event_id": "event-061",
+      "footprint_id": "footprint-061",
+      "radius_m": 750
+    },
+    {
+      "center_x_m": 42049.86704946606,
+      "center_y_m": 38880.758549986625,
+      "event_id": "event-062",
+      "footprint_id": "footprint-062",
+      "radius_m": 1500
+    },
+    {
+      "center_x_m": 42745.433650498,
+      "center_y_m": 37926.648449973065,
+      "event_id": "event-063",
+      "footprint_id": "footprint-063",
+      "radius_m": 2500
+    },
+    {
+      "center_x_m": 24272.112584274186,
+      "center_y_m": 31845.29714988842,
+      "event_id": "event-064",
+      "footprint_id": "footprint-064",
+      "radius_m": 250
+    },
+    {
+      "center_x_m": 24887.54182554866,
+      "center_y_m": 31307.758349880605,
+      "event_id": "event-065",
+      "footprint_id": "footprint-065",
+      "radius_m": 750
+    },
+    {
+      "center_x_m": 23202.56195400691,
+      "center_y_m": 31228.65714988007,
+      "event_id": "event-066",
+      "footprint_id": "footprint-066",
+      "radius_m": 1500
+    },
+    {
+      "center_x_m": 21693.29201235823,
+      "center_y_m": 31026.97004987656,
+      "event_id": "event-067",
+      "footprint_id": "footprint-067",
+      "radius_m": 2500
+    },
+    {
+      "center_x_m": 23790.32914222299,
+      "center_y_m": 28888.75299984737,
+      "event_id": "event-068",
+      "footprint_id": "footprint-068",
+      "radius_m": 250
+    },
+    {
+      "center_x_m": 30134.599572511917,
+      "center_y_m": 32389.66979989539,
+      "event_id": "event-069",
+      "footprint_id": "footprint-069",
+      "radius_m": 750
+    },
+    {
+      "center_x_m": 30922.767290959946,
+      "center_y_m": 31634.602949885644,
+      "event_id": "event-070",
+      "footprint_id": "footprint-070",
+      "radius_m": 1500
+    },
+    {
+      "center_x_m": 29816.650919334737,
+      "center_y_m": 31634.1806998849,
+      "event_id": "event-071",
+      "footprint_id": "footprint-071",
+      "radius_m": 2500
+    },
+    {
+      "center_x_m": 27235.806557490796,
+      "center_y_m": 31578.551699884374,
+      "event_id": "event-072",
+      "footprint_id": "footprint-072",
+      "radius_m": 250
+    },
+    {
+      "center_x_m": 28113.32840215163,
+      "center_y_m": 31150.515049879163,
+      "event_id": "event-073",
+      "footprint_id": "footprint-073",
+      "radius_m": 750
+    },
+    {
+      "center_x_m": 27740.93884255282,
+      "center_y_m": 47711.27000011169,
+      "event_id": "event-074",
+      "footprint_id": "footprint-074",
+      "radius_m": 1500
+    },
+    {
+      "center_x_m": 26092.07797950637,
+      "center_y_m": 48579.90815012297,
+      "event_id": "event-075",
+      "footprint_id": "footprint-075",
+      "radius_m": 2500
+    },
+    {
+      "center_x_m": 24473.457364611502,
+      "center_y_m": 49375.51290013405,
+      "event_id": "event-076",
+      "footprint_id": "footprint-076",
+      "radius_m": 250
+    },
+    {
+      "center_x_m": 36227.69520985315,
+      "center_y_m": 41078.80685001836,
+      "event_id": "event-077",
+      "footprint_id": "footprint-077",
+      "radius_m": 750
+    },
+    {
+      "center_x_m": 34322.292485186816,
+      "center_y_m": 40847.93170001535,
+      "event_id": "event-078",
+      "footprint_id": "footprint-078",
+      "radius_m": 1500
+    },
+    {
+      "center_x_m": 31395.62123713456,
+      "center_y_m": 39553.6614499971,
+      "event_id": "event-079",
+      "footprint_id": "footprint-079",
+      "radius_m": 2500
+    },
+    {
+      "center_x_m": 31232.800224798488,
+      "center_y_m": 36809.16649995836,
+      "event_id": "event-080",
+      "footprint_id": "footprint-080",
+      "radius_m": 250
+    },
+    {
+      "center_x_m": 19893.15504229629,
+      "center_y_m": 46120.460600088714,
+      "event_id": "event-081",
+      "footprint_id": "footprint-081",
+      "radius_m": 750
+    },
+    {
+      "center_x_m": 18540.23487051354,
+      "center_y_m": 43805.579450056415,
+      "event_id": "event-082",
+      "footprint_id": "footprint-082",
+      "radius_m": 1500
+    },
+    {
+      "center_x_m": 28314.419079693856,
+      "center_y_m": 30442.563299868292,
+      "event_id": "event-083",
+      "footprint_id": "footprint-083",
+      "radius_m": 2500
+    },
+    {
+      "center_x_m": 16771.536951823,
+      "center_y_m": 39519.51069999568,
+      "event_id": "event-084",
+      "footprint_id": "footprint-084",
+      "radius_m": 250
+    },
+    {
+      "center_x_m": 41290.16027886332,
+      "center_y_m": 37291.48634996476,
+      "event_id": "event-085",
+      "footprint_id": "footprint-085",
+      "radius_m": 750
+    },
+    {
+      "center_x_m": 43054.35694969891,
+      "center_y_m": 34928.319849932246,
+      "event_id": "event-086",
+      "footprint_id": "footprint-086",
+      "radius_m": 1500
+    },
+    {
+      "center_x_m": 25707.5505009395,
+      "center_y_m": 31778.84154988746,
+      "event_id": "event-087",
+      "footprint_id": "footprint-087",
+      "radius_m": 2500
+    },
+    {
+      "center_x_m": 29284.464169900995,
+      "center_y_m": 35017.87889993285,
+      "event_id": "event-088",
+      "footprint_id": "footprint-088",
+      "radius_m": 250
+    },
+    {
+      "center_x_m": 30234.203706093795,
+      "center_y_m": 35300.52344993713,
+      "event_id": "event-089",
+      "footprint_id": "footprint-089",
+      "radius_m": 750
+    },
+    {
+      "center_x_m": 30807.594901461373,
+      "center_y_m": 34874.41074993169,
+      "event_id": "event-090",
+      "footprint_id": "footprint-090",
+      "radius_m": 1500
+    },
+    {
+      "center_x_m": 32542.791460273857,
+      "center_y_m": 35096.46609993391,
+      "event_id": "event-091",
+      "footprint_id": "footprint-091",
+      "radius_m": 2500
+    },
+    {
+      "center_x_m": 7589.660481607407,
+      "center_y_m": 34469.331999925605,
+      "event_id": "event-092",
+      "footprint_id": "footprint-092",
+      "radius_m": 250
+    },
+    {
+      "center_x_m": 5604.811688816397,
+      "center_y_m": 31930.515849889664,
+      "event_id": "event-093",
+      "footprint_id": "footprint-093",
+      "radius_m": 750
+    },
+    {
+      "center_x_m": 23329.805298401072,
+      "center_y_m": 46847.43365009906,
+      "event_id": "event-094",
+      "footprint_id": "footprint-094",
+      "radius_m": 1500
+    },
+    {
+      "center_x_m": 21884.846479208183,
+      "center_y_m": 45563.09565008058,
+      "event_id": "event-095",
+      "footprint_id": "footprint-095",
+      "radius_m": 2500
+    },
+    {
+      "center_x_m": 23906.162727987947,
+      "center_y_m": 48110.164100116475,
+      "event_id": "event-096",
+      "footprint_id": "footprint-096",
+      "radius_m": 250
+    },
+    {
+      "center_x_m": 9847.963762579953,
+      "center_y_m": 26948.696849819575,
+      "event_id": "event-097",
+      "footprint_id": "footprint-097",
+      "radius_m": 750
+    },
+    {
+      "center_x_m": 29604.858470920313,
+      "center_y_m": 45499.332350079916,
+      "event_id": "event-098",
+      "footprint_id": "footprint-098",
+      "radius_m": 1500
+    },
+    {
+      "center_x_m": 25926.152570336184,
+      "center_y_m": 42913.57510004382,
+      "event_id": "event-099",
+      "footprint_id": "footprint-099",
+      "radius_m": 2500
+    }
+  ],
+  "population_dataset_id": "sg-residents-2020-mp2019",
+  "population_dataset_version": "sg-residents-2020-mp2019-cbb1c395f60918c1",
+  "schema_version": "pec-episode/1"
+}

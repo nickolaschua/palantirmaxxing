@@ -1,0 +1,32 @@
+{
+  "description": "Synthetic excluded triangular gap, not Singapore source geometry. Apex is halfway between a 128-edge chord and the ideal circle at its angular midpoint; 256 edges includes that direction as a vertex.",
+  "coordinate_reference_system": "EPSG:3414",
+  "outer_bounds_m": [
+    -20,
+    -20,
+    20,
+    20
+  ],
+  "circle_radius_m": 10,
+  "gap_ring": [
+    [
+      9.995482733993953,
+      0.24537532843310647
+    ],
+    [
+      11.97184459583154,
+      1.2941935609711517
+    ],
+    [
+      12.020927052877363,
+      -0.7052040764212568
+    ],
+    [
+      9.995482733993953,
+      0.24537532843310647
+    ]
+  ],
+  "apex_angle_rad": 0.02454369260617026,
+  "apex_radial_distance_m": 9.998494093481021,
+  "density_people_per_m2": 1
+}

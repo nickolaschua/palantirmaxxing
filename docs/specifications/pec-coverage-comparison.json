@@ -1,0 +1,1304 @@
+{
+  "changed_events": [
+    "event-090"
+  ],
+  "contributing_eligible_zones": [
+    {
+      "estimated_people_exposed": 2329.0089263230416,
+      "overlap_area_m2": 147626.85614194704,
+      "zone_density_people_per_m2": 0.01577632273143878,
+      "zone_id": "BSSZ03",
+      "zone_population": 28310
+    },
+    {
+      "estimated_people_exposed": 1.3819969153943092,
+      "overlap_area_m2": 44384.88967925841,
+      "zone_density_people_per_m2": 3.113665315789064e-05,
+      "zone_id": "GLSZ01",
+      "zone_population": 30
+    },
+    {
+      "estimated_people_exposed": 31275.814433174288,
+      "overlap_area_m2": 1146166.6489846162,
+      "zone_density_people_per_m2": 0.02728731852465031,
+      "zone_id": "KLSZ01",
+      "zone_population": 37570
+    },
+    {
+      "estimated_people_exposed": 2765.216673149144,
+      "overlap_area_m2": 180303.45919101627,
+      "zone_density_people_per_m2": 0.015336459353337368,
+      "zone_id": "KLSZ02",
+      "zone_population": 11280
+    },
+    {
+      "estimated_people_exposed": 42.670710899155026,
+      "overlap_area_m2": 4263.149578395943,
+      "zone_density_people_per_m2": 0.01000919862521229,
+      "zone_id": "KLSZ07",
+      "zone_population": 10530
+    },
+    {
+      "estimated_people_exposed": 0.09075599428804888,
+      "overlap_area_m2": 3810.2968782259995,
+      "zone_density_people_per_m2": 2.3818614976348804e-05,
+      "zone_id": "KLSZ08",
+      "zone_population": 20
+    },
+    {
+      "estimated_people_exposed": 23568.728477820525,
+      "overlap_area_m2": 1400185.965114953,
+      "zone_density_people_per_m2": 0.01683257014784145,
+      "zone_id": "NVSZ01",
+      "zone_population": 32430
+    },
+    {
+      "estimated_people_exposed": 2.362774755648301,
+      "overlap_area_m2": 342.33710195901017,
+      "zone_density_people_per_m2": 0.006901895068128516,
+      "zone_id": "NVSZ02",
+      "zone_population": 9300
+    },
+    {
+      "estimated_people_exposed": 367.12284383758663,
+      "overlap_area_m2": 51030.771984442064,
+      "zone_density_people_per_m2": 0.007194146385822121,
+      "zone_id": "SGSZ05",
+      "zone_population": 8490
+    },
+    {
+      "estimated_people_exposed": 15230.741118892445,
+      "overlap_area_m2": 601873.5750122698,
+      "zone_density_people_per_m2": 0.025305548791674317,
+      "zone_id": "TPSZ02",
+      "zone_population": 28020
+    },
+    {
+      "estimated_people_exposed": 6959.425413997032,
+      "overlap_area_m2": 316573.5440575412,
+      "zone_density_people_per_m2": 0.02198359763357885,
+      "zone_id": "TPSZ03",
+      "zone_population": 9810
+    },
+    {
+      "estimated_people_exposed": 14659.999999999995,
+      "overlap_area_m2": 418657.3583070519,
+      "zone_density_people_per_m2": 0.035016702105228614,
+      "zone_id": "TPSZ04",
+      "zone_population": 14660
+    },
+    {
+      "estimated_people_exposed": 7160.000000000004,
+      "overlap_area_m2": 439646.7615642887,
+      "zone_density_people_per_m2": 0.01628580175258043,
+      "zone_id": "TPSZ05",
+      "zone_population": 7160
+    },
+    {
+      "estimated_people_exposed": 10360.0,
+      "overlap_area_m2": 411403.93713350233,
+      "zone_density_people_per_m2": 0.025182063332170143,
+      "zone_id": "TPSZ06",
+      "zone_population": 10360
+    },
+    {
+      "estimated_people_exposed": 7959.999999999998,
+      "overlap_area_m2": 369770.55330430635,
+      "zone_density_people_per_m2": 0.021526862885291022,
+      "zone_id": "TPSZ07",
+      "zone_population": 7960
+    },
+    {
+      "estimated_people_exposed": 1964.35715345364,
+      "overlap_area_m2": 652152.929784924,
+      "zone_density_people_per_m2": 0.003012111214621811,
+      "zone_id": "TPSZ08",
+      "zone_population": 2450
+    },
+    {
+      "estimated_people_exposed": 11720.000000000007,
+      "overlap_area_m2": 639143.5693072061,
+      "zone_density_people_per_m2": 0.018337038128544102,
+      "zone_id": "TPSZ09",
+      "zone_population": 11720
+    },
+    {
+      "estimated_people_exposed": 1998.5537292362592,
+      "overlap_area_m2": 241202.48575788917,
+      "zone_density_people_per_m2": 0.008285792424387945,
+      "zone_id": "TPSZ11",
+      "zone_population": 7190
+    }
+  ],
+  "coordinate_reference_system": "EPSG:3414",
+  "environment": {
+    "libraries": {
+      "geos": "3.11.4",
+      "pyproj": "3.6.1",
+      "shapely": "2.0.7"
+    },
+    "platform": "macOS-26.5.1-arm64-arm-64bit",
+    "python": "3.9.6"
+  },
+  "episode_comparison": [
+    {
+      "edges": 64,
+      "event_status_counts": {
+        "complete": 52,
+        "partial_coverage": 48
+      },
+      "known_area_multiple_exposure": 1850185.5487131567,
+      "known_area_person_exposures": 6599332.082306534,
+      "known_area_unique_exposure": 3390468.97378916,
+      "people_exposed_to_multiple_events": null,
+      "status": "partial_coverage",
+      "total_person_exposures": null,
+      "uncovered_area_m2": 89334658.99040516,
+      "unique_people_potentially_exposed": null
+    },
+    {
+      "changes_from_previous_resolution": {
+        "known_area_multiple_exposure": {
+          "absolute": 2512.161720460281,
+          "relative": 0.0013577890726730313
+        },
+        "known_area_person_exposures": {
+          "absolute": 7020.785459135659,
+          "relative": 0.001063863035163677
+        },
+        "known_area_unique_exposure": {
+          "absolute": 1149.327962514013,
+          "relative": 0.000338987901496569
+        },
+        "uncovered_area_m2": {
+          "absolute": 133719.61511343718,
+          "relative": 0.0014968391509481119
+        }
+      },
+      "edges": 128,
+      "event_status_counts": {
+        "complete": 52,
+        "partial_coverage": 48
+      },
+      "known_area_multiple_exposure": 1852697.710433617,
+      "known_area_person_exposures": 6606352.86776567,
+      "known_area_unique_exposure": 3391618.301751674,
+      "people_exposed_to_multiple_events": null,
+      "status": "partial_coverage",
+      "total_person_exposures": null,
+      "uncovered_area_m2": 89468378.6055186,
+      "unique_people_potentially_exposed": null
+    },
+    {
+      "changes_from_previous_resolution": {
+        "known_area_multiple_exposure": {
+          "absolute": 626.7511071513873,
+          "relative": 0.0003382910787991952
+        },
+        "known_area_person_exposures": {
+          "absolute": 1760.0094496468082,
+          "relative": 0.00026641166236130223
+        },
+        "known_area_unique_exposure": {
+          "absolute": 287.6994475563988,
+          "relative": 8.48265995639339e-05
+        },
+        "uncovered_area_m2": {
+          "absolute": 33449.607924193144,
+          "relative": 0.0003738707289161704
+        }
+      },
+      "edges": 256,
+      "event_status_counts": {
+        "complete": 51,
+        "partial_coverage": 49
+      },
+      "known_area_multiple_exposure": 1853324.4615407684,
+      "known_area_person_exposures": 6608112.8772153165,
+      "known_area_unique_exposure": 3391906.0011992306,
+      "people_exposed_to_multiple_events": null,
+      "status": "partial_coverage",
+      "total_person_exposures": null,
+      "uncovered_area_m2": 89501828.21344279,
+      "unique_people_potentially_exposed": null
+    },
+    {
+      "changes_from_previous_resolution": {
+        "known_area_multiple_exposure": {
+          "absolute": 156.89530925243162,
+          "relative": 8.465614764615803e-05
+        },
+        "known_area_person_exposures": {
+          "absolute": 440.06931531243026,
+          "relative": 6.659530844725478e-05
+        },
+        "known_area_unique_exposure": {
+          "absolute": 71.8671258604154,
+          "relative": 2.118782944899013e-05
+        },
+        "uncovered_area_m2": {
+          "absolute": 8344.640723094344,
+          "relative": 9.323430470262746e-05
+        }
+      },
+      "edges": 512,
+      "event_status_counts": {
+        "complete": 51,
+        "partial_coverage": 49
+      },
+      "known_area_multiple_exposure": 1853481.3568500208,
+      "known_area_person_exposures": 6608552.946530629,
+      "known_area_unique_exposure": 3391977.868325091,
+      "people_exposed_to_multiple_events": null,
+      "status": "partial_coverage",
+      "total_person_exposures": null,
+      "uncovered_area_m2": 89510172.85416588,
+      "unique_people_potentially_exposed": null
+    },
+    {
+      "changes_from_previous_resolution": {
+        "known_area_multiple_exposure": {
+          "absolute": 39.165847735712305,
+          "relative": 2.1130963951142407e-05
+        },
+        "known_area_person_exposures": {
+          "absolute": 109.98747752793133,
+          "relative": 1.6643201381275574e-05
+        },
+        "known_area_unique_exposure": {
+          "absolute": 17.973105976358056,
+          "relative": 5.298709683277772e-06
+        },
+        "uncovered_area_m2": {
+          "absolute": 2088.2684959620237,
+          "relative": 2.332995713642881e-05
+        }
+      },
+      "edges": 1024,
+      "event_status_counts": {
+        "complete": 51,
+        "partial_coverage": 49
+      },
+      "known_area_multiple_exposure": 1853520.5226977565,
+      "known_area_person_exposures": 6608662.934008157,
+      "known_area_unique_exposure": 3391995.8414310673,
+      "people_exposed_to_multiple_events": null,
+      "status": "partial_coverage",
+      "total_person_exposures": null,
+      "uncovered_area_m2": 89512261.12266184,
+      "unique_people_potentially_exposed": null
+    }
+  ],
+  "episode_file": "pec-coverage-episode.json",
+  "episode_file_sha256": "f02899a392547bce12eb057ccecb8921d40c0da8632cb2c78b5f17365a9e67fd",
+  "episode_id": "pec-benchmark-100",
+  "event": {
+    "center_x_m": 30807.594901461373,
+    "center_y_m": 34874.41074993169,
+    "event_id": "event-090",
+    "footprint_id": "footprint-090",
+    "radius_m": 1500
+  },
+  "event_comparison": [
+    {
+      "actual_edge_count": 64,
+      "clockwise": true,
+      "coverage_tolerance_m2": 1e-06,
+      "covered_area_fraction": 1.0,
+      "edges": 64,
+      "first_vertex": [
+        32307.594901461373,
+        34874.41074993169
+      ],
+      "footprint_area_m2": 7057234.1037283605,
+      "ideal_area_deficit_m2": 11349.366848673671,
+      "ideal_area_relative_deficit": 0.0016056069643819572,
+      "ideal_circle_area_m2": 7068583.470577034,
+      "known_area_exposure": 138189.6430669756,
+      "people_potentially_exposed": 138189.6430669756,
+      "status": "complete",
+      "uncovered_area_m2": 0.0
+    },
+    {
+      "actual_edge_count": 128,
+      "changes_from_previous_resolution": {
+        "footprint_area_m2": {
+          "absolute": 8510.99941983074,
+          "relative": 0.0012059964703926074
+        },
+        "known_area_exposure": {
+          "absolute": 132.5577686264878,
+          "relative": 0.0009592453217513687
+        },
+        "uncovered_area_m2": {
+          "absolute": 0.0,
+          "relative": null
+        }
+      },
+      "clockwise": true,
+      "coverage_tolerance_m2": 1e-06,
+      "covered_area_fraction": 0.9999999999999999,
+      "edges": 128,
+      "first_vertex": [
+        32307.594901461373,
+        34874.41074993169
+      ],
+      "footprint_area_m2": 7065745.103148191,
+      "ideal_area_deficit_m2": 2838.367428842932,
+      "ideal_area_relative_deficit": 0.0004015468503212321,
+      "ideal_circle_area_m2": 7068583.470577034,
+      "known_area_exposure": 138322.2008356021,
+      "people_potentially_exposed": 138322.2008356021,
+      "status": "complete",
+      "uncovered_area_m2": 0.0
+    },
+    {
+      "actual_edge_count": 256,
+      "changes_from_previous_resolution": {
+        "footprint_area_m2": {
+          "absolute": 2128.711450553499,
+          "relative": 0.0003012720413031935
+        },
+        "known_area_exposure": {
+          "absolute": 32.964565451897215,
+          "relative": 0.00023831724229920307
+        },
+        "uncovered_area_m2": {
+          "absolute": 0.011656080614812764,
+          "relative": null
+        }
+      },
+      "clockwise": true,
+      "coverage_tolerance_m2": 1e-06,
+      "covered_area_fraction": 0.9999999983508352,
+      "edges": 256,
+      "first_vertex": [
+        32307.594901461373,
+        34874.41074993169
+      ],
+      "footprint_area_m2": 7067873.814598745,
+      "ideal_area_deficit_m2": 709.6559782894328,
+      "ideal_area_relative_deficit": 0.00010039578385731378,
+      "ideal_circle_area_m2": 7068583.470577034,
+      "known_area_exposure": 138355.165401054,
+      "people_potentially_exposed": null,
+      "status": "partial_coverage",
+      "uncovered_area_m2": 0.011656080614812764
+    },
+    {
+      "actual_edge_count": 512,
+      "changes_from_previous_resolution": {
+        "footprint_area_m2": {
+          "absolute": 532.2379759270698,
+          "relative": 7.530383109383311e-05
+        },
+        "known_area_exposure": {
+          "absolute": 8.250988502171822,
+          "relative": 5.9636288086927946e-05
+        },
+        "uncovered_area_m2": {
+          "absolute": 0.009474110654815604,
+          "relative": 0.8128041464277218
+        }
+      },
+      "clockwise": true,
+      "coverage_tolerance_m2": 1e-06,
+      "covered_area_fraction": 0.9999999970106139,
+      "edges": 512,
+      "first_vertex": [
+        32307.594901461373,
+        34874.41074993169
+      ],
+      "footprint_area_m2": 7068406.052574672,
+      "ideal_area_deficit_m2": 177.41800236236304,
+      "ideal_area_relative_deficit": 2.5099512950630794e-05,
+      "ideal_circle_area_m2": 7068583.470577034,
+      "known_area_exposure": 138363.41638955617,
+      "people_potentially_exposed": null,
+      "status": "partial_coverage",
+      "uncovered_area_m2": 0.021130191269628368
+    },
+    {
+      "actual_edge_count": 1024,
+      "changes_from_previous_resolution": {
+        "footprint_area_m2": {
+          "absolute": 133.06325129140168,
+          "relative": 1.88250717773823e-05
+        },
+        "known_area_exposure": {
+          "absolute": 2.0586188922752626,
+          "relative": 1.4878346791317373e-05
+        },
+        "uncovered_area_m2": {
+          "absolute": 0.005811971966047769,
+          "relative": 0.2750553410466117
+        }
+      },
+      "clockwise": true,
+      "coverage_tolerance_m2": 1e-06,
+      "covered_area_fraction": 0.9999999961884386,
+      "edges": 1024,
+      "first_vertex": [
+        32307.594901461373,
+        34874.41074993169
+      ],
+      "footprint_area_m2": 7068539.115825963,
+      "ideal_area_deficit_m2": 44.354751070961356,
+      "ideal_area_relative_deficit": 6.274913673381368e-06,
+      "ideal_circle_area_m2": 7068583.470577034,
+      "known_area_exposure": 138365.47500844844,
+      "people_potentially_exposed": null,
+      "status": "partial_coverage",
+      "uncovered_area_m2": 0.026942163235676136
+    }
+  ],
+  "event_only_extension": [
+    {
+      "changes_from_previous_resolution": {
+        "footprint_area_m2": {
+          "absolute": 33.266047653742135,
+          "relative": 4.706212572165271e-06
+        },
+        "known_area_exposure": {
+          "absolute": 0.5147720529639628,
+          "relative": 3.720379328243056e-06
+        },
+        "uncovered_area_m2": {
+          "absolute": 0.0017512098213945254,
+          "relative": 0.06499885722151728
+        }
+      },
+      "coverage_tolerance_m2": 1e-06,
+      "covered_area_fraction": 0.9999999959407089,
+      "edges": 2048,
+      "footprint_area_m2": 7068572.381873617,
+      "ideal_area_deficit_m2": 11.088703417219222,
+      "ideal_area_relative_deficit": 1.5687306322937161e-06,
+      "ideal_circle_area_m2": 7068583.470577034,
+      "known_area_exposure": 138365.9897805014,
+      "people_potentially_exposed": null,
+      "status": "partial_coverage",
+      "uncovered_area_m2": 0.028693373057070662
+    },
+    {
+      "changes_from_previous_resolution": {
+        "footprint_area_m2": {
+          "absolute": 8.316526584327221,
+          "relative": 1.1765496814680446e-06
+        },
+        "known_area_exposure": {
+          "absolute": 0.12878307624487206,
+          "relative": 9.307422759680228e-07
+        },
+        "uncovered_area_m2": {
+          "absolute": 0.00035289657416311473,
+          "relative": 0.012298887741821397
+        }
+      },
+      "coverage_tolerance_m2": 1e-06,
+      "covered_area_fraction": 0.9999999958907918,
+      "edges": 4096,
+      "footprint_area_m2": 7068580.698400201,
+      "ideal_area_deficit_m2": 2.7721768328920007,
+      "ideal_area_relative_deficit": 3.921827965151974e-07,
+      "ideal_circle_area_m2": 7068583.470577034,
+      "known_area_exposure": 138366.11856357765,
+      "people_potentially_exposed": null,
+      "status": "partial_coverage",
+      "uncovered_area_m2": 0.029046269631233777
+    },
+    {
+      "changes_from_previous_resolution": {
+        "footprint_area_m2": {
+          "absolute": 2.079132583923638,
+          "relative": 2.9413720697766077e-07
+        },
+        "known_area_exposure": {
+          "absolute": 0.03218534810002893,
+          "relative": 2.326100380219897e-07
+        },
+        "uncovered_area_m2": {
+          "absolute": 0.00013501910169930534,
+          "relative": 0.0046484145266667155
+        }
+      },
+      "coverage_tolerance_m2": 1e-06,
+      "covered_area_fraction": 0.9999999958716902,
+      "edges": 8192,
+      "footprint_area_m2": 7068582.777532785,
+      "ideal_area_deficit_m2": 0.6930442489683628,
+      "ideal_area_relative_deficit": 9.804570489308902e-08,
+      "ideal_circle_area_m2": 7068583.470577034,
+      "known_area_exposure": 138366.15074892575,
+      "people_potentially_exposed": null,
+      "status": "partial_coverage",
+      "uncovered_area_m2": 0.029181288732933082
+    },
+    {
+      "changes_from_previous_resolution": {
+        "footprint_area_m2": {
+          "absolute": 0.519783191382885,
+          "relative": 7.353428653831368e-08
+        },
+        "known_area_exposure": {
+          "absolute": 0.008046683593420312,
+          "relative": 5.815500069826713e-08
+        },
+        "uncovered_area_m2": {
+          "absolute": 1.0625018505249634e-05,
+          "relative": 0.00036410381331988855
+        }
+      },
+      "coverage_tolerance_m2": 1e-06,
+      "covered_area_fraction": 0.9999999958701853,
+      "edges": 16384,
+      "footprint_area_m2": 7068583.297315977,
+      "ideal_area_deficit_m2": 0.17326105758547783,
+      "ideal_area_relative_deficit": 2.451142556449629e-08,
+      "ideal_circle_area_m2": 7068583.470577034,
+      "known_area_exposure": 138366.15879560934,
+      "people_potentially_exposed": null,
+      "status": "partial_coverage",
+      "uncovered_area_m2": 0.02919191375143833
+    }
+  ],
+  "exclusion_audit": {
+    "all_exclusions_accounted_for": true,
+    "category_counts": {
+      "invalid_geometry": 6,
+      "positive_area_overlap": 11,
+      "unknown_population": 46
+    },
+    "disjoint_category_combinations": {
+      "invalid_geometry": 4,
+      "invalid_geometry + unknown_population": 2,
+      "positive_area_overlap": 7,
+      "positive_area_overlap + unknown_population": 4,
+      "unknown_population": 40
+    },
+    "display_zones": 332,
+    "eligible_zones": 275,
+    "unique_excluded_zones": 57,
+    "zones": [
+      {
+        "categories": [
+          "positive_area_overlap",
+          "unknown_population"
+        ],
+        "reasons": [
+          "population_qualified_nil_or_negligible",
+          "positive_area_overlap"
+        ],
+        "subzone": "YIO CHU KANG NORTH",
+        "zone_id": "AMSZ11"
+      },
+      {
+        "categories": [
+          "invalid_geometry"
+        ],
+        "reasons": [
+          "source: Ring Self-intersection[103.932080154816 1.30554765129205]",
+          "projected: Ring Self-intersection[38991.2589000333 31986.5599998909]"
+        ],
+        "subzone": "SIGLAP",
+        "zone_id": "BDSZ07"
+      },
+      {
+        "categories": [
+          "unknown_population"
+        ],
+        "reasons": [
+          "population_qualified_nil_or_negligible"
+        ],
+        "subzone": "SHIPYARD",
+        "zone_id": "BLSZ04"
+      },
+      {
+        "categories": [
+          "invalid_geometry"
+        ],
+        "reasons": [
+          "source: Ring Self-intersection[103.823615961275 1.2602588451659]",
+          "projected: Ring Self-intersection[26920.1690000358 26978.5440998196]"
+        ],
+        "subzone": "MARITIME SQUARE",
+        "zone_id": "BMSZ01"
+      },
+      {
+        "categories": [
+          "unknown_population"
+        ],
+        "reasons": [
+          "population_qualified_nil_or_negligible"
+        ],
+        "subzone": "CHANGI BAY",
+        "zone_id": "CBSZ01"
+      },
+      {
+        "categories": [
+          "unknown_population"
+        ],
+        "reasons": [
+          "population_qualified_nil_or_negligible"
+        ],
+        "subzone": "CENTRAL WATER CATCHMENT",
+        "zone_id": "CCSZ01"
+      },
+      {
+        "categories": [
+          "unknown_population"
+        ],
+        "reasons": [
+          "population_qualified_nil_or_negligible"
+        ],
+        "subzone": "CLIFFORD PIER",
+        "zone_id": "DTSZ06"
+      },
+      {
+        "categories": [
+          "unknown_population"
+        ],
+        "reasons": [
+          "population_qualified_nil_or_negligible"
+        ],
+        "subzone": "MAXWELL",
+        "zone_id": "DTSZ07"
+      },
+      {
+        "categories": [
+          "unknown_population"
+        ],
+        "reasons": [
+          "population_qualified_nil_or_negligible"
+        ],
+        "subzone": "BAYFRONT SUBZONE",
+        "zone_id": "DTSZ12"
+      },
+      {
+        "categories": [
+          "positive_area_overlap"
+        ],
+        "reasons": [
+          "positive_area_overlap"
+        ],
+        "subzone": "TAI SENG",
+        "zone_id": "HGSZ08"
+      },
+      {
+        "categories": [
+          "positive_area_overlap"
+        ],
+        "reasons": [
+          "positive_area_overlap"
+        ],
+        "subzone": "DEFU INDUSTRIAL PARK",
+        "zone_id": "HGSZ09"
+      },
+      {
+        "categories": [
+          "unknown_population"
+        ],
+        "reasons": [
+          "population_qualified_nil_or_negligible"
+        ],
+        "subzone": "LORONG HALUS",
+        "zone_id": "HGSZ10"
+      },
+      {
+        "categories": [
+          "unknown_population"
+        ],
+        "reasons": [
+          "population_qualified_nil_or_negligible"
+        ],
+        "subzone": "LAKESIDE (BUSINESS)",
+        "zone_id": "JESZ05"
+      },
+      {
+        "categories": [
+          "invalid_geometry",
+          "unknown_population"
+        ],
+        "reasons": [
+          "source: Ring Self-intersection[103.720393805048 1.29951635954019]",
+          "projected: Ring Self-intersection[15432.475000033 31319.715999881]",
+          "population_qualified_nil_or_negligible"
+        ],
+        "subzone": "JURONG PORT",
+        "zone_id": "JESZ10"
+      },
+      {
+        "categories": [
+          "unknown_population"
+        ],
+        "reasons": [
+          "population_qualified_nil_or_negligible"
+        ],
+        "subzone": "CHIN BEE",
+        "zone_id": "JWSZ05"
+      },
+      {
+        "categories": [
+          "unknown_population"
+        ],
+        "reasons": [
+          "population_qualified_nil_or_negligible"
+        ],
+        "subzone": "SAFTI",
+        "zone_id": "JWSZ07"
+      },
+      {
+        "categories": [
+          "unknown_population"
+        ],
+        "reasons": [
+          "population_qualified_nil_or_negligible"
+        ],
+        "subzone": "MANDAI WEST",
+        "zone_id": "MDSZ01"
+      },
+      {
+        "categories": [
+          "unknown_population"
+        ],
+        "reasons": [
+          "population_qualified_nil_or_negligible"
+        ],
+        "subzone": "MANDAI EAST",
+        "zone_id": "MDSZ02"
+      },
+      {
+        "categories": [
+          "unknown_population"
+        ],
+        "reasons": [
+          "population_qualified_nil_or_negligible"
+        ],
+        "subzone": "MARINA EAST",
+        "zone_id": "MESZ01"
+      },
+      {
+        "categories": [
+          "unknown_population"
+        ],
+        "reasons": [
+          "population_qualified_nil_or_negligible"
+        ],
+        "subzone": "EAST COAST",
+        "zone_id": "MPSZ04"
+      },
+      {
+        "categories": [
+          "unknown_population"
+        ],
+        "reasons": [
+          "population_qualified_nil_or_negligible"
+        ],
+        "subzone": "MARINA EAST (MP)",
+        "zone_id": "MPSZ05"
+      },
+      {
+        "categories": [
+          "unknown_population"
+        ],
+        "reasons": [
+          "population_qualified_nil_or_negligible"
+        ],
+        "subzone": "MARINA SOUTH",
+        "zone_id": "MSSZ01"
+      },
+      {
+        "categories": [
+          "invalid_geometry"
+        ],
+        "reasons": [
+          "source: Ring Self-intersection[103.928049842741 1.41966801994]",
+          "projected: Ring Self-intersection[38542.225600033 44605.4089000677]"
+        ],
+        "subzone": "NORTH-EASTERN ISLANDS",
+        "zone_id": "NESZ01"
+      },
+      {
+        "categories": [
+          "unknown_population"
+        ],
+        "reasons": [
+          "population_qualified_nil_or_negligible"
+        ],
+        "subzone": "PUNGGOL CANAL",
+        "zone_id": "PGSZ06"
+      },
+      {
+        "categories": [
+          "unknown_population"
+        ],
+        "reasons": [
+          "population_qualified_nil_or_negligible"
+        ],
+        "subzone": "CONEY ISLAND",
+        "zone_id": "PGSZ07"
+      },
+      {
+        "categories": [
+          "unknown_population"
+        ],
+        "reasons": [
+          "population_qualified_nil_or_negligible"
+        ],
+        "subzone": "PAYA LEBAR WEST",
+        "zone_id": "PLSZ03"
+      },
+      {
+        "categories": [
+          "positive_area_overlap",
+          "unknown_population"
+        ],
+        "reasons": [
+          "population_qualified_nil_or_negligible",
+          "positive_area_overlap"
+        ],
+        "subzone": "AIRPORT ROAD",
+        "zone_id": "PLSZ04"
+      },
+      {
+        "categories": [
+          "unknown_population"
+        ],
+        "reasons": [
+          "population_qualified_nil_or_negligible"
+        ],
+        "subzone": "PLAB",
+        "zone_id": "PLSZ05"
+      },
+      {
+        "categories": [
+          "unknown_population"
+        ],
+        "reasons": [
+          "population_qualified_nil_or_negligible"
+        ],
+        "subzone": "PIONEER SECTOR",
+        "zone_id": "PNSZ05"
+      },
+      {
+        "categories": [
+          "unknown_population"
+        ],
+        "reasons": [
+          "population_qualified_nil_or_negligible"
+        ],
+        "subzone": "ROCHOR CANAL",
+        "zone_id": "RCSZ04"
+      },
+      {
+        "categories": [
+          "unknown_population"
+        ],
+        "reasons": [
+          "population_qualified_nil_or_negligible"
+        ],
+        "subzone": "THE WHARVES",
+        "zone_id": "SBSZ07"
+      },
+      {
+        "categories": [
+          "unknown_population"
+        ],
+        "reasons": [
+          "population_qualified_nil_or_negligible"
+        ],
+        "subzone": "LORONG HALUS NORTH",
+        "zone_id": "SESZ01"
+      },
+      {
+        "categories": [
+          "positive_area_overlap"
+        ],
+        "reasons": [
+          "positive_area_overlap"
+        ],
+        "subzone": "SENGKANG WEST",
+        "zone_id": "SESZ07"
+      },
+      {
+        "categories": [
+          "positive_area_overlap"
+        ],
+        "reasons": [
+          "positive_area_overlap"
+        ],
+        "subzone": "UPPER PAYA LEBAR",
+        "zone_id": "SGSZ07"
+      },
+      {
+        "categories": [
+          "invalid_geometry"
+        ],
+        "reasons": [
+          "source: Ring Self-intersection[103.823303956149 1.25745321410074]",
+          "projected: Ring Self-intersection[26885.4439000356 26668.3120998164]"
+        ],
+        "subzone": "SENTOSA",
+        "zone_id": "SISZ01"
+      },
+      {
+        "categories": [
+          "invalid_geometry",
+          "unknown_population"
+        ],
+        "reasons": [
+          "source: Ring Self-intersection[103.85041030543 1.22911084430392]",
+          "projected: Ring Self-intersection[29902.2074000343 23534.3641997714]",
+          "population_qualified_nil_or_negligible"
+        ],
+        "subzone": "SOUTHERN GROUP",
+        "zone_id": "SISZ02"
+      },
+      {
+        "categories": [
+          "positive_area_overlap"
+        ],
+        "reasons": [
+          "positive_area_overlap"
+        ],
+        "subzone": "SELETAR AEROSPACE PARK",
+        "zone_id": "SLSZ01"
+      },
+      {
+        "categories": [
+          "unknown_population"
+        ],
+        "reasons": [
+          "population_qualified_nil_or_negligible"
+        ],
+        "subzone": "PULAU PUNGGOL BARAT",
+        "zone_id": "SLSZ02"
+      },
+      {
+        "categories": [
+          "unknown_population"
+        ],
+        "reasons": [
+          "population_qualified_nil_or_negligible"
+        ],
+        "subzone": "PULAU PUNGGOL TIMOR",
+        "zone_id": "SLSZ03"
+      },
+      {
+        "categories": [
+          "unknown_population"
+        ],
+        "reasons": [
+          "population_qualified_nil_or_negligible"
+        ],
+        "subzone": "SIMPANG NORTH",
+        "zone_id": "SMSZ01"
+      },
+      {
+        "categories": [
+          "unknown_population"
+        ],
+        "reasons": [
+          "population_qualified_nil_or_negligible"
+        ],
+        "subzone": "TANJONG IRAU",
+        "zone_id": "SMSZ02"
+      },
+      {
+        "categories": [
+          "unknown_population"
+        ],
+        "reasons": [
+          "population_qualified_nil_or_negligible"
+        ],
+        "subzone": "SIMPANG SOUTH",
+        "zone_id": "SMSZ03"
+      },
+      {
+        "categories": [
+          "unknown_population"
+        ],
+        "reasons": [
+          "population_qualified_nil_or_negligible"
+        ],
+        "subzone": "PULAU SELETAR",
+        "zone_id": "SMSZ04"
+      },
+      {
+        "categories": [
+          "unknown_population"
+        ],
+        "reasons": [
+          "population_qualified_nil_or_negligible"
+        ],
+        "subzone": "STRAITS VIEW",
+        "zone_id": "SVSZ01"
+      },
+      {
+        "categories": [
+          "unknown_population"
+        ],
+        "reasons": [
+          "population_qualified_nil_or_negligible"
+        ],
+        "subzone": "TENGAH INDUSTRIAL ESTATE",
+        "zone_id": "THSZ02"
+      },
+      {
+        "categories": [
+          "unknown_population"
+        ],
+        "reasons": [
+          "population_qualified_nil_or_negligible"
+        ],
+        "subzone": "PARK",
+        "zone_id": "THSZ03"
+      },
+      {
+        "categories": [
+          "unknown_population"
+        ],
+        "reasons": [
+          "population_qualified_nil_or_negligible"
+        ],
+        "subzone": "BRICKLAND",
+        "zone_id": "THSZ04"
+      },
+      {
+        "categories": [
+          "unknown_population"
+        ],
+        "reasons": [
+          "population_qualified_nil_or_negligible"
+        ],
+        "subzone": "GARDEN",
+        "zone_id": "THSZ05"
+      },
+      {
+        "categories": [
+          "unknown_population"
+        ],
+        "reasons": [
+          "population_qualified_nil_or_negligible"
+        ],
+        "subzone": "PLANTATION",
+        "zone_id": "THSZ06"
+      },
+      {
+        "categories": [
+          "unknown_population"
+        ],
+        "reasons": [
+          "population_qualified_nil_or_negligible"
+        ],
+        "subzone": "BIDADARI",
+        "zone_id": "TPSZ10"
+      },
+      {
+        "categories": [
+          "unknown_population"
+        ],
+        "reasons": [
+          "population_qualified_nil_or_negligible"
+        ],
+        "subzone": "TENGEH",
+        "zone_id": "TSSZ01"
+      },
+      {
+        "categories": [
+          "positive_area_overlap"
+        ],
+        "reasons": [
+          "positive_area_overlap"
+        ],
+        "subzone": "MURAI",
+        "zone_id": "WCSZ01"
+      },
+      {
+        "categories": [
+          "positive_area_overlap",
+          "unknown_population"
+        ],
+        "reasons": [
+          "population_qualified_nil_or_negligible",
+          "positive_area_overlap"
+        ],
+        "subzone": "CLEANTECH",
+        "zone_id": "WCSZ02"
+      },
+      {
+        "categories": [
+          "positive_area_overlap",
+          "unknown_population"
+        ],
+        "reasons": [
+          "population_qualified_nil_or_negligible",
+          "positive_area_overlap"
+        ],
+        "subzone": "BAHAR",
+        "zone_id": "WCSZ03"
+      },
+      {
+        "categories": [
+          "unknown_population"
+        ],
+        "reasons": [
+          "population_qualified_nil_or_negligible"
+        ],
+        "subzone": "SEMAKAU",
+        "zone_id": "WISZ02"
+      },
+      {
+        "categories": [
+          "unknown_population"
+        ],
+        "reasons": [
+          "population_qualified_nil_or_negligible"
+        ],
+        "subzone": "SUDONG",
+        "zone_id": "WISZ03"
+      },
+      {
+        "categories": [
+          "positive_area_overlap"
+        ],
+        "reasons": [
+          "positive_area_overlap"
+        ],
+        "subzone": "LOWER SELETAR",
+        "zone_id": "YSSZ05"
+      }
+    ]
+  },
+  "geometry_evidence": {
+    "affected_256_gap_already_in_other_128_events_m2": 0.011656080614812762,
+    "center_to_vertex_m": 1499.835330406692,
+    "ideal_circle_radial_penetration_m": 0.16466959330796271,
+    "missing_region_1024_wkt": "POLYGON ((32144.83750148568 35553.94171526044, 32144.651900033845 35553.958099940886, 32144.68334468573 35554.245646807416, 32144.83750148568 35553.94171526044))",
+    "nearest_coverage_vertex": [
+      32144.651900033845,
+      35553.958099940886
+    ],
+    "original_projected_geometry_reproduced_exactly": true,
+    "vertex_distance_outside_128_polygon_m": 0.2757627650637074,
+    "vertex_within_256_polygon": true
+  },
+  "investigation_version": "pec-coverage-investigation/1",
+  "nearby_zones": [
+    {
+      "distance_to_missing_m": 0.0,
+      "exclusion_reasons": [],
+      "missing_intersection_area_m2": 0.0,
+      "pec_eligible": true,
+      "subzone": "WOODLEIGH",
+      "zone_id": "TPSZ08"
+    },
+    {
+      "distance_to_missing_m": 0.0,
+      "exclusion_reasons": [
+        "population_qualified_nil_or_negligible"
+      ],
+      "missing_intersection_area_m2": 0.02694216323567614,
+      "pec_eligible": false,
+      "subzone": "BIDADARI",
+      "zone_id": "TPSZ10"
+    },
+    {
+      "distance_to_missing_m": 0.0,
+      "exclusion_reasons": [],
+      "missing_intersection_area_m2": 0.0,
+      "pec_eligible": true,
+      "subzone": "SENNETT",
+      "zone_id": "TPSZ11"
+    }
+  ],
+  "nesting": [
+    {
+      "all_coarse_vertices_in_fine_vertices": true,
+      "coarse": 64,
+      "coarse_outside_fine_m2": 0.0,
+      "fine": 128
+    },
+    {
+      "all_coarse_vertices_in_fine_vertices": true,
+      "coarse": 128,
+      "coarse_outside_fine_m2": 0.0,
+      "fine": 256
+    },
+    {
+      "all_coarse_vertices_in_fine_vertices": true,
+      "coarse": 256,
+      "coarse_outside_fine_m2": 0.0,
+      "fine": 512
+    },
+    {
+      "all_coarse_vertices_in_fine_vertices": true,
+      "coarse": 512,
+      "coarse_outside_fine_m2": 0.0,
+      "fine": 1024
+    }
+  ],
+  "numerical_cross_checks": [
+    {
+      "absolute_translation_change_m2": 0.0,
+      "direct_missing_m2": 0.0,
+      "edges": 128,
+      "excluded_intersection_m2": 0.0,
+      "missing_outside_excluded_zone_m2": 0.0,
+      "translated_missing_m2": 0.0
+    },
+    {
+      "absolute_translation_change_m2": 6.798624163639744e-13,
+      "direct_missing_m2": 0.011656080614812764,
+      "edges": 256,
+      "excluded_intersection_m2": 0.011656080614812764,
+      "missing_outside_excluded_zone_m2": 0.0,
+      "translated_missing_m2": 0.011656080615492627
+    },
+    {
+      "absolute_translation_change_m2": 3.322030150965105e-13,
+      "direct_missing_m2": 0.021130191269628368,
+      "edges": 512,
+      "excluded_intersection_m2": 0.021130191269628368,
+      "missing_outside_excluded_zone_m2": 0.0,
+      "translated_missing_m2": 0.02113019126996057
+    },
+    {
+      "absolute_translation_change_m2": 2.6836866062751596e-13,
+      "direct_missing_m2": 0.026942163235676136,
+      "edges": 1024,
+      "excluded_intersection_m2": 0.026942163235676136,
+      "missing_outside_excluded_zone_m2": 0.0,
+      "translated_missing_m2": 0.026942163235944505
+    }
+  ],
+  "original_benchmark_reproduced": true,
+  "population_dataset_id": "sg-residents-2020-mp2019",
+  "population_dataset_version": "sg-residents-2020-mp2019-cbb1c395f60918c1",
+  "population_normalized_sha256": "4fa83ffefec87ddeb85e77d9b77d41fd8aea6beb9068eaaf926e9e79352054c4",
+  "script_sha256": "ab4aa1fdd2c6db133c212ec10f3fe15e71ccc9e6037479a3530e8c3a51facbf2",
+  "settings": {
+    "coverage_ratio_clamp": 1e-12,
+    "coverage_tolerance_m2": 1e-06,
+    "diagnostic_only_resolutions": true,
+    "orientation": "clockwise from positive x",
+    "overlap_tolerance_m2": 0,
+    "quad_segs": "edges / 4"
+  },
+  "source_checksums": {
+    "boundaries": "77e30aa02b1784b649d9b6f23e3b2ebb825af787de554f3a3fb76bbee3013c42",
+    "population": "b188d34d6943f7ff99975ec40937d8313c304f192134ea0d173d6235261e5903"
+  },
+  "source_file_sha256": {
+    "backend/exposure/calculator.py": "f179b6e01deba1a284893735504c1136d8cf4303b252032386e51071f9596bf5",
+    "backend/exposure/dataset.py": "817f905c7774e1df56431962fc5dbc8bbfd8c5fa1191efce6f3e4f4bce54b519",
+    "backend/exposure/validation.py": "c92fcc105d9082d58180c1cd790433640ed68c21a86e7b0d7dbe872795db1c1c",
+    "data/processed/population-display.geojson": "0f32baefe77eadaec81c866050d5d163bf23ed253d6d25c3f74db1bff0c5d60b",
+    "data/processed/population-projected.json": "366d2f8b9baaf3b7586ede42dba2542295caf00dc1a7f3c7a17678d00cd81804",
+    "data/processed/provenance.json": "d387e79bcfff4cfb4d55713d39c2962e67b932ec2bffdd87feea2a59b6b99b6d",
+    "data/processed/validation-report.json": "b5a7dab1dd48c57736a87b6a8e7dde326f23c0e8605be854120f3c9784bce694",
+    "data/raw/boundaries.geojson": "77e30aa02b1784b649d9b6f23e3b2ebb825af787de554f3a3fb76bbee3013c42",
+    "data/results/pec-benchmark.json": "50dcd6c08b953e2f187dc46dc196001d48a2761bf063309f3dc582be893093f4",
+    "scripts/benchmark_exposure.py": "144063a2c37d9d88eccb08dcbfddee99e9e9a2ee8f5f88e0687bf0e4cba02a51"
+  }
+}

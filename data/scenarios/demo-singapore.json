@@ -1,0 +1,50 @@
+{
+  "schema_version": "static-mvp-scenario-fixture/1",
+  "scenario_id": "demo-singapore",
+  "description": "Fictional eastbound Ang Mo Kio–Serangoon demonstration using unchanged prepared Census 2020 resident population geography. Deliberately selected for a non-monotonic exposure story; not operationally calibrated.",
+  "population_fixture": "data/processed/population-projected.json",
+  "population_identity": {
+    "dataset_id": "sg-residents-2020-mp2019",
+    "version": "sg-residents-2020-mp2019-cbb1c395f60918c1",
+    "normalized_checksum_sha256": "4fa83ffefec87ddeb85e77d9b77d41fd8aea6beb9068eaaf926e9e79352054c4"
+  },
+  "number_of_samples": 50,
+  "presentation": {
+    "scenario_start_time": "2026-09-15T00:00:00Z",
+    "visualization_height_m": 1000
+  },
+  "threat": {
+    "threat_id": "demo-fictional-threat",
+    "position_x_m": 27300,
+    "position_y_m": 39500,
+    "velocity_x_mps": 225,
+    "velocity_y_mps": 0,
+    "maximum_time_to_go_s": 20
+  },
+  "interceptor": {
+    "interceptor_id": "demo-synthetic-interceptor",
+    "position_x_m": 26600,
+    "position_y_m": 38500,
+    "heading_rad": 0,
+    "speed_mps": 500,
+    "max_turn_rate_rad_s": 0.2617993877991494
+  },
+  "synthetic_success_profile": {
+    "initial_success_probability": 0.97,
+    "decrease_per_second": 0.004,
+    "minimum_success_probability": 0.70,
+    "maximum_success_probability": 1.00
+  },
+  "footprint_radius_m": 500,
+  "synthetic_assumptions": {
+    "threat_trajectory": "fictional straight eastbound path; not an observed or predicted real threat",
+    "threat_speed": "225 m/s supplied synthetic constant",
+    "interceptor_speed": "500 m/s supplied synthetic constant",
+    "turn_rate": "15 deg/s supplied synthetic limit",
+    "launch_origin": "fictional supplied point; not an operational site",
+    "footprint_radius": "500 m supplied consequence circle; not calculated debris physics",
+    "success_profile": "supplied linear decay; not a validated success estimate",
+    "scenario_time": "fixed presentation-only clock; no model significance",
+    "visualization_height": "1000 m presentation only; backend model is 2D"
+  }
+}

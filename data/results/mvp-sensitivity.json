@@ -1,0 +1,2961 @@
+{
+  "schemaVersion": "mvp-sensitivity/1",
+  "scenarioId": "demo-fictional-threat__demo-synthetic-interceptor__static-scenario",
+  "populationProvenance": {
+    "datasetId": "sg-residents-2020-mp2019",
+    "datasetVersion": "sg-residents-2020-mp2019-cbb1c395f60918c1",
+    "coordinateReferenceSystem": "EPSG:3414",
+    "calculatorVersion": "0.1.0",
+    "normalizedChecksumSha256": "4fa83ffefec87ddeb85e77d9b77d41fd8aea6beb9068eaaf926e9e79352054c4"
+  },
+  "scope": "Sensitivity within the tested synthetic parameter grid on one deliberately selected corridor; not operational or real-world robustness",
+  "matrix": {
+    "footprintRadiusM": [
+      250,
+      500,
+      750,
+      1000
+    ],
+    "successDecayProfiles": [
+      {
+        "label": "slow",
+        "decreasePerSecond": 0.002
+      },
+      {
+        "label": "baseline",
+        "decreasePerSecond": 0.004
+      },
+      {
+        "label": "fast",
+        "decreasePerSecond": 0.008
+      }
+    ],
+    "turnRateDegS": [
+      10,
+      15,
+      20
+    ]
+  },
+  "controlledInputs": {
+    "schema_version": "static-mvp-scenario-fixture/1",
+    "scenario_id": "demo-singapore",
+    "description": "Fictional eastbound Ang Mo Kio\u2013Serangoon demonstration using unchanged prepared Census 2020 resident population geography. Deliberately selected for a non-monotonic exposure story; not operationally calibrated.",
+    "population_fixture": "data/processed/population-projected.json",
+    "population_identity": {
+      "dataset_id": "sg-residents-2020-mp2019",
+      "version": "sg-residents-2020-mp2019-cbb1c395f60918c1",
+      "normalized_checksum_sha256": "4fa83ffefec87ddeb85e77d9b77d41fd8aea6beb9068eaaf926e9e79352054c4"
+    },
+    "number_of_samples": 50,
+    "presentation": {
+      "scenario_start_time": "2026-09-15T00:00:00Z",
+      "visualization_height_m": 1000
+    },
+    "threat": {
+      "threat_id": "demo-fictional-threat",
+      "position_x_m": 27300,
+      "position_y_m": 39500,
+      "velocity_x_mps": 225,
+      "velocity_y_mps": 0,
+      "maximum_time_to_go_s": 20
+    },
+    "interceptor": {
+      "interceptor_id": "demo-synthetic-interceptor",
+      "position_x_m": 26600,
+      "position_y_m": 38500,
+      "heading_rad": 0,
+      "speed_mps": 500,
+      "max_turn_rate_rad_s": 0.2617993877991494
+    },
+    "synthetic_success_profile": {
+      "initial_success_probability": 0.97,
+      "decrease_per_second": 0.004,
+      "minimum_success_probability": 0.7,
+      "maximum_success_probability": 1.0
+    },
+    "footprint_radius_m": 500,
+    "synthetic_assumptions": {
+      "threat_trajectory": "fictional straight eastbound path; not an observed or predicted real threat",
+      "threat_speed": "225 m/s supplied synthetic constant",
+      "interceptor_speed": "500 m/s supplied synthetic constant",
+      "turn_rate": "15 deg/s supplied synthetic limit",
+      "launch_origin": "fictional supplied point; not an operational site",
+      "footprint_radius": "500 m supplied consequence circle; not calculated debris physics",
+      "success_profile": "supplied linear decay; not a validated success estimate",
+      "scenario_time": "fixed presentation-only clock; no model significance",
+      "visualization_height": "1000 m presentation only; backend model is 2D"
+    }
+  },
+  "reportingCriteria": {
+    "minimumExposureReductionPeople": 100,
+    "minimumRelativeExposureReduction": 0.2,
+    "requiresDistinctRepresentatives": true,
+    "requiresLaterLowerExposure": true,
+    "affectsPlanner": false
+  },
+  "comparisonSemantics": "lowestExposure minus earliestViable, including zero deltas for a shared representative; complete finite exposure required; zero reference has null relative change",
+  "rows": [
+    {
+      "parameters": {
+        "footprintRadiusM": 250,
+        "successDecayLabel": "slow",
+        "decreasePerSecond": 0.002,
+        "turnRateDegS": 10
+      },
+      "outcome": "distinct_representatives",
+      "reasons": [
+        "distinct_representatives"
+      ],
+      "counts": {
+        "totalCandidates": 50,
+        "reachableCandidates": 34,
+        "eligibleCandidates": 34,
+        "paretoCandidates": 11,
+        "uniqueRepresentatives": 2,
+        "partialCoverageCandidates": 0
+      },
+      "categoryAssignments": {
+        "earliestViable": "demo-fictional-threat__demo-synthetic-interceptor__k17",
+        "highestSuccess": "demo-fictional-threat__demo-synthetic-interceptor__k17",
+        "lowestExposure": "demo-fictional-threat__demo-synthetic-interceptor__k44"
+      },
+      "representativeCandidateIds": [
+        "demo-fictional-threat__demo-synthetic-interceptor__k17",
+        "demo-fictional-threat__demo-synthetic-interceptor__k44"
+      ],
+      "representativeEvidence": {
+        "earliestViable": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k17",
+          "timeFromStartS": 6.800000000000001,
+          "suppliedSuccessProbability": 0.9563999999999999,
+          "peoplePotentiallyExposed": 4242.709333788982,
+          "exposureStatus": "complete"
+        },
+        "highestSuccess": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k17",
+          "timeFromStartS": 6.800000000000001,
+          "suppliedSuccessProbability": 0.9563999999999999,
+          "peoplePotentiallyExposed": 4242.709333788982,
+          "exposureStatus": "complete"
+        },
+        "lowestExposure": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k44",
+          "timeFromStartS": 17.6,
+          "suppliedSuccessProbability": 0.9348,
+          "peoplePotentiallyExposed": 2.130064087385825,
+          "exposureStatus": "complete"
+        }
+      },
+      "comparison": {
+        "referenceCandidateId": "demo-fictional-threat__demo-synthetic-interceptor__k17",
+        "comparisonCandidateId": "demo-fictional-threat__demo-synthetic-interceptor__k44",
+        "deltaTimeS": 10.8,
+        "deltaSuccessPercentagePoints": -2.1599999999999953,
+        "deltaPeoplePotentiallyExposed": -4240.579269701596,
+        "relativeExposureChange": -0.999497947203118
+      },
+      "distinctRepresentatives": true,
+      "laterLowerExposureAlternative": true,
+      "meetsExposureContrastThreshold": true
+    },
+    {
+      "parameters": {
+        "footprintRadiusM": 250,
+        "successDecayLabel": "slow",
+        "decreasePerSecond": 0.002,
+        "turnRateDegS": 15
+      },
+      "outcome": "distinct_representatives",
+      "reasons": [
+        "distinct_representatives"
+      ],
+      "counts": {
+        "totalCandidates": 50,
+        "reachableCandidates": 40,
+        "eligibleCandidates": 40,
+        "paretoCandidates": 11,
+        "uniqueRepresentatives": 2,
+        "partialCoverageCandidates": 0
+      },
+      "categoryAssignments": {
+        "earliestViable": "demo-fictional-threat__demo-synthetic-interceptor__k11",
+        "highestSuccess": "demo-fictional-threat__demo-synthetic-interceptor__k11",
+        "lowestExposure": "demo-fictional-threat__demo-synthetic-interceptor__k44"
+      },
+      "representativeCandidateIds": [
+        "demo-fictional-threat__demo-synthetic-interceptor__k11",
+        "demo-fictional-threat__demo-synthetic-interceptor__k44"
+      ],
+      "representativeEvidence": {
+        "earliestViable": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k11",
+          "timeFromStartS": 4.4,
+          "suppliedSuccessProbability": 0.9611999999999999,
+          "peoplePotentiallyExposed": 4242.709333788982,
+          "exposureStatus": "complete"
+        },
+        "highestSuccess": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k11",
+          "timeFromStartS": 4.4,
+          "suppliedSuccessProbability": 0.9611999999999999,
+          "peoplePotentiallyExposed": 4242.709333788982,
+          "exposureStatus": "complete"
+        },
+        "lowestExposure": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k44",
+          "timeFromStartS": 17.6,
+          "suppliedSuccessProbability": 0.9348,
+          "peoplePotentiallyExposed": 2.130064087385825,
+          "exposureStatus": "complete"
+        }
+      },
+      "comparison": {
+        "referenceCandidateId": "demo-fictional-threat__demo-synthetic-interceptor__k11",
+        "comparisonCandidateId": "demo-fictional-threat__demo-synthetic-interceptor__k44",
+        "deltaTimeS": 13.200000000000001,
+        "deltaSuccessPercentagePoints": -2.639999999999998,
+        "deltaPeoplePotentiallyExposed": -4240.579269701596,
+        "relativeExposureChange": -0.999497947203118
+      },
+      "distinctRepresentatives": true,
+      "laterLowerExposureAlternative": true,
+      "meetsExposureContrastThreshold": true
+    },
+    {
+      "parameters": {
+        "footprintRadiusM": 250,
+        "successDecayLabel": "slow",
+        "decreasePerSecond": 0.002,
+        "turnRateDegS": 20
+      },
+      "outcome": "distinct_representatives",
+      "reasons": [
+        "distinct_representatives"
+      ],
+      "counts": {
+        "totalCandidates": 50,
+        "reachableCandidates": 41,
+        "eligibleCandidates": 41,
+        "paretoCandidates": 10,
+        "uniqueRepresentatives": 2,
+        "partialCoverageCandidates": 0
+      },
+      "categoryAssignments": {
+        "earliestViable": "demo-fictional-threat__demo-synthetic-interceptor__k10",
+        "highestSuccess": "demo-fictional-threat__demo-synthetic-interceptor__k10",
+        "lowestExposure": "demo-fictional-threat__demo-synthetic-interceptor__k44"
+      },
+      "representativeCandidateIds": [
+        "demo-fictional-threat__demo-synthetic-interceptor__k10",
+        "demo-fictional-threat__demo-synthetic-interceptor__k44"
+      ],
+      "representativeEvidence": {
+        "earliestViable": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k10",
+          "timeFromStartS": 4.0,
+          "suppliedSuccessProbability": 0.962,
+          "peoplePotentiallyExposed": 4197.53999161737,
+          "exposureStatus": "complete"
+        },
+        "highestSuccess": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k10",
+          "timeFromStartS": 4.0,
+          "suppliedSuccessProbability": 0.962,
+          "peoplePotentiallyExposed": 4197.53999161737,
+          "exposureStatus": "complete"
+        },
+        "lowestExposure": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k44",
+          "timeFromStartS": 17.6,
+          "suppliedSuccessProbability": 0.9348,
+          "peoplePotentiallyExposed": 2.130064087385825,
+          "exposureStatus": "complete"
+        }
+      },
+      "comparison": {
+        "referenceCandidateId": "demo-fictional-threat__demo-synthetic-interceptor__k10",
+        "comparisonCandidateId": "demo-fictional-threat__demo-synthetic-interceptor__k44",
+        "deltaTimeS": 13.600000000000001,
+        "deltaSuccessPercentagePoints": -2.72,
+        "deltaPeoplePotentiallyExposed": -4195.409927529984,
+        "relativeExposureChange": -0.9994925446591004
+      },
+      "distinctRepresentatives": true,
+      "laterLowerExposureAlternative": true,
+      "meetsExposureContrastThreshold": true
+    },
+    {
+      "parameters": {
+        "footprintRadiusM": 250,
+        "successDecayLabel": "baseline",
+        "decreasePerSecond": 0.004,
+        "turnRateDegS": 10
+      },
+      "outcome": "distinct_representatives",
+      "reasons": [
+        "distinct_representatives"
+      ],
+      "counts": {
+        "totalCandidates": 50,
+        "reachableCandidates": 34,
+        "eligibleCandidates": 34,
+        "paretoCandidates": 11,
+        "uniqueRepresentatives": 2,
+        "partialCoverageCandidates": 0
+      },
+      "categoryAssignments": {
+        "earliestViable": "demo-fictional-threat__demo-synthetic-interceptor__k17",
+        "highestSuccess": "demo-fictional-threat__demo-synthetic-interceptor__k17",
+        "lowestExposure": "demo-fictional-threat__demo-synthetic-interceptor__k44"
+      },
+      "representativeCandidateIds": [
+        "demo-fictional-threat__demo-synthetic-interceptor__k17",
+        "demo-fictional-threat__demo-synthetic-interceptor__k44"
+      ],
+      "representativeEvidence": {
+        "earliestViable": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k17",
+          "timeFromStartS": 6.800000000000001,
+          "suppliedSuccessProbability": 0.9428,
+          "peoplePotentiallyExposed": 4242.709333788982,
+          "exposureStatus": "complete"
+        },
+        "highestSuccess": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k17",
+          "timeFromStartS": 6.800000000000001,
+          "suppliedSuccessProbability": 0.9428,
+          "peoplePotentiallyExposed": 4242.709333788982,
+          "exposureStatus": "complete"
+        },
+        "lowestExposure": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k44",
+          "timeFromStartS": 17.6,
+          "suppliedSuccessProbability": 0.8996,
+          "peoplePotentiallyExposed": 2.130064087385825,
+          "exposureStatus": "complete"
+        }
+      },
+      "comparison": {
+        "referenceCandidateId": "demo-fictional-threat__demo-synthetic-interceptor__k17",
+        "comparisonCandidateId": "demo-fictional-threat__demo-synthetic-interceptor__k44",
+        "deltaTimeS": 10.8,
+        "deltaSuccessPercentagePoints": -4.320000000000002,
+        "deltaPeoplePotentiallyExposed": -4240.579269701596,
+        "relativeExposureChange": -0.999497947203118
+      },
+      "distinctRepresentatives": true,
+      "laterLowerExposureAlternative": true,
+      "meetsExposureContrastThreshold": true
+    },
+    {
+      "parameters": {
+        "footprintRadiusM": 250,
+        "successDecayLabel": "baseline",
+        "decreasePerSecond": 0.004,
+        "turnRateDegS": 15
+      },
+      "outcome": "distinct_representatives",
+      "reasons": [
+        "distinct_representatives"
+      ],
+      "counts": {
+        "totalCandidates": 50,
+        "reachableCandidates": 40,
+        "eligibleCandidates": 40,
+        "paretoCandidates": 11,
+        "uniqueRepresentatives": 2,
+        "partialCoverageCandidates": 0
+      },
+      "categoryAssignments": {
+        "earliestViable": "demo-fictional-threat__demo-synthetic-interceptor__k11",
+        "highestSuccess": "demo-fictional-threat__demo-synthetic-interceptor__k11",
+        "lowestExposure": "demo-fictional-threat__demo-synthetic-interceptor__k44"
+      },
+      "representativeCandidateIds": [
+        "demo-fictional-threat__demo-synthetic-interceptor__k11",
+        "demo-fictional-threat__demo-synthetic-interceptor__k44"
+      ],
+      "representativeEvidence": {
+        "earliestViable": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k11",
+          "timeFromStartS": 4.4,
+          "suppliedSuccessProbability": 0.9524,
+          "peoplePotentiallyExposed": 4242.709333788982,
+          "exposureStatus": "complete"
+        },
+        "highestSuccess": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k11",
+          "timeFromStartS": 4.4,
+          "suppliedSuccessProbability": 0.9524,
+          "peoplePotentiallyExposed": 4242.709333788982,
+          "exposureStatus": "complete"
+        },
+        "lowestExposure": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k44",
+          "timeFromStartS": 17.6,
+          "suppliedSuccessProbability": 0.8996,
+          "peoplePotentiallyExposed": 2.130064087385825,
+          "exposureStatus": "complete"
+        }
+      },
+      "comparison": {
+        "referenceCandidateId": "demo-fictional-threat__demo-synthetic-interceptor__k11",
+        "comparisonCandidateId": "demo-fictional-threat__demo-synthetic-interceptor__k44",
+        "deltaTimeS": 13.200000000000001,
+        "deltaSuccessPercentagePoints": -5.2800000000000065,
+        "deltaPeoplePotentiallyExposed": -4240.579269701596,
+        "relativeExposureChange": -0.999497947203118
+      },
+      "distinctRepresentatives": true,
+      "laterLowerExposureAlternative": true,
+      "meetsExposureContrastThreshold": true
+    },
+    {
+      "parameters": {
+        "footprintRadiusM": 250,
+        "successDecayLabel": "baseline",
+        "decreasePerSecond": 0.004,
+        "turnRateDegS": 20
+      },
+      "outcome": "distinct_representatives",
+      "reasons": [
+        "distinct_representatives"
+      ],
+      "counts": {
+        "totalCandidates": 50,
+        "reachableCandidates": 41,
+        "eligibleCandidates": 41,
+        "paretoCandidates": 10,
+        "uniqueRepresentatives": 2,
+        "partialCoverageCandidates": 0
+      },
+      "categoryAssignments": {
+        "earliestViable": "demo-fictional-threat__demo-synthetic-interceptor__k10",
+        "highestSuccess": "demo-fictional-threat__demo-synthetic-interceptor__k10",
+        "lowestExposure": "demo-fictional-threat__demo-synthetic-interceptor__k44"
+      },
+      "representativeCandidateIds": [
+        "demo-fictional-threat__demo-synthetic-interceptor__k10",
+        "demo-fictional-threat__demo-synthetic-interceptor__k44"
+      ],
+      "representativeEvidence": {
+        "earliestViable": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k10",
+          "timeFromStartS": 4.0,
+          "suppliedSuccessProbability": 0.954,
+          "peoplePotentiallyExposed": 4197.53999161737,
+          "exposureStatus": "complete"
+        },
+        "highestSuccess": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k10",
+          "timeFromStartS": 4.0,
+          "suppliedSuccessProbability": 0.954,
+          "peoplePotentiallyExposed": 4197.53999161737,
+          "exposureStatus": "complete"
+        },
+        "lowestExposure": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k44",
+          "timeFromStartS": 17.6,
+          "suppliedSuccessProbability": 0.8996,
+          "peoplePotentiallyExposed": 2.130064087385825,
+          "exposureStatus": "complete"
+        }
+      },
+      "comparison": {
+        "referenceCandidateId": "demo-fictional-threat__demo-synthetic-interceptor__k10",
+        "comparisonCandidateId": "demo-fictional-threat__demo-synthetic-interceptor__k44",
+        "deltaTimeS": 13.600000000000001,
+        "deltaSuccessPercentagePoints": -5.44,
+        "deltaPeoplePotentiallyExposed": -4195.409927529984,
+        "relativeExposureChange": -0.9994925446591004
+      },
+      "distinctRepresentatives": true,
+      "laterLowerExposureAlternative": true,
+      "meetsExposureContrastThreshold": true
+    },
+    {
+      "parameters": {
+        "footprintRadiusM": 250,
+        "successDecayLabel": "fast",
+        "decreasePerSecond": 0.008,
+        "turnRateDegS": 10
+      },
+      "outcome": "distinct_representatives",
+      "reasons": [
+        "distinct_representatives"
+      ],
+      "counts": {
+        "totalCandidates": 50,
+        "reachableCandidates": 34,
+        "eligibleCandidates": 34,
+        "paretoCandidates": 11,
+        "uniqueRepresentatives": 2,
+        "partialCoverageCandidates": 0
+      },
+      "categoryAssignments": {
+        "earliestViable": "demo-fictional-threat__demo-synthetic-interceptor__k17",
+        "highestSuccess": "demo-fictional-threat__demo-synthetic-interceptor__k17",
+        "lowestExposure": "demo-fictional-threat__demo-synthetic-interceptor__k44"
+      },
+      "representativeCandidateIds": [
+        "demo-fictional-threat__demo-synthetic-interceptor__k17",
+        "demo-fictional-threat__demo-synthetic-interceptor__k44"
+      ],
+      "representativeEvidence": {
+        "earliestViable": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k17",
+          "timeFromStartS": 6.800000000000001,
+          "suppliedSuccessProbability": 0.9156,
+          "peoplePotentiallyExposed": 4242.709333788982,
+          "exposureStatus": "complete"
+        },
+        "highestSuccess": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k17",
+          "timeFromStartS": 6.800000000000001,
+          "suppliedSuccessProbability": 0.9156,
+          "peoplePotentiallyExposed": 4242.709333788982,
+          "exposureStatus": "complete"
+        },
+        "lowestExposure": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k44",
+          "timeFromStartS": 17.6,
+          "suppliedSuccessProbability": 0.8291999999999999,
+          "peoplePotentiallyExposed": 2.130064087385825,
+          "exposureStatus": "complete"
+        }
+      },
+      "comparison": {
+        "referenceCandidateId": "demo-fictional-threat__demo-synthetic-interceptor__k17",
+        "comparisonCandidateId": "demo-fictional-threat__demo-synthetic-interceptor__k44",
+        "deltaTimeS": 10.8,
+        "deltaSuccessPercentagePoints": -8.640000000000004,
+        "deltaPeoplePotentiallyExposed": -4240.579269701596,
+        "relativeExposureChange": -0.999497947203118
+      },
+      "distinctRepresentatives": true,
+      "laterLowerExposureAlternative": true,
+      "meetsExposureContrastThreshold": true
+    },
+    {
+      "parameters": {
+        "footprintRadiusM": 250,
+        "successDecayLabel": "fast",
+        "decreasePerSecond": 0.008,
+        "turnRateDegS": 15
+      },
+      "outcome": "distinct_representatives",
+      "reasons": [
+        "distinct_representatives"
+      ],
+      "counts": {
+        "totalCandidates": 50,
+        "reachableCandidates": 40,
+        "eligibleCandidates": 40,
+        "paretoCandidates": 11,
+        "uniqueRepresentatives": 2,
+        "partialCoverageCandidates": 0
+      },
+      "categoryAssignments": {
+        "earliestViable": "demo-fictional-threat__demo-synthetic-interceptor__k11",
+        "highestSuccess": "demo-fictional-threat__demo-synthetic-interceptor__k11",
+        "lowestExposure": "demo-fictional-threat__demo-synthetic-interceptor__k44"
+      },
+      "representativeCandidateIds": [
+        "demo-fictional-threat__demo-synthetic-interceptor__k11",
+        "demo-fictional-threat__demo-synthetic-interceptor__k44"
+      ],
+      "representativeEvidence": {
+        "earliestViable": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k11",
+          "timeFromStartS": 4.4,
+          "suppliedSuccessProbability": 0.9348,
+          "peoplePotentiallyExposed": 4242.709333788982,
+          "exposureStatus": "complete"
+        },
+        "highestSuccess": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k11",
+          "timeFromStartS": 4.4,
+          "suppliedSuccessProbability": 0.9348,
+          "peoplePotentiallyExposed": 4242.709333788982,
+          "exposureStatus": "complete"
+        },
+        "lowestExposure": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k44",
+          "timeFromStartS": 17.6,
+          "suppliedSuccessProbability": 0.8291999999999999,
+          "peoplePotentiallyExposed": 2.130064087385825,
+          "exposureStatus": "complete"
+        }
+      },
+      "comparison": {
+        "referenceCandidateId": "demo-fictional-threat__demo-synthetic-interceptor__k11",
+        "comparisonCandidateId": "demo-fictional-threat__demo-synthetic-interceptor__k44",
+        "deltaTimeS": 13.200000000000001,
+        "deltaSuccessPercentagePoints": -10.560000000000002,
+        "deltaPeoplePotentiallyExposed": -4240.579269701596,
+        "relativeExposureChange": -0.999497947203118
+      },
+      "distinctRepresentatives": true,
+      "laterLowerExposureAlternative": true,
+      "meetsExposureContrastThreshold": true
+    },
+    {
+      "parameters": {
+        "footprintRadiusM": 250,
+        "successDecayLabel": "fast",
+        "decreasePerSecond": 0.008,
+        "turnRateDegS": 20
+      },
+      "outcome": "distinct_representatives",
+      "reasons": [
+        "distinct_representatives"
+      ],
+      "counts": {
+        "totalCandidates": 50,
+        "reachableCandidates": 41,
+        "eligibleCandidates": 41,
+        "paretoCandidates": 10,
+        "uniqueRepresentatives": 2,
+        "partialCoverageCandidates": 0
+      },
+      "categoryAssignments": {
+        "earliestViable": "demo-fictional-threat__demo-synthetic-interceptor__k10",
+        "highestSuccess": "demo-fictional-threat__demo-synthetic-interceptor__k10",
+        "lowestExposure": "demo-fictional-threat__demo-synthetic-interceptor__k44"
+      },
+      "representativeCandidateIds": [
+        "demo-fictional-threat__demo-synthetic-interceptor__k10",
+        "demo-fictional-threat__demo-synthetic-interceptor__k44"
+      ],
+      "representativeEvidence": {
+        "earliestViable": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k10",
+          "timeFromStartS": 4.0,
+          "suppliedSuccessProbability": 0.938,
+          "peoplePotentiallyExposed": 4197.53999161737,
+          "exposureStatus": "complete"
+        },
+        "highestSuccess": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k10",
+          "timeFromStartS": 4.0,
+          "suppliedSuccessProbability": 0.938,
+          "peoplePotentiallyExposed": 4197.53999161737,
+          "exposureStatus": "complete"
+        },
+        "lowestExposure": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k44",
+          "timeFromStartS": 17.6,
+          "suppliedSuccessProbability": 0.8291999999999999,
+          "peoplePotentiallyExposed": 2.130064087385825,
+          "exposureStatus": "complete"
+        }
+      },
+      "comparison": {
+        "referenceCandidateId": "demo-fictional-threat__demo-synthetic-interceptor__k10",
+        "comparisonCandidateId": "demo-fictional-threat__demo-synthetic-interceptor__k44",
+        "deltaTimeS": 13.600000000000001,
+        "deltaSuccessPercentagePoints": -10.88,
+        "deltaPeoplePotentiallyExposed": -4195.409927529984,
+        "relativeExposureChange": -0.9994925446591004
+      },
+      "distinctRepresentatives": true,
+      "laterLowerExposureAlternative": true,
+      "meetsExposureContrastThreshold": true
+    },
+    {
+      "parameters": {
+        "footprintRadiusM": 500,
+        "successDecayLabel": "slow",
+        "decreasePerSecond": 0.002,
+        "turnRateDegS": 10
+      },
+      "outcome": "distinct_representatives",
+      "reasons": [
+        "distinct_representatives"
+      ],
+      "counts": {
+        "totalCandidates": 50,
+        "reachableCandidates": 34,
+        "eligibleCandidates": 34,
+        "paretoCandidates": 15,
+        "uniqueRepresentatives": 2,
+        "partialCoverageCandidates": 0
+      },
+      "categoryAssignments": {
+        "earliestViable": "demo-fictional-threat__demo-synthetic-interceptor__k17",
+        "highestSuccess": "demo-fictional-threat__demo-synthetic-interceptor__k17",
+        "lowestExposure": "demo-fictional-threat__demo-synthetic-interceptor__k46"
+      },
+      "representativeCandidateIds": [
+        "demo-fictional-threat__demo-synthetic-interceptor__k17",
+        "demo-fictional-threat__demo-synthetic-interceptor__k46"
+      ],
+      "representativeEvidence": {
+        "earliestViable": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k17",
+          "timeFromStartS": 6.800000000000001,
+          "suppliedSuccessProbability": 0.9563999999999999,
+          "peoplePotentiallyExposed": 17270.1209488385,
+          "exposureStatus": "complete"
+        },
+        "highestSuccess": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k17",
+          "timeFromStartS": 6.800000000000001,
+          "suppliedSuccessProbability": 0.9563999999999999,
+          "peoplePotentiallyExposed": 17270.1209488385,
+          "exposureStatus": "complete"
+        },
+        "lowestExposure": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k46",
+          "timeFromStartS": 18.400000000000002,
+          "suppliedSuccessProbability": 0.9331999999999999,
+          "peoplePotentiallyExposed": 1643.1006303157176,
+          "exposureStatus": "complete"
+        }
+      },
+      "comparison": {
+        "referenceCandidateId": "demo-fictional-threat__demo-synthetic-interceptor__k17",
+        "comparisonCandidateId": "demo-fictional-threat__demo-synthetic-interceptor__k46",
+        "deltaTimeS": 11.600000000000001,
+        "deltaSuccessPercentagePoints": -2.32,
+        "deltaPeoplePotentiallyExposed": -15627.020318522782,
+        "relativeExposureChange": -0.9048587653101396
+      },
+      "distinctRepresentatives": true,
+      "laterLowerExposureAlternative": true,
+      "meetsExposureContrastThreshold": true
+    },
+    {
+      "parameters": {
+        "footprintRadiusM": 500,
+        "successDecayLabel": "slow",
+        "decreasePerSecond": 0.002,
+        "turnRateDegS": 15
+      },
+      "outcome": "distinct_representatives",
+      "reasons": [
+        "distinct_representatives"
+      ],
+      "counts": {
+        "totalCandidates": 50,
+        "reachableCandidates": 40,
+        "eligibleCandidates": 40,
+        "paretoCandidates": 10,
+        "uniqueRepresentatives": 2,
+        "partialCoverageCandidates": 0
+      },
+      "categoryAssignments": {
+        "earliestViable": "demo-fictional-threat__demo-synthetic-interceptor__k11",
+        "highestSuccess": "demo-fictional-threat__demo-synthetic-interceptor__k11",
+        "lowestExposure": "demo-fictional-threat__demo-synthetic-interceptor__k46"
+      },
+      "representativeCandidateIds": [
+        "demo-fictional-threat__demo-synthetic-interceptor__k11",
+        "demo-fictional-threat__demo-synthetic-interceptor__k46"
+      ],
+      "representativeEvidence": {
+        "earliestViable": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k11",
+          "timeFromStartS": 4.4,
+          "suppliedSuccessProbability": 0.9611999999999999,
+          "peoplePotentiallyExposed": 15251.839989865413,
+          "exposureStatus": "complete"
+        },
+        "highestSuccess": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k11",
+          "timeFromStartS": 4.4,
+          "suppliedSuccessProbability": 0.9611999999999999,
+          "peoplePotentiallyExposed": 15251.839989865413,
+          "exposureStatus": "complete"
+        },
+        "lowestExposure": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k46",
+          "timeFromStartS": 18.400000000000002,
+          "suppliedSuccessProbability": 0.9331999999999999,
+          "peoplePotentiallyExposed": 1643.1006303157176,
+          "exposureStatus": "complete"
+        }
+      },
+      "comparison": {
+        "referenceCandidateId": "demo-fictional-threat__demo-synthetic-interceptor__k11",
+        "comparisonCandidateId": "demo-fictional-threat__demo-synthetic-interceptor__k46",
+        "deltaTimeS": 14.000000000000002,
+        "deltaSuccessPercentagePoints": -2.8000000000000025,
+        "deltaPeoplePotentiallyExposed": -13608.739359549696,
+        "relativeExposureChange": -0.8922686947012604
+      },
+      "distinctRepresentatives": true,
+      "laterLowerExposureAlternative": true,
+      "meetsExposureContrastThreshold": true
+    },
+    {
+      "parameters": {
+        "footprintRadiusM": 500,
+        "successDecayLabel": "slow",
+        "decreasePerSecond": 0.002,
+        "turnRateDegS": 20
+      },
+      "outcome": "distinct_representatives",
+      "reasons": [
+        "distinct_representatives"
+      ],
+      "counts": {
+        "totalCandidates": 50,
+        "reachableCandidates": 41,
+        "eligibleCandidates": 41,
+        "paretoCandidates": 9,
+        "uniqueRepresentatives": 2,
+        "partialCoverageCandidates": 0
+      },
+      "categoryAssignments": {
+        "earliestViable": "demo-fictional-threat__demo-synthetic-interceptor__k10",
+        "highestSuccess": "demo-fictional-threat__demo-synthetic-interceptor__k10",
+        "lowestExposure": "demo-fictional-threat__demo-synthetic-interceptor__k46"
+      },
+      "representativeCandidateIds": [
+        "demo-fictional-threat__demo-synthetic-interceptor__k10",
+        "demo-fictional-threat__demo-synthetic-interceptor__k46"
+      ],
+      "representativeEvidence": {
+        "earliestViable": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k10",
+          "timeFromStartS": 4.0,
+          "suppliedSuccessProbability": 0.962,
+          "peoplePotentiallyExposed": 14152.187673671955,
+          "exposureStatus": "complete"
+        },
+        "highestSuccess": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k10",
+          "timeFromStartS": 4.0,
+          "suppliedSuccessProbability": 0.962,
+          "peoplePotentiallyExposed": 14152.187673671955,
+          "exposureStatus": "complete"
+        },
+        "lowestExposure": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k46",
+          "timeFromStartS": 18.400000000000002,
+          "suppliedSuccessProbability": 0.9331999999999999,
+          "peoplePotentiallyExposed": 1643.1006303157176,
+          "exposureStatus": "complete"
+        }
+      },
+      "comparison": {
+        "referenceCandidateId": "demo-fictional-threat__demo-synthetic-interceptor__k10",
+        "comparisonCandidateId": "demo-fictional-threat__demo-synthetic-interceptor__k46",
+        "deltaTimeS": 14.400000000000002,
+        "deltaSuccessPercentagePoints": -2.880000000000005,
+        "deltaPeoplePotentiallyExposed": -12509.087043356238,
+        "relativeExposureChange": -0.8838977642041547
+      },
+      "distinctRepresentatives": true,
+      "laterLowerExposureAlternative": true,
+      "meetsExposureContrastThreshold": true
+    },
+    {
+      "parameters": {
+        "footprintRadiusM": 500,
+        "successDecayLabel": "baseline",
+        "decreasePerSecond": 0.004,
+        "turnRateDegS": 10
+      },
+      "outcome": "distinct_representatives",
+      "reasons": [
+        "distinct_representatives"
+      ],
+      "counts": {
+        "totalCandidates": 50,
+        "reachableCandidates": 34,
+        "eligibleCandidates": 34,
+        "paretoCandidates": 15,
+        "uniqueRepresentatives": 2,
+        "partialCoverageCandidates": 0
+      },
+      "categoryAssignments": {
+        "earliestViable": "demo-fictional-threat__demo-synthetic-interceptor__k17",
+        "highestSuccess": "demo-fictional-threat__demo-synthetic-interceptor__k17",
+        "lowestExposure": "demo-fictional-threat__demo-synthetic-interceptor__k46"
+      },
+      "representativeCandidateIds": [
+        "demo-fictional-threat__demo-synthetic-interceptor__k17",
+        "demo-fictional-threat__demo-synthetic-interceptor__k46"
+      ],
+      "representativeEvidence": {
+        "earliestViable": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k17",
+          "timeFromStartS": 6.800000000000001,
+          "suppliedSuccessProbability": 0.9428,
+          "peoplePotentiallyExposed": 17270.1209488385,
+          "exposureStatus": "complete"
+        },
+        "highestSuccess": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k17",
+          "timeFromStartS": 6.800000000000001,
+          "suppliedSuccessProbability": 0.9428,
+          "peoplePotentiallyExposed": 17270.1209488385,
+          "exposureStatus": "complete"
+        },
+        "lowestExposure": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k46",
+          "timeFromStartS": 18.400000000000002,
+          "suppliedSuccessProbability": 0.8964,
+          "peoplePotentiallyExposed": 1643.1006303157176,
+          "exposureStatus": "complete"
+        }
+      },
+      "comparison": {
+        "referenceCandidateId": "demo-fictional-threat__demo-synthetic-interceptor__k17",
+        "comparisonCandidateId": "demo-fictional-threat__demo-synthetic-interceptor__k46",
+        "deltaTimeS": 11.600000000000001,
+        "deltaSuccessPercentagePoints": -4.64,
+        "deltaPeoplePotentiallyExposed": -15627.020318522782,
+        "relativeExposureChange": -0.9048587653101396
+      },
+      "distinctRepresentatives": true,
+      "laterLowerExposureAlternative": true,
+      "meetsExposureContrastThreshold": true
+    },
+    {
+      "parameters": {
+        "footprintRadiusM": 500,
+        "successDecayLabel": "baseline",
+        "decreasePerSecond": 0.004,
+        "turnRateDegS": 15
+      },
+      "outcome": "distinct_representatives",
+      "reasons": [
+        "distinct_representatives"
+      ],
+      "counts": {
+        "totalCandidates": 50,
+        "reachableCandidates": 40,
+        "eligibleCandidates": 40,
+        "paretoCandidates": 10,
+        "uniqueRepresentatives": 2,
+        "partialCoverageCandidates": 0
+      },
+      "categoryAssignments": {
+        "earliestViable": "demo-fictional-threat__demo-synthetic-interceptor__k11",
+        "highestSuccess": "demo-fictional-threat__demo-synthetic-interceptor__k11",
+        "lowestExposure": "demo-fictional-threat__demo-synthetic-interceptor__k46"
+      },
+      "representativeCandidateIds": [
+        "demo-fictional-threat__demo-synthetic-interceptor__k11",
+        "demo-fictional-threat__demo-synthetic-interceptor__k46"
+      ],
+      "representativeEvidence": {
+        "earliestViable": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k11",
+          "timeFromStartS": 4.4,
+          "suppliedSuccessProbability": 0.9524,
+          "peoplePotentiallyExposed": 15251.839989865413,
+          "exposureStatus": "complete"
+        },
+        "highestSuccess": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k11",
+          "timeFromStartS": 4.4,
+          "suppliedSuccessProbability": 0.9524,
+          "peoplePotentiallyExposed": 15251.839989865413,
+          "exposureStatus": "complete"
+        },
+        "lowestExposure": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k46",
+          "timeFromStartS": 18.400000000000002,
+          "suppliedSuccessProbability": 0.8964,
+          "peoplePotentiallyExposed": 1643.1006303157176,
+          "exposureStatus": "complete"
+        }
+      },
+      "comparison": {
+        "referenceCandidateId": "demo-fictional-threat__demo-synthetic-interceptor__k11",
+        "comparisonCandidateId": "demo-fictional-threat__demo-synthetic-interceptor__k46",
+        "deltaTimeS": 14.000000000000002,
+        "deltaSuccessPercentagePoints": -5.600000000000005,
+        "deltaPeoplePotentiallyExposed": -13608.739359549696,
+        "relativeExposureChange": -0.8922686947012604
+      },
+      "distinctRepresentatives": true,
+      "laterLowerExposureAlternative": true,
+      "meetsExposureContrastThreshold": true
+    },
+    {
+      "parameters": {
+        "footprintRadiusM": 500,
+        "successDecayLabel": "baseline",
+        "decreasePerSecond": 0.004,
+        "turnRateDegS": 20
+      },
+      "outcome": "distinct_representatives",
+      "reasons": [
+        "distinct_representatives"
+      ],
+      "counts": {
+        "totalCandidates": 50,
+        "reachableCandidates": 41,
+        "eligibleCandidates": 41,
+        "paretoCandidates": 9,
+        "uniqueRepresentatives": 2,
+        "partialCoverageCandidates": 0
+      },
+      "categoryAssignments": {
+        "earliestViable": "demo-fictional-threat__demo-synthetic-interceptor__k10",
+        "highestSuccess": "demo-fictional-threat__demo-synthetic-interceptor__k10",
+        "lowestExposure": "demo-fictional-threat__demo-synthetic-interceptor__k46"
+      },
+      "representativeCandidateIds": [
+        "demo-fictional-threat__demo-synthetic-interceptor__k10",
+        "demo-fictional-threat__demo-synthetic-interceptor__k46"
+      ],
+      "representativeEvidence": {
+        "earliestViable": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k10",
+          "timeFromStartS": 4.0,
+          "suppliedSuccessProbability": 0.954,
+          "peoplePotentiallyExposed": 14152.187673671955,
+          "exposureStatus": "complete"
+        },
+        "highestSuccess": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k10",
+          "timeFromStartS": 4.0,
+          "suppliedSuccessProbability": 0.954,
+          "peoplePotentiallyExposed": 14152.187673671955,
+          "exposureStatus": "complete"
+        },
+        "lowestExposure": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k46",
+          "timeFromStartS": 18.400000000000002,
+          "suppliedSuccessProbability": 0.8964,
+          "peoplePotentiallyExposed": 1643.1006303157176,
+          "exposureStatus": "complete"
+        }
+      },
+      "comparison": {
+        "referenceCandidateId": "demo-fictional-threat__demo-synthetic-interceptor__k10",
+        "comparisonCandidateId": "demo-fictional-threat__demo-synthetic-interceptor__k46",
+        "deltaTimeS": 14.400000000000002,
+        "deltaSuccessPercentagePoints": -5.759999999999998,
+        "deltaPeoplePotentiallyExposed": -12509.087043356238,
+        "relativeExposureChange": -0.8838977642041547
+      },
+      "distinctRepresentatives": true,
+      "laterLowerExposureAlternative": true,
+      "meetsExposureContrastThreshold": true
+    },
+    {
+      "parameters": {
+        "footprintRadiusM": 500,
+        "successDecayLabel": "fast",
+        "decreasePerSecond": 0.008,
+        "turnRateDegS": 10
+      },
+      "outcome": "distinct_representatives",
+      "reasons": [
+        "distinct_representatives"
+      ],
+      "counts": {
+        "totalCandidates": 50,
+        "reachableCandidates": 34,
+        "eligibleCandidates": 34,
+        "paretoCandidates": 15,
+        "uniqueRepresentatives": 2,
+        "partialCoverageCandidates": 0
+      },
+      "categoryAssignments": {
+        "earliestViable": "demo-fictional-threat__demo-synthetic-interceptor__k17",
+        "highestSuccess": "demo-fictional-threat__demo-synthetic-interceptor__k17",
+        "lowestExposure": "demo-fictional-threat__demo-synthetic-interceptor__k46"
+      },
+      "representativeCandidateIds": [
+        "demo-fictional-threat__demo-synthetic-interceptor__k17",
+        "demo-fictional-threat__demo-synthetic-interceptor__k46"
+      ],
+      "representativeEvidence": {
+        "earliestViable": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k17",
+          "timeFromStartS": 6.800000000000001,
+          "suppliedSuccessProbability": 0.9156,
+          "peoplePotentiallyExposed": 17270.1209488385,
+          "exposureStatus": "complete"
+        },
+        "highestSuccess": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k17",
+          "timeFromStartS": 6.800000000000001,
+          "suppliedSuccessProbability": 0.9156,
+          "peoplePotentiallyExposed": 17270.1209488385,
+          "exposureStatus": "complete"
+        },
+        "lowestExposure": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k46",
+          "timeFromStartS": 18.400000000000002,
+          "suppliedSuccessProbability": 0.8228,
+          "peoplePotentiallyExposed": 1643.1006303157176,
+          "exposureStatus": "complete"
+        }
+      },
+      "comparison": {
+        "referenceCandidateId": "demo-fictional-threat__demo-synthetic-interceptor__k17",
+        "comparisonCandidateId": "demo-fictional-threat__demo-synthetic-interceptor__k46",
+        "deltaTimeS": 11.600000000000001,
+        "deltaSuccessPercentagePoints": -9.28,
+        "deltaPeoplePotentiallyExposed": -15627.020318522782,
+        "relativeExposureChange": -0.9048587653101396
+      },
+      "distinctRepresentatives": true,
+      "laterLowerExposureAlternative": true,
+      "meetsExposureContrastThreshold": true
+    },
+    {
+      "parameters": {
+        "footprintRadiusM": 500,
+        "successDecayLabel": "fast",
+        "decreasePerSecond": 0.008,
+        "turnRateDegS": 15
+      },
+      "outcome": "distinct_representatives",
+      "reasons": [
+        "distinct_representatives"
+      ],
+      "counts": {
+        "totalCandidates": 50,
+        "reachableCandidates": 40,
+        "eligibleCandidates": 40,
+        "paretoCandidates": 10,
+        "uniqueRepresentatives": 2,
+        "partialCoverageCandidates": 0
+      },
+      "categoryAssignments": {
+        "earliestViable": "demo-fictional-threat__demo-synthetic-interceptor__k11",
+        "highestSuccess": "demo-fictional-threat__demo-synthetic-interceptor__k11",
+        "lowestExposure": "demo-fictional-threat__demo-synthetic-interceptor__k46"
+      },
+      "representativeCandidateIds": [
+        "demo-fictional-threat__demo-synthetic-interceptor__k11",
+        "demo-fictional-threat__demo-synthetic-interceptor__k46"
+      ],
+      "representativeEvidence": {
+        "earliestViable": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k11",
+          "timeFromStartS": 4.4,
+          "suppliedSuccessProbability": 0.9348,
+          "peoplePotentiallyExposed": 15251.839989865413,
+          "exposureStatus": "complete"
+        },
+        "highestSuccess": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k11",
+          "timeFromStartS": 4.4,
+          "suppliedSuccessProbability": 0.9348,
+          "peoplePotentiallyExposed": 15251.839989865413,
+          "exposureStatus": "complete"
+        },
+        "lowestExposure": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k46",
+          "timeFromStartS": 18.400000000000002,
+          "suppliedSuccessProbability": 0.8228,
+          "peoplePotentiallyExposed": 1643.1006303157176,
+          "exposureStatus": "complete"
+        }
+      },
+      "comparison": {
+        "referenceCandidateId": "demo-fictional-threat__demo-synthetic-interceptor__k11",
+        "comparisonCandidateId": "demo-fictional-threat__demo-synthetic-interceptor__k46",
+        "deltaTimeS": 14.000000000000002,
+        "deltaSuccessPercentagePoints": -11.2,
+        "deltaPeoplePotentiallyExposed": -13608.739359549696,
+        "relativeExposureChange": -0.8922686947012604
+      },
+      "distinctRepresentatives": true,
+      "laterLowerExposureAlternative": true,
+      "meetsExposureContrastThreshold": true
+    },
+    {
+      "parameters": {
+        "footprintRadiusM": 500,
+        "successDecayLabel": "fast",
+        "decreasePerSecond": 0.008,
+        "turnRateDegS": 20
+      },
+      "outcome": "distinct_representatives",
+      "reasons": [
+        "distinct_representatives"
+      ],
+      "counts": {
+        "totalCandidates": 50,
+        "reachableCandidates": 41,
+        "eligibleCandidates": 41,
+        "paretoCandidates": 9,
+        "uniqueRepresentatives": 2,
+        "partialCoverageCandidates": 0
+      },
+      "categoryAssignments": {
+        "earliestViable": "demo-fictional-threat__demo-synthetic-interceptor__k10",
+        "highestSuccess": "demo-fictional-threat__demo-synthetic-interceptor__k10",
+        "lowestExposure": "demo-fictional-threat__demo-synthetic-interceptor__k46"
+      },
+      "representativeCandidateIds": [
+        "demo-fictional-threat__demo-synthetic-interceptor__k10",
+        "demo-fictional-threat__demo-synthetic-interceptor__k46"
+      ],
+      "representativeEvidence": {
+        "earliestViable": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k10",
+          "timeFromStartS": 4.0,
+          "suppliedSuccessProbability": 0.938,
+          "peoplePotentiallyExposed": 14152.187673671955,
+          "exposureStatus": "complete"
+        },
+        "highestSuccess": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k10",
+          "timeFromStartS": 4.0,
+          "suppliedSuccessProbability": 0.938,
+          "peoplePotentiallyExposed": 14152.187673671955,
+          "exposureStatus": "complete"
+        },
+        "lowestExposure": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k46",
+          "timeFromStartS": 18.400000000000002,
+          "suppliedSuccessProbability": 0.8228,
+          "peoplePotentiallyExposed": 1643.1006303157176,
+          "exposureStatus": "complete"
+        }
+      },
+      "comparison": {
+        "referenceCandidateId": "demo-fictional-threat__demo-synthetic-interceptor__k10",
+        "comparisonCandidateId": "demo-fictional-threat__demo-synthetic-interceptor__k46",
+        "deltaTimeS": 14.400000000000002,
+        "deltaSuccessPercentagePoints": -11.519999999999996,
+        "deltaPeoplePotentiallyExposed": -12509.087043356238,
+        "relativeExposureChange": -0.8838977642041547
+      },
+      "distinctRepresentatives": true,
+      "laterLowerExposureAlternative": true,
+      "meetsExposureContrastThreshold": true
+    },
+    {
+      "parameters": {
+        "footprintRadiusM": 750,
+        "successDecayLabel": "slow",
+        "decreasePerSecond": 0.002,
+        "turnRateDegS": 10
+      },
+      "outcome": "distinct_representatives",
+      "reasons": [
+        "distinct_representatives"
+      ],
+      "counts": {
+        "totalCandidates": 50,
+        "reachableCandidates": 34,
+        "eligibleCandidates": 34,
+        "paretoCandidates": 28,
+        "uniqueRepresentatives": 2,
+        "partialCoverageCandidates": 0
+      },
+      "categoryAssignments": {
+        "earliestViable": "demo-fictional-threat__demo-synthetic-interceptor__k17",
+        "highestSuccess": "demo-fictional-threat__demo-synthetic-interceptor__k17",
+        "lowestExposure": "demo-fictional-threat__demo-synthetic-interceptor__k48"
+      },
+      "representativeCandidateIds": [
+        "demo-fictional-threat__demo-synthetic-interceptor__k17",
+        "demo-fictional-threat__demo-synthetic-interceptor__k48"
+      ],
+      "representativeEvidence": {
+        "earliestViable": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k17",
+          "timeFromStartS": 6.800000000000001,
+          "suppliedSuccessProbability": 0.9563999999999999,
+          "peoplePotentiallyExposed": 38723.27483043899,
+          "exposureStatus": "complete"
+        },
+        "highestSuccess": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k17",
+          "timeFromStartS": 6.800000000000001,
+          "suppliedSuccessProbability": 0.9563999999999999,
+          "peoplePotentiallyExposed": 38723.27483043899,
+          "exposureStatus": "complete"
+        },
+        "lowestExposure": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k48",
+          "timeFromStartS": 19.2,
+          "suppliedSuccessProbability": 0.9316,
+          "peoplePotentiallyExposed": 12553.725801849161,
+          "exposureStatus": "complete"
+        }
+      },
+      "comparison": {
+        "referenceCandidateId": "demo-fictional-threat__demo-synthetic-interceptor__k17",
+        "comparisonCandidateId": "demo-fictional-threat__demo-synthetic-interceptor__k48",
+        "deltaTimeS": 12.399999999999999,
+        "deltaSuccessPercentagePoints": -2.4799999999999933,
+        "deltaPeoplePotentiallyExposed": -26169.549028589827,
+        "relativeExposureChange": -0.675809294104921
+      },
+      "distinctRepresentatives": true,
+      "laterLowerExposureAlternative": true,
+      "meetsExposureContrastThreshold": true
+    },
+    {
+      "parameters": {
+        "footprintRadiusM": 750,
+        "successDecayLabel": "slow",
+        "decreasePerSecond": 0.002,
+        "turnRateDegS": 15
+      },
+      "outcome": "distinct_representatives",
+      "reasons": [
+        "distinct_representatives"
+      ],
+      "counts": {
+        "totalCandidates": 50,
+        "reachableCandidates": 40,
+        "eligibleCandidates": 40,
+        "paretoCandidates": 14,
+        "uniqueRepresentatives": 2,
+        "partialCoverageCandidates": 0
+      },
+      "categoryAssignments": {
+        "earliestViable": "demo-fictional-threat__demo-synthetic-interceptor__k11",
+        "highestSuccess": "demo-fictional-threat__demo-synthetic-interceptor__k11",
+        "lowestExposure": "demo-fictional-threat__demo-synthetic-interceptor__k48"
+      },
+      "representativeCandidateIds": [
+        "demo-fictional-threat__demo-synthetic-interceptor__k11",
+        "demo-fictional-threat__demo-synthetic-interceptor__k48"
+      ],
+      "representativeEvidence": {
+        "earliestViable": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k11",
+          "timeFromStartS": 4.4,
+          "suppliedSuccessProbability": 0.9611999999999999,
+          "peoplePotentiallyExposed": 32921.77902294262,
+          "exposureStatus": "complete"
+        },
+        "highestSuccess": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k11",
+          "timeFromStartS": 4.4,
+          "suppliedSuccessProbability": 0.9611999999999999,
+          "peoplePotentiallyExposed": 32921.77902294262,
+          "exposureStatus": "complete"
+        },
+        "lowestExposure": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k48",
+          "timeFromStartS": 19.2,
+          "suppliedSuccessProbability": 0.9316,
+          "peoplePotentiallyExposed": 12553.725801849161,
+          "exposureStatus": "complete"
+        }
+      },
+      "comparison": {
+        "referenceCandidateId": "demo-fictional-threat__demo-synthetic-interceptor__k11",
+        "comparisonCandidateId": "demo-fictional-threat__demo-synthetic-interceptor__k48",
+        "deltaTimeS": 14.799999999999999,
+        "deltaSuccessPercentagePoints": -2.959999999999996,
+        "deltaPeoplePotentiallyExposed": -20368.053221093454,
+        "relativeExposureChange": -0.6186802118712755
+      },
+      "distinctRepresentatives": true,
+      "laterLowerExposureAlternative": true,
+      "meetsExposureContrastThreshold": true
+    },
+    {
+      "parameters": {
+        "footprintRadiusM": 750,
+        "successDecayLabel": "slow",
+        "decreasePerSecond": 0.002,
+        "turnRateDegS": 20
+      },
+      "outcome": "distinct_representatives",
+      "reasons": [
+        "distinct_representatives"
+      ],
+      "counts": {
+        "totalCandidates": 50,
+        "reachableCandidates": 41,
+        "eligibleCandidates": 41,
+        "paretoCandidates": 13,
+        "uniqueRepresentatives": 2,
+        "partialCoverageCandidates": 0
+      },
+      "categoryAssignments": {
+        "earliestViable": "demo-fictional-threat__demo-synthetic-interceptor__k10",
+        "highestSuccess": "demo-fictional-threat__demo-synthetic-interceptor__k10",
+        "lowestExposure": "demo-fictional-threat__demo-synthetic-interceptor__k48"
+      },
+      "representativeCandidateIds": [
+        "demo-fictional-threat__demo-synthetic-interceptor__k10",
+        "demo-fictional-threat__demo-synthetic-interceptor__k48"
+      ],
+      "representativeEvidence": {
+        "earliestViable": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k10",
+          "timeFromStartS": 4.0,
+          "suppliedSuccessProbability": 0.962,
+          "peoplePotentiallyExposed": 30912.930649523667,
+          "exposureStatus": "complete"
+        },
+        "highestSuccess": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k10",
+          "timeFromStartS": 4.0,
+          "suppliedSuccessProbability": 0.962,
+          "peoplePotentiallyExposed": 30912.930649523667,
+          "exposureStatus": "complete"
+        },
+        "lowestExposure": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k48",
+          "timeFromStartS": 19.2,
+          "suppliedSuccessProbability": 0.9316,
+          "peoplePotentiallyExposed": 12553.725801849161,
+          "exposureStatus": "complete"
+        }
+      },
+      "comparison": {
+        "referenceCandidateId": "demo-fictional-threat__demo-synthetic-interceptor__k10",
+        "comparisonCandidateId": "demo-fictional-threat__demo-synthetic-interceptor__k48",
+        "deltaTimeS": 15.2,
+        "deltaSuccessPercentagePoints": -3.0399999999999983,
+        "deltaPeoplePotentiallyExposed": -18359.204847674504,
+        "relativeExposureChange": -0.5939004960682173
+      },
+      "distinctRepresentatives": true,
+      "laterLowerExposureAlternative": true,
+      "meetsExposureContrastThreshold": true
+    },
+    {
+      "parameters": {
+        "footprintRadiusM": 750,
+        "successDecayLabel": "baseline",
+        "decreasePerSecond": 0.004,
+        "turnRateDegS": 10
+      },
+      "outcome": "distinct_representatives",
+      "reasons": [
+        "distinct_representatives"
+      ],
+      "counts": {
+        "totalCandidates": 50,
+        "reachableCandidates": 34,
+        "eligibleCandidates": 34,
+        "paretoCandidates": 28,
+        "uniqueRepresentatives": 2,
+        "partialCoverageCandidates": 0
+      },
+      "categoryAssignments": {
+        "earliestViable": "demo-fictional-threat__demo-synthetic-interceptor__k17",
+        "highestSuccess": "demo-fictional-threat__demo-synthetic-interceptor__k17",
+        "lowestExposure": "demo-fictional-threat__demo-synthetic-interceptor__k48"
+      },
+      "representativeCandidateIds": [
+        "demo-fictional-threat__demo-synthetic-interceptor__k17",
+        "demo-fictional-threat__demo-synthetic-interceptor__k48"
+      ],
+      "representativeEvidence": {
+        "earliestViable": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k17",
+          "timeFromStartS": 6.800000000000001,
+          "suppliedSuccessProbability": 0.9428,
+          "peoplePotentiallyExposed": 38723.27483043899,
+          "exposureStatus": "complete"
+        },
+        "highestSuccess": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k17",
+          "timeFromStartS": 6.800000000000001,
+          "suppliedSuccessProbability": 0.9428,
+          "peoplePotentiallyExposed": 38723.27483043899,
+          "exposureStatus": "complete"
+        },
+        "lowestExposure": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k48",
+          "timeFromStartS": 19.2,
+          "suppliedSuccessProbability": 0.8932,
+          "peoplePotentiallyExposed": 12553.725801849161,
+          "exposureStatus": "complete"
+        }
+      },
+      "comparison": {
+        "referenceCandidateId": "demo-fictional-threat__demo-synthetic-interceptor__k17",
+        "comparisonCandidateId": "demo-fictional-threat__demo-synthetic-interceptor__k48",
+        "deltaTimeS": 12.399999999999999,
+        "deltaSuccessPercentagePoints": -4.959999999999997,
+        "deltaPeoplePotentiallyExposed": -26169.549028589827,
+        "relativeExposureChange": -0.675809294104921
+      },
+      "distinctRepresentatives": true,
+      "laterLowerExposureAlternative": true,
+      "meetsExposureContrastThreshold": true
+    },
+    {
+      "parameters": {
+        "footprintRadiusM": 750,
+        "successDecayLabel": "baseline",
+        "decreasePerSecond": 0.004,
+        "turnRateDegS": 15
+      },
+      "outcome": "distinct_representatives",
+      "reasons": [
+        "distinct_representatives"
+      ],
+      "counts": {
+        "totalCandidates": 50,
+        "reachableCandidates": 40,
+        "eligibleCandidates": 40,
+        "paretoCandidates": 14,
+        "uniqueRepresentatives": 2,
+        "partialCoverageCandidates": 0
+      },
+      "categoryAssignments": {
+        "earliestViable": "demo-fictional-threat__demo-synthetic-interceptor__k11",
+        "highestSuccess": "demo-fictional-threat__demo-synthetic-interceptor__k11",
+        "lowestExposure": "demo-fictional-threat__demo-synthetic-interceptor__k48"
+      },
+      "representativeCandidateIds": [
+        "demo-fictional-threat__demo-synthetic-interceptor__k11",
+        "demo-fictional-threat__demo-synthetic-interceptor__k48"
+      ],
+      "representativeEvidence": {
+        "earliestViable": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k11",
+          "timeFromStartS": 4.4,
+          "suppliedSuccessProbability": 0.9524,
+          "peoplePotentiallyExposed": 32921.77902294262,
+          "exposureStatus": "complete"
+        },
+        "highestSuccess": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k11",
+          "timeFromStartS": 4.4,
+          "suppliedSuccessProbability": 0.9524,
+          "peoplePotentiallyExposed": 32921.77902294262,
+          "exposureStatus": "complete"
+        },
+        "lowestExposure": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k48",
+          "timeFromStartS": 19.2,
+          "suppliedSuccessProbability": 0.8932,
+          "peoplePotentiallyExposed": 12553.725801849161,
+          "exposureStatus": "complete"
+        }
+      },
+      "comparison": {
+        "referenceCandidateId": "demo-fictional-threat__demo-synthetic-interceptor__k11",
+        "comparisonCandidateId": "demo-fictional-threat__demo-synthetic-interceptor__k48",
+        "deltaTimeS": 14.799999999999999,
+        "deltaSuccessPercentagePoints": -5.9200000000000035,
+        "deltaPeoplePotentiallyExposed": -20368.053221093454,
+        "relativeExposureChange": -0.6186802118712755
+      },
+      "distinctRepresentatives": true,
+      "laterLowerExposureAlternative": true,
+      "meetsExposureContrastThreshold": true
+    },
+    {
+      "parameters": {
+        "footprintRadiusM": 750,
+        "successDecayLabel": "baseline",
+        "decreasePerSecond": 0.004,
+        "turnRateDegS": 20
+      },
+      "outcome": "distinct_representatives",
+      "reasons": [
+        "distinct_representatives"
+      ],
+      "counts": {
+        "totalCandidates": 50,
+        "reachableCandidates": 41,
+        "eligibleCandidates": 41,
+        "paretoCandidates": 13,
+        "uniqueRepresentatives": 2,
+        "partialCoverageCandidates": 0
+      },
+      "categoryAssignments": {
+        "earliestViable": "demo-fictional-threat__demo-synthetic-interceptor__k10",
+        "highestSuccess": "demo-fictional-threat__demo-synthetic-interceptor__k10",
+        "lowestExposure": "demo-fictional-threat__demo-synthetic-interceptor__k48"
+      },
+      "representativeCandidateIds": [
+        "demo-fictional-threat__demo-synthetic-interceptor__k10",
+        "demo-fictional-threat__demo-synthetic-interceptor__k48"
+      ],
+      "representativeEvidence": {
+        "earliestViable": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k10",
+          "timeFromStartS": 4.0,
+          "suppliedSuccessProbability": 0.954,
+          "peoplePotentiallyExposed": 30912.930649523667,
+          "exposureStatus": "complete"
+        },
+        "highestSuccess": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k10",
+          "timeFromStartS": 4.0,
+          "suppliedSuccessProbability": 0.954,
+          "peoplePotentiallyExposed": 30912.930649523667,
+          "exposureStatus": "complete"
+        },
+        "lowestExposure": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k48",
+          "timeFromStartS": 19.2,
+          "suppliedSuccessProbability": 0.8932,
+          "peoplePotentiallyExposed": 12553.725801849161,
+          "exposureStatus": "complete"
+        }
+      },
+      "comparison": {
+        "referenceCandidateId": "demo-fictional-threat__demo-synthetic-interceptor__k10",
+        "comparisonCandidateId": "demo-fictional-threat__demo-synthetic-interceptor__k48",
+        "deltaTimeS": 15.2,
+        "deltaSuccessPercentagePoints": -6.0799999999999965,
+        "deltaPeoplePotentiallyExposed": -18359.204847674504,
+        "relativeExposureChange": -0.5939004960682173
+      },
+      "distinctRepresentatives": true,
+      "laterLowerExposureAlternative": true,
+      "meetsExposureContrastThreshold": true
+    },
+    {
+      "parameters": {
+        "footprintRadiusM": 750,
+        "successDecayLabel": "fast",
+        "decreasePerSecond": 0.008,
+        "turnRateDegS": 10
+      },
+      "outcome": "distinct_representatives",
+      "reasons": [
+        "distinct_representatives"
+      ],
+      "counts": {
+        "totalCandidates": 50,
+        "reachableCandidates": 34,
+        "eligibleCandidates": 34,
+        "paretoCandidates": 28,
+        "uniqueRepresentatives": 2,
+        "partialCoverageCandidates": 0
+      },
+      "categoryAssignments": {
+        "earliestViable": "demo-fictional-threat__demo-synthetic-interceptor__k17",
+        "highestSuccess": "demo-fictional-threat__demo-synthetic-interceptor__k17",
+        "lowestExposure": "demo-fictional-threat__demo-synthetic-interceptor__k48"
+      },
+      "representativeCandidateIds": [
+        "demo-fictional-threat__demo-synthetic-interceptor__k17",
+        "demo-fictional-threat__demo-synthetic-interceptor__k48"
+      ],
+      "representativeEvidence": {
+        "earliestViable": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k17",
+          "timeFromStartS": 6.800000000000001,
+          "suppliedSuccessProbability": 0.9156,
+          "peoplePotentiallyExposed": 38723.27483043899,
+          "exposureStatus": "complete"
+        },
+        "highestSuccess": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k17",
+          "timeFromStartS": 6.800000000000001,
+          "suppliedSuccessProbability": 0.9156,
+          "peoplePotentiallyExposed": 38723.27483043899,
+          "exposureStatus": "complete"
+        },
+        "lowestExposure": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k48",
+          "timeFromStartS": 19.2,
+          "suppliedSuccessProbability": 0.8164,
+          "peoplePotentiallyExposed": 12553.725801849161,
+          "exposureStatus": "complete"
+        }
+      },
+      "comparison": {
+        "referenceCandidateId": "demo-fictional-threat__demo-synthetic-interceptor__k17",
+        "comparisonCandidateId": "demo-fictional-threat__demo-synthetic-interceptor__k48",
+        "deltaTimeS": 12.399999999999999,
+        "deltaSuccessPercentagePoints": -9.919999999999995,
+        "deltaPeoplePotentiallyExposed": -26169.549028589827,
+        "relativeExposureChange": -0.675809294104921
+      },
+      "distinctRepresentatives": true,
+      "laterLowerExposureAlternative": true,
+      "meetsExposureContrastThreshold": true
+    },
+    {
+      "parameters": {
+        "footprintRadiusM": 750,
+        "successDecayLabel": "fast",
+        "decreasePerSecond": 0.008,
+        "turnRateDegS": 15
+      },
+      "outcome": "distinct_representatives",
+      "reasons": [
+        "distinct_representatives"
+      ],
+      "counts": {
+        "totalCandidates": 50,
+        "reachableCandidates": 40,
+        "eligibleCandidates": 40,
+        "paretoCandidates": 14,
+        "uniqueRepresentatives": 2,
+        "partialCoverageCandidates": 0
+      },
+      "categoryAssignments": {
+        "earliestViable": "demo-fictional-threat__demo-synthetic-interceptor__k11",
+        "highestSuccess": "demo-fictional-threat__demo-synthetic-interceptor__k11",
+        "lowestExposure": "demo-fictional-threat__demo-synthetic-interceptor__k48"
+      },
+      "representativeCandidateIds": [
+        "demo-fictional-threat__demo-synthetic-interceptor__k11",
+        "demo-fictional-threat__demo-synthetic-interceptor__k48"
+      ],
+      "representativeEvidence": {
+        "earliestViable": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k11",
+          "timeFromStartS": 4.4,
+          "suppliedSuccessProbability": 0.9348,
+          "peoplePotentiallyExposed": 32921.77902294262,
+          "exposureStatus": "complete"
+        },
+        "highestSuccess": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k11",
+          "timeFromStartS": 4.4,
+          "suppliedSuccessProbability": 0.9348,
+          "peoplePotentiallyExposed": 32921.77902294262,
+          "exposureStatus": "complete"
+        },
+        "lowestExposure": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k48",
+          "timeFromStartS": 19.2,
+          "suppliedSuccessProbability": 0.8164,
+          "peoplePotentiallyExposed": 12553.725801849161,
+          "exposureStatus": "complete"
+        }
+      },
+      "comparison": {
+        "referenceCandidateId": "demo-fictional-threat__demo-synthetic-interceptor__k11",
+        "comparisonCandidateId": "demo-fictional-threat__demo-synthetic-interceptor__k48",
+        "deltaTimeS": 14.799999999999999,
+        "deltaSuccessPercentagePoints": -11.839999999999995,
+        "deltaPeoplePotentiallyExposed": -20368.053221093454,
+        "relativeExposureChange": -0.6186802118712755
+      },
+      "distinctRepresentatives": true,
+      "laterLowerExposureAlternative": true,
+      "meetsExposureContrastThreshold": true
+    },
+    {
+      "parameters": {
+        "footprintRadiusM": 750,
+        "successDecayLabel": "fast",
+        "decreasePerSecond": 0.008,
+        "turnRateDegS": 20
+      },
+      "outcome": "distinct_representatives",
+      "reasons": [
+        "distinct_representatives"
+      ],
+      "counts": {
+        "totalCandidates": 50,
+        "reachableCandidates": 41,
+        "eligibleCandidates": 41,
+        "paretoCandidates": 13,
+        "uniqueRepresentatives": 2,
+        "partialCoverageCandidates": 0
+      },
+      "categoryAssignments": {
+        "earliestViable": "demo-fictional-threat__demo-synthetic-interceptor__k10",
+        "highestSuccess": "demo-fictional-threat__demo-synthetic-interceptor__k10",
+        "lowestExposure": "demo-fictional-threat__demo-synthetic-interceptor__k48"
+      },
+      "representativeCandidateIds": [
+        "demo-fictional-threat__demo-synthetic-interceptor__k10",
+        "demo-fictional-threat__demo-synthetic-interceptor__k48"
+      ],
+      "representativeEvidence": {
+        "earliestViable": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k10",
+          "timeFromStartS": 4.0,
+          "suppliedSuccessProbability": 0.938,
+          "peoplePotentiallyExposed": 30912.930649523667,
+          "exposureStatus": "complete"
+        },
+        "highestSuccess": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k10",
+          "timeFromStartS": 4.0,
+          "suppliedSuccessProbability": 0.938,
+          "peoplePotentiallyExposed": 30912.930649523667,
+          "exposureStatus": "complete"
+        },
+        "lowestExposure": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k48",
+          "timeFromStartS": 19.2,
+          "suppliedSuccessProbability": 0.8164,
+          "peoplePotentiallyExposed": 12553.725801849161,
+          "exposureStatus": "complete"
+        }
+      },
+      "comparison": {
+        "referenceCandidateId": "demo-fictional-threat__demo-synthetic-interceptor__k10",
+        "comparisonCandidateId": "demo-fictional-threat__demo-synthetic-interceptor__k48",
+        "deltaTimeS": 15.2,
+        "deltaSuccessPercentagePoints": -12.159999999999993,
+        "deltaPeoplePotentiallyExposed": -18359.204847674504,
+        "relativeExposureChange": -0.5939004960682173
+      },
+      "distinctRepresentatives": true,
+      "laterLowerExposureAlternative": true,
+      "meetsExposureContrastThreshold": true
+    },
+    {
+      "parameters": {
+        "footprintRadiusM": 1000,
+        "successDecayLabel": "slow",
+        "decreasePerSecond": 0.002,
+        "turnRateDegS": 10
+      },
+      "outcome": "distinct_representatives",
+      "reasons": [
+        "distinct_representatives"
+      ],
+      "counts": {
+        "totalCandidates": 50,
+        "reachableCandidates": 34,
+        "eligibleCandidates": 34,
+        "paretoCandidates": 28,
+        "uniqueRepresentatives": 2,
+        "partialCoverageCandidates": 0
+      },
+      "categoryAssignments": {
+        "earliestViable": "demo-fictional-threat__demo-synthetic-interceptor__k17",
+        "highestSuccess": "demo-fictional-threat__demo-synthetic-interceptor__k17",
+        "lowestExposure": "demo-fictional-threat__demo-synthetic-interceptor__k50"
+      },
+      "representativeCandidateIds": [
+        "demo-fictional-threat__demo-synthetic-interceptor__k17",
+        "demo-fictional-threat__demo-synthetic-interceptor__k50"
+      ],
+      "representativeEvidence": {
+        "earliestViable": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k17",
+          "timeFromStartS": 6.800000000000001,
+          "suppliedSuccessProbability": 0.9563999999999999,
+          "peoplePotentiallyExposed": 66349.3060591404,
+          "exposureStatus": "complete"
+        },
+        "highestSuccess": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k17",
+          "timeFromStartS": 6.800000000000001,
+          "suppliedSuccessProbability": 0.9563999999999999,
+          "peoplePotentiallyExposed": 66349.3060591404,
+          "exposureStatus": "complete"
+        },
+        "lowestExposure": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k50",
+          "timeFromStartS": 20.0,
+          "suppliedSuccessProbability": 0.9299999999999999,
+          "peoplePotentiallyExposed": 31893.09075764894,
+          "exposureStatus": "complete"
+        }
+      },
+      "comparison": {
+        "referenceCandidateId": "demo-fictional-threat__demo-synthetic-interceptor__k17",
+        "comparisonCandidateId": "demo-fictional-threat__demo-synthetic-interceptor__k50",
+        "deltaTimeS": 13.2,
+        "deltaSuccessPercentagePoints": -2.639999999999998,
+        "deltaPeoplePotentiallyExposed": -34456.215301491466,
+        "relativeExposureChange": -0.5193153832050473
+      },
+      "distinctRepresentatives": true,
+      "laterLowerExposureAlternative": true,
+      "meetsExposureContrastThreshold": true
+    },
+    {
+      "parameters": {
+        "footprintRadiusM": 1000,
+        "successDecayLabel": "slow",
+        "decreasePerSecond": 0.002,
+        "turnRateDegS": 15
+      },
+      "outcome": "distinct_representatives",
+      "reasons": [
+        "distinct_representatives",
+        "partial_population_coverage"
+      ],
+      "counts": {
+        "totalCandidates": 50,
+        "reachableCandidates": 40,
+        "eligibleCandidates": 37,
+        "paretoCandidates": 22,
+        "uniqueRepresentatives": 2,
+        "partialCoverageCandidates": 3
+      },
+      "categoryAssignments": {
+        "earliestViable": "demo-fictional-threat__demo-synthetic-interceptor__k14",
+        "highestSuccess": "demo-fictional-threat__demo-synthetic-interceptor__k14",
+        "lowestExposure": "demo-fictional-threat__demo-synthetic-interceptor__k50"
+      },
+      "representativeCandidateIds": [
+        "demo-fictional-threat__demo-synthetic-interceptor__k14",
+        "demo-fictional-threat__demo-synthetic-interceptor__k50"
+      ],
+      "representativeEvidence": {
+        "earliestViable": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k14",
+          "timeFromStartS": 5.6000000000000005,
+          "suppliedSuccessProbability": 0.9588,
+          "peoplePotentiallyExposed": 61280.37308048777,
+          "exposureStatus": "complete"
+        },
+        "highestSuccess": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k14",
+          "timeFromStartS": 5.6000000000000005,
+          "suppliedSuccessProbability": 0.9588,
+          "peoplePotentiallyExposed": 61280.37308048777,
+          "exposureStatus": "complete"
+        },
+        "lowestExposure": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k50",
+          "timeFromStartS": 20.0,
+          "suppliedSuccessProbability": 0.9299999999999999,
+          "peoplePotentiallyExposed": 31893.09075764894,
+          "exposureStatus": "complete"
+        }
+      },
+      "comparison": {
+        "referenceCandidateId": "demo-fictional-threat__demo-synthetic-interceptor__k14",
+        "comparisonCandidateId": "demo-fictional-threat__demo-synthetic-interceptor__k50",
+        "deltaTimeS": 14.399999999999999,
+        "deltaSuccessPercentagePoints": -2.880000000000005,
+        "deltaPeoplePotentiallyExposed": -29387.28232283883,
+        "relativeExposureChange": -0.4795545595690247
+      },
+      "distinctRepresentatives": true,
+      "laterLowerExposureAlternative": true,
+      "meetsExposureContrastThreshold": true
+    },
+    {
+      "parameters": {
+        "footprintRadiusM": 1000,
+        "successDecayLabel": "slow",
+        "decreasePerSecond": 0.002,
+        "turnRateDegS": 20
+      },
+      "outcome": "distinct_representatives",
+      "reasons": [
+        "distinct_representatives",
+        "partial_population_coverage"
+      ],
+      "counts": {
+        "totalCandidates": 50,
+        "reachableCandidates": 41,
+        "eligibleCandidates": 37,
+        "paretoCandidates": 22,
+        "uniqueRepresentatives": 2,
+        "partialCoverageCandidates": 4
+      },
+      "categoryAssignments": {
+        "earliestViable": "demo-fictional-threat__demo-synthetic-interceptor__k14",
+        "highestSuccess": "demo-fictional-threat__demo-synthetic-interceptor__k14",
+        "lowestExposure": "demo-fictional-threat__demo-synthetic-interceptor__k50"
+      },
+      "representativeCandidateIds": [
+        "demo-fictional-threat__demo-synthetic-interceptor__k14",
+        "demo-fictional-threat__demo-synthetic-interceptor__k50"
+      ],
+      "representativeEvidence": {
+        "earliestViable": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k14",
+          "timeFromStartS": 5.6000000000000005,
+          "suppliedSuccessProbability": 0.9588,
+          "peoplePotentiallyExposed": 61280.37308048777,
+          "exposureStatus": "complete"
+        },
+        "highestSuccess": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k14",
+          "timeFromStartS": 5.6000000000000005,
+          "suppliedSuccessProbability": 0.9588,
+          "peoplePotentiallyExposed": 61280.37308048777,
+          "exposureStatus": "complete"
+        },
+        "lowestExposure": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k50",
+          "timeFromStartS": 20.0,
+          "suppliedSuccessProbability": 0.9299999999999999,
+          "peoplePotentiallyExposed": 31893.09075764894,
+          "exposureStatus": "complete"
+        }
+      },
+      "comparison": {
+        "referenceCandidateId": "demo-fictional-threat__demo-synthetic-interceptor__k14",
+        "comparisonCandidateId": "demo-fictional-threat__demo-synthetic-interceptor__k50",
+        "deltaTimeS": 14.399999999999999,
+        "deltaSuccessPercentagePoints": -2.880000000000005,
+        "deltaPeoplePotentiallyExposed": -29387.28232283883,
+        "relativeExposureChange": -0.4795545595690247
+      },
+      "distinctRepresentatives": true,
+      "laterLowerExposureAlternative": true,
+      "meetsExposureContrastThreshold": true
+    },
+    {
+      "parameters": {
+        "footprintRadiusM": 1000,
+        "successDecayLabel": "baseline",
+        "decreasePerSecond": 0.004,
+        "turnRateDegS": 10
+      },
+      "outcome": "distinct_representatives",
+      "reasons": [
+        "distinct_representatives"
+      ],
+      "counts": {
+        "totalCandidates": 50,
+        "reachableCandidates": 34,
+        "eligibleCandidates": 34,
+        "paretoCandidates": 28,
+        "uniqueRepresentatives": 2,
+        "partialCoverageCandidates": 0
+      },
+      "categoryAssignments": {
+        "earliestViable": "demo-fictional-threat__demo-synthetic-interceptor__k17",
+        "highestSuccess": "demo-fictional-threat__demo-synthetic-interceptor__k17",
+        "lowestExposure": "demo-fictional-threat__demo-synthetic-interceptor__k50"
+      },
+      "representativeCandidateIds": [
+        "demo-fictional-threat__demo-synthetic-interceptor__k17",
+        "demo-fictional-threat__demo-synthetic-interceptor__k50"
+      ],
+      "representativeEvidence": {
+        "earliestViable": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k17",
+          "timeFromStartS": 6.800000000000001,
+          "suppliedSuccessProbability": 0.9428,
+          "peoplePotentiallyExposed": 66349.3060591404,
+          "exposureStatus": "complete"
+        },
+        "highestSuccess": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k17",
+          "timeFromStartS": 6.800000000000001,
+          "suppliedSuccessProbability": 0.9428,
+          "peoplePotentiallyExposed": 66349.3060591404,
+          "exposureStatus": "complete"
+        },
+        "lowestExposure": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k50",
+          "timeFromStartS": 20.0,
+          "suppliedSuccessProbability": 0.89,
+          "peoplePotentiallyExposed": 31893.09075764894,
+          "exposureStatus": "complete"
+        }
+      },
+      "comparison": {
+        "referenceCandidateId": "demo-fictional-threat__demo-synthetic-interceptor__k17",
+        "comparisonCandidateId": "demo-fictional-threat__demo-synthetic-interceptor__k50",
+        "deltaTimeS": 13.2,
+        "deltaSuccessPercentagePoints": -5.279999999999996,
+        "deltaPeoplePotentiallyExposed": -34456.215301491466,
+        "relativeExposureChange": -0.5193153832050473
+      },
+      "distinctRepresentatives": true,
+      "laterLowerExposureAlternative": true,
+      "meetsExposureContrastThreshold": true
+    },
+    {
+      "parameters": {
+        "footprintRadiusM": 1000,
+        "successDecayLabel": "baseline",
+        "decreasePerSecond": 0.004,
+        "turnRateDegS": 15
+      },
+      "outcome": "distinct_representatives",
+      "reasons": [
+        "distinct_representatives",
+        "partial_population_coverage"
+      ],
+      "counts": {
+        "totalCandidates": 50,
+        "reachableCandidates": 40,
+        "eligibleCandidates": 37,
+        "paretoCandidates": 22,
+        "uniqueRepresentatives": 2,
+        "partialCoverageCandidates": 3
+      },
+      "categoryAssignments": {
+        "earliestViable": "demo-fictional-threat__demo-synthetic-interceptor__k14",
+        "highestSuccess": "demo-fictional-threat__demo-synthetic-interceptor__k14",
+        "lowestExposure": "demo-fictional-threat__demo-synthetic-interceptor__k50"
+      },
+      "representativeCandidateIds": [
+        "demo-fictional-threat__demo-synthetic-interceptor__k14",
+        "demo-fictional-threat__demo-synthetic-interceptor__k50"
+      ],
+      "representativeEvidence": {
+        "earliestViable": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k14",
+          "timeFromStartS": 5.6000000000000005,
+          "suppliedSuccessProbability": 0.9476,
+          "peoplePotentiallyExposed": 61280.37308048777,
+          "exposureStatus": "complete"
+        },
+        "highestSuccess": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k14",
+          "timeFromStartS": 5.6000000000000005,
+          "suppliedSuccessProbability": 0.9476,
+          "peoplePotentiallyExposed": 61280.37308048777,
+          "exposureStatus": "complete"
+        },
+        "lowestExposure": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k50",
+          "timeFromStartS": 20.0,
+          "suppliedSuccessProbability": 0.89,
+          "peoplePotentiallyExposed": 31893.09075764894,
+          "exposureStatus": "complete"
+        }
+      },
+      "comparison": {
+        "referenceCandidateId": "demo-fictional-threat__demo-synthetic-interceptor__k14",
+        "comparisonCandidateId": "demo-fictional-threat__demo-synthetic-interceptor__k50",
+        "deltaTimeS": 14.399999999999999,
+        "deltaSuccessPercentagePoints": -5.759999999999998,
+        "deltaPeoplePotentiallyExposed": -29387.28232283883,
+        "relativeExposureChange": -0.4795545595690247
+      },
+      "distinctRepresentatives": true,
+      "laterLowerExposureAlternative": true,
+      "meetsExposureContrastThreshold": true
+    },
+    {
+      "parameters": {
+        "footprintRadiusM": 1000,
+        "successDecayLabel": "baseline",
+        "decreasePerSecond": 0.004,
+        "turnRateDegS": 20
+      },
+      "outcome": "distinct_representatives",
+      "reasons": [
+        "distinct_representatives",
+        "partial_population_coverage"
+      ],
+      "counts": {
+        "totalCandidates": 50,
+        "reachableCandidates": 41,
+        "eligibleCandidates": 37,
+        "paretoCandidates": 22,
+        "uniqueRepresentatives": 2,
+        "partialCoverageCandidates": 4
+      },
+      "categoryAssignments": {
+        "earliestViable": "demo-fictional-threat__demo-synthetic-interceptor__k14",
+        "highestSuccess": "demo-fictional-threat__demo-synthetic-interceptor__k14",
+        "lowestExposure": "demo-fictional-threat__demo-synthetic-interceptor__k50"
+      },
+      "representativeCandidateIds": [
+        "demo-fictional-threat__demo-synthetic-interceptor__k14",
+        "demo-fictional-threat__demo-synthetic-interceptor__k50"
+      ],
+      "representativeEvidence": {
+        "earliestViable": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k14",
+          "timeFromStartS": 5.6000000000000005,
+          "suppliedSuccessProbability": 0.9476,
+          "peoplePotentiallyExposed": 61280.37308048777,
+          "exposureStatus": "complete"
+        },
+        "highestSuccess": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k14",
+          "timeFromStartS": 5.6000000000000005,
+          "suppliedSuccessProbability": 0.9476,
+          "peoplePotentiallyExposed": 61280.37308048777,
+          "exposureStatus": "complete"
+        },
+        "lowestExposure": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k50",
+          "timeFromStartS": 20.0,
+          "suppliedSuccessProbability": 0.89,
+          "peoplePotentiallyExposed": 31893.09075764894,
+          "exposureStatus": "complete"
+        }
+      },
+      "comparison": {
+        "referenceCandidateId": "demo-fictional-threat__demo-synthetic-interceptor__k14",
+        "comparisonCandidateId": "demo-fictional-threat__demo-synthetic-interceptor__k50",
+        "deltaTimeS": 14.399999999999999,
+        "deltaSuccessPercentagePoints": -5.759999999999998,
+        "deltaPeoplePotentiallyExposed": -29387.28232283883,
+        "relativeExposureChange": -0.4795545595690247
+      },
+      "distinctRepresentatives": true,
+      "laterLowerExposureAlternative": true,
+      "meetsExposureContrastThreshold": true
+    },
+    {
+      "parameters": {
+        "footprintRadiusM": 1000,
+        "successDecayLabel": "fast",
+        "decreasePerSecond": 0.008,
+        "turnRateDegS": 10
+      },
+      "outcome": "distinct_representatives",
+      "reasons": [
+        "distinct_representatives"
+      ],
+      "counts": {
+        "totalCandidates": 50,
+        "reachableCandidates": 34,
+        "eligibleCandidates": 34,
+        "paretoCandidates": 28,
+        "uniqueRepresentatives": 2,
+        "partialCoverageCandidates": 0
+      },
+      "categoryAssignments": {
+        "earliestViable": "demo-fictional-threat__demo-synthetic-interceptor__k17",
+        "highestSuccess": "demo-fictional-threat__demo-synthetic-interceptor__k17",
+        "lowestExposure": "demo-fictional-threat__demo-synthetic-interceptor__k50"
+      },
+      "representativeCandidateIds": [
+        "demo-fictional-threat__demo-synthetic-interceptor__k17",
+        "demo-fictional-threat__demo-synthetic-interceptor__k50"
+      ],
+      "representativeEvidence": {
+        "earliestViable": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k17",
+          "timeFromStartS": 6.800000000000001,
+          "suppliedSuccessProbability": 0.9156,
+          "peoplePotentiallyExposed": 66349.3060591404,
+          "exposureStatus": "complete"
+        },
+        "highestSuccess": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k17",
+          "timeFromStartS": 6.800000000000001,
+          "suppliedSuccessProbability": 0.9156,
+          "peoplePotentiallyExposed": 66349.3060591404,
+          "exposureStatus": "complete"
+        },
+        "lowestExposure": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k50",
+          "timeFromStartS": 20.0,
+          "suppliedSuccessProbability": 0.8099999999999999,
+          "peoplePotentiallyExposed": 31893.09075764894,
+          "exposureStatus": "complete"
+        }
+      },
+      "comparison": {
+        "referenceCandidateId": "demo-fictional-threat__demo-synthetic-interceptor__k17",
+        "comparisonCandidateId": "demo-fictional-threat__demo-synthetic-interceptor__k50",
+        "deltaTimeS": 13.2,
+        "deltaSuccessPercentagePoints": -10.560000000000002,
+        "deltaPeoplePotentiallyExposed": -34456.215301491466,
+        "relativeExposureChange": -0.5193153832050473
+      },
+      "distinctRepresentatives": true,
+      "laterLowerExposureAlternative": true,
+      "meetsExposureContrastThreshold": true
+    },
+    {
+      "parameters": {
+        "footprintRadiusM": 1000,
+        "successDecayLabel": "fast",
+        "decreasePerSecond": 0.008,
+        "turnRateDegS": 15
+      },
+      "outcome": "distinct_representatives",
+      "reasons": [
+        "distinct_representatives",
+        "partial_population_coverage"
+      ],
+      "counts": {
+        "totalCandidates": 50,
+        "reachableCandidates": 40,
+        "eligibleCandidates": 37,
+        "paretoCandidates": 22,
+        "uniqueRepresentatives": 2,
+        "partialCoverageCandidates": 3
+      },
+      "categoryAssignments": {
+        "earliestViable": "demo-fictional-threat__demo-synthetic-interceptor__k14",
+        "highestSuccess": "demo-fictional-threat__demo-synthetic-interceptor__k14",
+        "lowestExposure": "demo-fictional-threat__demo-synthetic-interceptor__k50"
+      },
+      "representativeCandidateIds": [
+        "demo-fictional-threat__demo-synthetic-interceptor__k14",
+        "demo-fictional-threat__demo-synthetic-interceptor__k50"
+      ],
+      "representativeEvidence": {
+        "earliestViable": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k14",
+          "timeFromStartS": 5.6000000000000005,
+          "suppliedSuccessProbability": 0.9252,
+          "peoplePotentiallyExposed": 61280.37308048777,
+          "exposureStatus": "complete"
+        },
+        "highestSuccess": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k14",
+          "timeFromStartS": 5.6000000000000005,
+          "suppliedSuccessProbability": 0.9252,
+          "peoplePotentiallyExposed": 61280.37308048777,
+          "exposureStatus": "complete"
+        },
+        "lowestExposure": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k50",
+          "timeFromStartS": 20.0,
+          "suppliedSuccessProbability": 0.8099999999999999,
+          "peoplePotentiallyExposed": 31893.09075764894,
+          "exposureStatus": "complete"
+        }
+      },
+      "comparison": {
+        "referenceCandidateId": "demo-fictional-threat__demo-synthetic-interceptor__k14",
+        "comparisonCandidateId": "demo-fictional-threat__demo-synthetic-interceptor__k50",
+        "deltaTimeS": 14.399999999999999,
+        "deltaSuccessPercentagePoints": -11.520000000000008,
+        "deltaPeoplePotentiallyExposed": -29387.28232283883,
+        "relativeExposureChange": -0.4795545595690247
+      },
+      "distinctRepresentatives": true,
+      "laterLowerExposureAlternative": true,
+      "meetsExposureContrastThreshold": true
+    },
+    {
+      "parameters": {
+        "footprintRadiusM": 1000,
+        "successDecayLabel": "fast",
+        "decreasePerSecond": 0.008,
+        "turnRateDegS": 20
+      },
+      "outcome": "distinct_representatives",
+      "reasons": [
+        "distinct_representatives",
+        "partial_population_coverage"
+      ],
+      "counts": {
+        "totalCandidates": 50,
+        "reachableCandidates": 41,
+        "eligibleCandidates": 37,
+        "paretoCandidates": 22,
+        "uniqueRepresentatives": 2,
+        "partialCoverageCandidates": 4
+      },
+      "categoryAssignments": {
+        "earliestViable": "demo-fictional-threat__demo-synthetic-interceptor__k14",
+        "highestSuccess": "demo-fictional-threat__demo-synthetic-interceptor__k14",
+        "lowestExposure": "demo-fictional-threat__demo-synthetic-interceptor__k50"
+      },
+      "representativeCandidateIds": [
+        "demo-fictional-threat__demo-synthetic-interceptor__k14",
+        "demo-fictional-threat__demo-synthetic-interceptor__k50"
+      ],
+      "representativeEvidence": {
+        "earliestViable": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k14",
+          "timeFromStartS": 5.6000000000000005,
+          "suppliedSuccessProbability": 0.9252,
+          "peoplePotentiallyExposed": 61280.37308048777,
+          "exposureStatus": "complete"
+        },
+        "highestSuccess": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k14",
+          "timeFromStartS": 5.6000000000000005,
+          "suppliedSuccessProbability": 0.9252,
+          "peoplePotentiallyExposed": 61280.37308048777,
+          "exposureStatus": "complete"
+        },
+        "lowestExposure": {
+          "id": "demo-fictional-threat__demo-synthetic-interceptor__k50",
+          "timeFromStartS": 20.0,
+          "suppliedSuccessProbability": 0.8099999999999999,
+          "peoplePotentiallyExposed": 31893.09075764894,
+          "exposureStatus": "complete"
+        }
+      },
+      "comparison": {
+        "referenceCandidateId": "demo-fictional-threat__demo-synthetic-interceptor__k14",
+        "comparisonCandidateId": "demo-fictional-threat__demo-synthetic-interceptor__k50",
+        "deltaTimeS": 14.399999999999999,
+        "deltaSuccessPercentagePoints": -11.520000000000008,
+        "deltaPeoplePotentiallyExposed": -29387.28232283883,
+        "relativeExposureChange": -0.4795545595690247
+      },
+      "distinctRepresentatives": true,
+      "laterLowerExposureAlternative": true,
+      "meetsExposureContrastThreshold": true
+    }
+  ],
+  "summary": {
+    "configurations": 36,
+    "distinctRepresentatives": 36,
+    "meetsExposureContrastThreshold": 36,
+    "validComparisons": 36,
+    "outcomeCounts": {
+      "distinct_representatives": 36,
+      "single_representative": 0,
+      "no_reachable_candidates": 0,
+      "no_eligible_candidates": 0,
+      "no_later_lower_exposure_alternative": 0,
+      "exposure_contrast_below_reporting_threshold": 0,
+      "failed_configuration": 0
+    },
+    "reasonCounts": {
+      "distinct_representatives": 36,
+      "single_representative": 0,
+      "no_reachable_candidates": 0,
+      "no_eligible_candidates": 0,
+      "no_later_lower_exposure_alternative": 0,
+      "exposure_contrast_below_reporting_threshold": 0,
+      "failed_configuration": 0,
+      "partial_population_coverage": 6
+    },
+    "exposureReductionPeople": {
+      "count": 36,
+      "minimum": 4195.409927529984,
+      "median": 16993.112583098642,
+      "maximum": 34456.215301491466
+    },
+    "exposureReductionPercent": {
+      "count": 36,
+      "minimum": 47.95545595690247,
+      "median": 77.98535291545379,
+      "maximum": 99.9497947203118
+    },
+    "suppliedSuccessPenaltyPercentagePoints": {
+      "count": 36,
+      "minimum": 2.1599999999999953,
+      "median": 5.520000000000003,
+      "maximum": 12.159999999999993
+    }
+  },
+  "byParameter": {
+    "footprintRadiusM": [
+      {
+        "value": 250,
+        "configurations": 9,
+        "distinctRepresentatives": 9,
+        "meetsExposureContrastThreshold": 9,
+        "validComparisons": 9,
+        "outcomeCounts": {
+          "distinct_representatives": 9,
+          "single_representative": 0,
+          "no_reachable_candidates": 0,
+          "no_eligible_candidates": 0,
+          "no_later_lower_exposure_alternative": 0,
+          "exposure_contrast_below_reporting_threshold": 0,
+          "failed_configuration": 0
+        },
+        "reasonCounts": {
+          "distinct_representatives": 9,
+          "single_representative": 0,
+          "no_reachable_candidates": 0,
+          "no_eligible_candidates": 0,
+          "no_later_lower_exposure_alternative": 0,
+          "exposure_contrast_below_reporting_threshold": 0,
+          "failed_configuration": 0,
+          "partial_population_coverage": 0
+        },
+        "exposureReductionPeople": {
+          "count": 9,
+          "minimum": 4195.409927529984,
+          "median": 4240.579269701596,
+          "maximum": 4240.579269701596
+        },
+        "exposureReductionPercent": {
+          "count": 9,
+          "minimum": 99.94925446591004,
+          "median": 99.9497947203118,
+          "maximum": 99.9497947203118
+        },
+        "suppliedSuccessPenaltyPercentagePoints": {
+          "count": 9,
+          "minimum": 2.1599999999999953,
+          "median": 5.2800000000000065,
+          "maximum": 10.88
+        }
+      },
+      {
+        "value": 500,
+        "configurations": 9,
+        "distinctRepresentatives": 9,
+        "meetsExposureContrastThreshold": 9,
+        "validComparisons": 9,
+        "outcomeCounts": {
+          "distinct_representatives": 9,
+          "single_representative": 0,
+          "no_reachable_candidates": 0,
+          "no_eligible_candidates": 0,
+          "no_later_lower_exposure_alternative": 0,
+          "exposure_contrast_below_reporting_threshold": 0,
+          "failed_configuration": 0
+        },
+        "reasonCounts": {
+          "distinct_representatives": 9,
+          "single_representative": 0,
+          "no_reachable_candidates": 0,
+          "no_eligible_candidates": 0,
+          "no_later_lower_exposure_alternative": 0,
+          "exposure_contrast_below_reporting_threshold": 0,
+          "failed_configuration": 0,
+          "partial_population_coverage": 0
+        },
+        "exposureReductionPeople": {
+          "count": 9,
+          "minimum": 12509.087043356238,
+          "median": 13608.739359549696,
+          "maximum": 15627.020318522782
+        },
+        "exposureReductionPercent": {
+          "count": 9,
+          "minimum": 88.38977642041547,
+          "median": 89.22686947012603,
+          "maximum": 90.48587653101396
+        },
+        "suppliedSuccessPenaltyPercentagePoints": {
+          "count": 9,
+          "minimum": 2.32,
+          "median": 5.600000000000005,
+          "maximum": 11.519999999999996
+        }
+      },
+      {
+        "value": 750,
+        "configurations": 9,
+        "distinctRepresentatives": 9,
+        "meetsExposureContrastThreshold": 9,
+        "validComparisons": 9,
+        "outcomeCounts": {
+          "distinct_representatives": 9,
+          "single_representative": 0,
+          "no_reachable_candidates": 0,
+          "no_eligible_candidates": 0,
+          "no_later_lower_exposure_alternative": 0,
+          "exposure_contrast_below_reporting_threshold": 0,
+          "failed_configuration": 0
+        },
+        "reasonCounts": {
+          "distinct_representatives": 9,
+          "single_representative": 0,
+          "no_reachable_candidates": 0,
+          "no_eligible_candidates": 0,
+          "no_later_lower_exposure_alternative": 0,
+          "exposure_contrast_below_reporting_threshold": 0,
+          "failed_configuration": 0,
+          "partial_population_coverage": 0
+        },
+        "exposureReductionPeople": {
+          "count": 9,
+          "minimum": 18359.204847674504,
+          "median": 20368.053221093454,
+          "maximum": 26169.549028589827
+        },
+        "exposureReductionPercent": {
+          "count": 9,
+          "minimum": 59.39004960682173,
+          "median": 61.86802118712755,
+          "maximum": 67.5809294104921
+        },
+        "suppliedSuccessPenaltyPercentagePoints": {
+          "count": 9,
+          "minimum": 2.4799999999999933,
+          "median": 5.9200000000000035,
+          "maximum": 12.159999999999993
+        }
+      },
+      {
+        "value": 1000,
+        "configurations": 9,
+        "distinctRepresentatives": 9,
+        "meetsExposureContrastThreshold": 9,
+        "validComparisons": 9,
+        "outcomeCounts": {
+          "distinct_representatives": 9,
+          "single_representative": 0,
+          "no_reachable_candidates": 0,
+          "no_eligible_candidates": 0,
+          "no_later_lower_exposure_alternative": 0,
+          "exposure_contrast_below_reporting_threshold": 0,
+          "failed_configuration": 0
+        },
+        "reasonCounts": {
+          "distinct_representatives": 9,
+          "single_representative": 0,
+          "no_reachable_candidates": 0,
+          "no_eligible_candidates": 0,
+          "no_later_lower_exposure_alternative": 0,
+          "exposure_contrast_below_reporting_threshold": 0,
+          "failed_configuration": 0,
+          "partial_population_coverage": 6
+        },
+        "exposureReductionPeople": {
+          "count": 9,
+          "minimum": 29387.28232283883,
+          "median": 29387.28232283883,
+          "maximum": 34456.215301491466
+        },
+        "exposureReductionPercent": {
+          "count": 9,
+          "minimum": 47.95545595690247,
+          "median": 47.95545595690247,
+          "maximum": 51.931538320504735
+        },
+        "suppliedSuccessPenaltyPercentagePoints": {
+          "count": 9,
+          "minimum": 2.639999999999998,
+          "median": 5.759999999999998,
+          "maximum": 11.520000000000008
+        }
+      }
+    ],
+    "decreasePerSecond": [
+      {
+        "value": 0.002,
+        "configurations": 12,
+        "distinctRepresentatives": 12,
+        "meetsExposureContrastThreshold": 12,
+        "validComparisons": 12,
+        "outcomeCounts": {
+          "distinct_representatives": 12,
+          "single_representative": 0,
+          "no_reachable_candidates": 0,
+          "no_eligible_candidates": 0,
+          "no_later_lower_exposure_alternative": 0,
+          "exposure_contrast_below_reporting_threshold": 0,
+          "failed_configuration": 0
+        },
+        "reasonCounts": {
+          "distinct_representatives": 12,
+          "single_representative": 0,
+          "no_reachable_candidates": 0,
+          "no_eligible_candidates": 0,
+          "no_later_lower_exposure_alternative": 0,
+          "exposure_contrast_below_reporting_threshold": 0,
+          "failed_configuration": 0,
+          "partial_population_coverage": 2
+        },
+        "exposureReductionPeople": {
+          "count": 12,
+          "minimum": 4195.409927529984,
+          "median": 16993.112583098642,
+          "maximum": 34456.215301491466
+        },
+        "exposureReductionPercent": {
+          "count": 12,
+          "minimum": 47.95545595690247,
+          "median": 77.98535291545379,
+          "maximum": 99.9497947203118
+        },
+        "suppliedSuccessPenaltyPercentagePoints": {
+          "count": 12,
+          "minimum": 2.1599999999999953,
+          "median": 2.7600000000000016,
+          "maximum": 3.0399999999999983
+        }
+      },
+      {
+        "value": 0.004,
+        "configurations": 12,
+        "distinctRepresentatives": 12,
+        "meetsExposureContrastThreshold": 12,
+        "validComparisons": 12,
+        "outcomeCounts": {
+          "distinct_representatives": 12,
+          "single_representative": 0,
+          "no_reachable_candidates": 0,
+          "no_eligible_candidates": 0,
+          "no_later_lower_exposure_alternative": 0,
+          "exposure_contrast_below_reporting_threshold": 0,
+          "failed_configuration": 0
+        },
+        "reasonCounts": {
+          "distinct_representatives": 12,
+          "single_representative": 0,
+          "no_reachable_candidates": 0,
+          "no_eligible_candidates": 0,
+          "no_later_lower_exposure_alternative": 0,
+          "exposure_contrast_below_reporting_threshold": 0,
+          "failed_configuration": 0,
+          "partial_population_coverage": 2
+        },
+        "exposureReductionPeople": {
+          "count": 12,
+          "minimum": 4195.409927529984,
+          "median": 16993.112583098642,
+          "maximum": 34456.215301491466
+        },
+        "exposureReductionPercent": {
+          "count": 12,
+          "minimum": 47.95545595690247,
+          "median": 77.98535291545379,
+          "maximum": 99.9497947203118
+        },
+        "suppliedSuccessPenaltyPercentagePoints": {
+          "count": 12,
+          "minimum": 4.320000000000002,
+          "median": 5.520000000000003,
+          "maximum": 6.0799999999999965
+        }
+      },
+      {
+        "value": 0.008,
+        "configurations": 12,
+        "distinctRepresentatives": 12,
+        "meetsExposureContrastThreshold": 12,
+        "validComparisons": 12,
+        "outcomeCounts": {
+          "distinct_representatives": 12,
+          "single_representative": 0,
+          "no_reachable_candidates": 0,
+          "no_eligible_candidates": 0,
+          "no_later_lower_exposure_alternative": 0,
+          "exposure_contrast_below_reporting_threshold": 0,
+          "failed_configuration": 0
+        },
+        "reasonCounts": {
+          "distinct_representatives": 12,
+          "single_representative": 0,
+          "no_reachable_candidates": 0,
+          "no_eligible_candidates": 0,
+          "no_later_lower_exposure_alternative": 0,
+          "exposure_contrast_below_reporting_threshold": 0,
+          "failed_configuration": 0,
+          "partial_population_coverage": 2
+        },
+        "exposureReductionPeople": {
+          "count": 12,
+          "minimum": 4195.409927529984,
+          "median": 16993.112583098642,
+          "maximum": 34456.215301491466
+        },
+        "exposureReductionPercent": {
+          "count": 12,
+          "minimum": 47.95545595690247,
+          "median": 77.98535291545379,
+          "maximum": 99.9497947203118
+        },
+        "suppliedSuccessPenaltyPercentagePoints": {
+          "count": 12,
+          "minimum": 8.640000000000004,
+          "median": 11.04,
+          "maximum": 12.159999999999993
+        }
+      }
+    ],
+    "turnRateDegS": [
+      {
+        "value": 10,
+        "configurations": 12,
+        "distinctRepresentatives": 12,
+        "meetsExposureContrastThreshold": 12,
+        "validComparisons": 12,
+        "outcomeCounts": {
+          "distinct_representatives": 12,
+          "single_representative": 0,
+          "no_reachable_candidates": 0,
+          "no_eligible_candidates": 0,
+          "no_later_lower_exposure_alternative": 0,
+          "exposure_contrast_below_reporting_threshold": 0,
+          "failed_configuration": 0
+        },
+        "reasonCounts": {
+          "distinct_representatives": 12,
+          "single_representative": 0,
+          "no_reachable_candidates": 0,
+          "no_eligible_candidates": 0,
+          "no_later_lower_exposure_alternative": 0,
+          "exposure_contrast_below_reporting_threshold": 0,
+          "failed_configuration": 0,
+          "partial_population_coverage": 0
+        },
+        "exposureReductionPeople": {
+          "count": 12,
+          "minimum": 4240.579269701596,
+          "median": 20898.284673556303,
+          "maximum": 34456.215301491466
+        },
+        "exposureReductionPercent": {
+          "count": 12,
+          "minimum": 51.931538320504735,
+          "median": 79.03340297075303,
+          "maximum": 99.9497947203118
+        },
+        "suppliedSuccessPenaltyPercentagePoints": {
+          "count": 12,
+          "minimum": 2.1599999999999953,
+          "median": 4.799999999999999,
+          "maximum": 10.560000000000002
+        }
+      },
+      {
+        "value": 15,
+        "configurations": 12,
+        "distinctRepresentatives": 12,
+        "meetsExposureContrastThreshold": 12,
+        "validComparisons": 12,
+        "outcomeCounts": {
+          "distinct_representatives": 12,
+          "single_representative": 0,
+          "no_reachable_candidates": 0,
+          "no_eligible_candidates": 0,
+          "no_later_lower_exposure_alternative": 0,
+          "exposure_contrast_below_reporting_threshold": 0,
+          "failed_configuration": 0
+        },
+        "reasonCounts": {
+          "distinct_representatives": 12,
+          "single_representative": 0,
+          "no_reachable_candidates": 0,
+          "no_eligible_candidates": 0,
+          "no_later_lower_exposure_alternative": 0,
+          "exposure_contrast_below_reporting_threshold": 0,
+          "failed_configuration": 0,
+          "partial_population_coverage": 3
+        },
+        "exposureReductionPeople": {
+          "count": 12,
+          "minimum": 4240.579269701596,
+          "median": 16988.396290321576,
+          "maximum": 29387.28232283883
+        },
+        "exposureReductionPercent": {
+          "count": 12,
+          "minimum": 47.95545595690247,
+          "median": 75.5474453286268,
+          "maximum": 99.9497947203118
+        },
+        "suppliedSuccessPenaltyPercentagePoints": {
+          "count": 12,
+          "minimum": 2.639999999999998,
+          "median": 5.6800000000000015,
+          "maximum": 11.839999999999995
+        }
+      },
+      {
+        "value": 20,
+        "configurations": 12,
+        "distinctRepresentatives": 12,
+        "meetsExposureContrastThreshold": 12,
+        "validComparisons": 12,
+        "outcomeCounts": {
+          "distinct_representatives": 12,
+          "single_representative": 0,
+          "no_reachable_candidates": 0,
+          "no_eligible_candidates": 0,
+          "no_later_lower_exposure_alternative": 0,
+          "exposure_contrast_below_reporting_threshold": 0,
+          "failed_configuration": 0
+        },
+        "reasonCounts": {
+          "distinct_representatives": 12,
+          "single_representative": 0,
+          "no_reachable_candidates": 0,
+          "no_eligible_candidates": 0,
+          "no_later_lower_exposure_alternative": 0,
+          "exposure_contrast_below_reporting_threshold": 0,
+          "failed_configuration": 0,
+          "partial_population_coverage": 3
+        },
+        "exposureReductionPeople": {
+          "count": 12,
+          "minimum": 4195.409927529984,
+          "median": 15434.14594551537,
+          "maximum": 29387.28232283883
+        },
+        "exposureReductionPercent": {
+          "count": 12,
+          "minimum": 47.95545595690247,
+          "median": 73.8899130136186,
+          "maximum": 99.94925446591004
+        },
+        "suppliedSuccessPenaltyPercentagePoints": {
+          "count": 12,
+          "minimum": 2.72,
+          "median": 5.759999999999998,
+          "maximum": 12.159999999999993
+        }
+      }
+    ]
+  },
+  "baseline": {
+    "outcome": "distinct_representatives",
+    "reasons": [
+      "distinct_representatives"
+    ],
+    "counts": {
+      "totalCandidates": 50,
+      "reachableCandidates": 40,
+      "eligibleCandidates": 40,
+      "paretoCandidates": 10,
+      "uniqueRepresentatives": 2,
+      "partialCoverageCandidates": 0
+    },
+    "categoryAssignments": {
+      "earliestViable": "demo-fictional-threat__demo-synthetic-interceptor__k11",
+      "highestSuccess": "demo-fictional-threat__demo-synthetic-interceptor__k11",
+      "lowestExposure": "demo-fictional-threat__demo-synthetic-interceptor__k46"
+    },
+    "representativeCandidateIds": [
+      "demo-fictional-threat__demo-synthetic-interceptor__k11",
+      "demo-fictional-threat__demo-synthetic-interceptor__k46"
+    ],
+    "representativeEvidence": {
+      "earliestViable": {
+        "id": "demo-fictional-threat__demo-synthetic-interceptor__k11",
+        "timeFromStartS": 4.4,
+        "suppliedSuccessProbability": 0.9524,
+        "peoplePotentiallyExposed": 15251.839989865413,
+        "exposureStatus": "complete"
+      },
+      "highestSuccess": {
+        "id": "demo-fictional-threat__demo-synthetic-interceptor__k11",
+        "timeFromStartS": 4.4,
+        "suppliedSuccessProbability": 0.9524,
+        "peoplePotentiallyExposed": 15251.839989865413,
+        "exposureStatus": "complete"
+      },
+      "lowestExposure": {
+        "id": "demo-fictional-threat__demo-synthetic-interceptor__k46",
+        "timeFromStartS": 18.400000000000002,
+        "suppliedSuccessProbability": 0.8964,
+        "peoplePotentiallyExposed": 1643.1006303157176,
+        "exposureStatus": "complete"
+      }
+    },
+    "comparison": {
+      "referenceCandidateId": "demo-fictional-threat__demo-synthetic-interceptor__k11",
+      "comparisonCandidateId": "demo-fictional-threat__demo-synthetic-interceptor__k46",
+      "deltaTimeS": 14.000000000000002,
+      "deltaSuccessPercentagePoints": -5.600000000000005,
+      "deltaPeoplePotentiallyExposed": -13608.739359549696,
+      "relativeExposureChange": -0.8922686947012604
+    },
+    "distinctRepresentatives": true,
+    "laterLowerExposureAlternative": true,
+    "meetsExposureContrastThreshold": true,
+    "middleHighExposure": {
+      "evidence": {
+        "id": "demo-fictional-threat__demo-synthetic-interceptor__k32",
+        "timeFromStartS": 12.8,
+        "suppliedSuccessProbability": 0.9188,
+        "peoplePotentiallyExposed": 19465.822054609613,
+        "exposureStatus": "complete"
+      },
+      "dominatedByCandidateIds": [
+        "demo-fictional-threat__demo-synthetic-interceptor__k11",
+        "demo-fictional-threat__demo-synthetic-interceptor__k12",
+        "demo-fictional-threat__demo-synthetic-interceptor__k13",
+        "demo-fictional-threat__demo-synthetic-interceptor__k14",
+        "demo-fictional-threat__demo-synthetic-interceptor__k15",
+        "demo-fictional-threat__demo-synthetic-interceptor__k16",
+        "demo-fictional-threat__demo-synthetic-interceptor__k17",
+        "demo-fictional-threat__demo-synthetic-interceptor__k18",
+        "demo-fictional-threat__demo-synthetic-interceptor__k19",
+        "demo-fictional-threat__demo-synthetic-interceptor__k20",
+        "demo-fictional-threat__demo-synthetic-interceptor__k21",
+        "demo-fictional-threat__demo-synthetic-interceptor__k22",
+        "demo-fictional-threat__demo-synthetic-interceptor__k23",
+        "demo-fictional-threat__demo-synthetic-interceptor__k24",
+        "demo-fictional-threat__demo-synthetic-interceptor__k25",
+        "demo-fictional-threat__demo-synthetic-interceptor__k26",
+        "demo-fictional-threat__demo-synthetic-interceptor__k27",
+        "demo-fictional-threat__demo-synthetic-interceptor__k28",
+        "demo-fictional-threat__demo-synthetic-interceptor__k29",
+        "demo-fictional-threat__demo-synthetic-interceptor__k30",
+        "demo-fictional-threat__demo-synthetic-interceptor__k31"
+      ],
+      "comparisonToEarly": {
+        "referenceCandidateId": "demo-fictional-threat__demo-synthetic-interceptor__k11",
+        "comparisonCandidateId": "demo-fictional-threat__demo-synthetic-interceptor__k32",
+        "deltaTimeS": 8.4,
+        "deltaSuccessPercentagePoints": -3.3600000000000074,
+        "deltaPeoplePotentiallyExposed": 4213.982064744199,
+        "relativeExposureChange": 0.2762933565749653
+      }
+    }
+  }
+}

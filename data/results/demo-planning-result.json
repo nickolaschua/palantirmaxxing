@@ -1,0 +1,1741 @@
+{
+  "schemaVersion": "planning-result/1",
+  "scenarioId": "demo-fictional-threat__demo-synthetic-interceptor__static-scenario",
+  "start": "2026-09-15T00:00:00.000000Z",
+  "end": "2026-09-15T00:00:20.000000Z",
+  "threat": {
+    "id": "demo-fictional-threat",
+    "samples": [
+      {
+        "time": "2026-09-15T00:00:00.400000Z",
+        "lon": 103.82783729123533,
+        "lat": 1.3734984813406645,
+        "height": 1000
+      },
+      {
+        "time": "2026-09-15T00:00:00.800000Z",
+        "lon": 103.82864600578989,
+        "lat": 1.373498483074424,
+        "height": 1000
+      },
+      {
+        "time": "2026-09-15T00:00:01.200000Z",
+        "lon": 103.8294547203454,
+        "lat": 1.3734984845328093,
+        "height": 1000
+      },
+      {
+        "time": "2026-09-15T00:00:01.600000Z",
+        "lon": 103.83026343490168,
+        "lat": 1.373498485715821,
+        "height": 1000
+      },
+      {
+        "time": "2026-09-15T00:00:02.000000Z",
+        "lon": 103.83107214945858,
+        "lat": 1.3734984866234587,
+        "height": 1000
+      },
+      {
+        "time": "2026-09-15T00:00:02.400000Z",
+        "lon": 103.83188086401593,
+        "lat": 1.3734984872557225,
+        "height": 1000
+      },
+      {
+        "time": "2026-09-15T00:00:02.800000Z",
+        "lon": 103.83268957857358,
+        "lat": 1.3734984876126133,
+        "height": 1000
+      },
+      {
+        "time": "2026-09-15T00:00:03.200000Z",
+        "lon": 103.83349829313136,
+        "lat": 1.3734984876941299,
+        "height": 1000
+      },
+      {
+        "time": "2026-09-15T00:00:03.600000Z",
+        "lon": 103.83430700768909,
+        "lat": 1.373498487500273,
+        "height": 1000
+      },
+      {
+        "time": "2026-09-15T00:00:04.000000Z",
+        "lon": 103.83511572224664,
+        "lat": 1.3734984870310425,
+        "height": 1000
+      },
+      {
+        "time": "2026-09-15T00:00:04.400000Z",
+        "lon": 103.83592443680382,
+        "lat": 1.373498486286438,
+        "height": 1000
+      },
+      {
+        "time": "2026-09-15T00:00:04.800000Z",
+        "lon": 103.83673315136049,
+        "lat": 1.37349848526646,
+        "height": 1000
+      },
+      {
+        "time": "2026-09-15T00:00:05.200000Z",
+        "lon": 103.83754186591648,
+        "lat": 1.373498483971108,
+        "height": 1000
+      },
+      {
+        "time": "2026-09-15T00:00:05.600000Z",
+        "lon": 103.83835058047161,
+        "lat": 1.3734984824003824,
+        "height": 1000
+      },
+      {
+        "time": "2026-09-15T00:00:06.000000Z",
+        "lon": 103.83915929502575,
+        "lat": 1.3734984805542834,
+        "height": 1000
+      },
+      {
+        "time": "2026-09-15T00:00:06.400000Z",
+        "lon": 103.83996800957871,
+        "lat": 1.3734984784328104,
+        "height": 1000
+      },
+      {
+        "time": "2026-09-15T00:00:06.800000Z",
+        "lon": 103.84077672413035,
+        "lat": 1.3734984760359639,
+        "height": 1000
+      },
+      {
+        "time": "2026-09-15T00:00:07.200000Z",
+        "lon": 103.8415854386805,
+        "lat": 1.3734984733637432,
+        "height": 1000
+      },
+      {
+        "time": "2026-09-15T00:00:07.600000Z",
+        "lon": 103.84239415322898,
+        "lat": 1.373498470416149,
+        "height": 1000
+      },
+      {
+        "time": "2026-09-15T00:00:08.000000Z",
+        "lon": 103.84320286777564,
+        "lat": 1.3734984671931814,
+        "height": 1000
+      },
+      {
+        "time": "2026-09-15T00:00:08.400000Z",
+        "lon": 103.84401158232032,
+        "lat": 1.37349846369484,
+        "height": 1000
+      },
+      {
+        "time": "2026-09-15T00:00:08.800000Z",
+        "lon": 103.84482029686288,
+        "lat": 1.3734984599211246,
+        "height": 1000
+      },
+      {
+        "time": "2026-09-15T00:00:09.200000Z",
+        "lon": 103.84562901140312,
+        "lat": 1.3734984558720358,
+        "height": 1000
+      },
+      {
+        "time": "2026-09-15T00:00:09.600000Z",
+        "lon": 103.84643772594087,
+        "lat": 1.3734984515475734,
+        "height": 1000
+      },
+      {
+        "time": "2026-09-15T00:00:10.000000Z",
+        "lon": 103.84724644047601,
+        "lat": 1.373498446947737,
+        "height": 1000
+      },
+      {
+        "time": "2026-09-15T00:00:10.400000Z",
+        "lon": 103.84805515500837,
+        "lat": 1.3734984420725271,
+        "height": 1000
+      },
+      {
+        "time": "2026-09-15T00:00:10.800000Z",
+        "lon": 103.84886386953775,
+        "lat": 1.3734984369219436,
+        "height": 1000
+      },
+      {
+        "time": "2026-09-15T00:00:11.200000Z",
+        "lon": 103.84967258406404,
+        "lat": 1.3734984314959866,
+        "height": 1000
+      },
+      {
+        "time": "2026-09-15T00:00:11.600000Z",
+        "lon": 103.85048129858704,
+        "lat": 1.3734984257946554,
+        "height": 1000
+      },
+      {
+        "time": "2026-09-15T00:00:12.000000Z",
+        "lon": 103.85129001310658,
+        "lat": 1.3734984198179507,
+        "height": 1000
+      },
+      {
+        "time": "2026-09-15T00:00:12.400000Z",
+        "lon": 103.85209872762255,
+        "lat": 1.3734984135658728,
+        "height": 1000
+      },
+      {
+        "time": "2026-09-15T00:00:12.800000Z",
+        "lon": 103.85290744213474,
+        "lat": 1.3734984070384209,
+        "height": 1000
+      },
+      {
+        "time": "2026-09-15T00:00:13.200000Z",
+        "lon": 103.85371615664299,
+        "lat": 1.3734984002355952,
+        "height": 1000
+      },
+      {
+        "time": "2026-09-15T00:00:13.600000Z",
+        "lon": 103.85452487114715,
+        "lat": 1.3734983931573963,
+        "height": 1000
+      },
+      {
+        "time": "2026-09-15T00:00:14.000000Z",
+        "lon": 103.85533358564707,
+        "lat": 1.3734983858038237,
+        "height": 1000
+      },
+      {
+        "time": "2026-09-15T00:00:14.400000Z",
+        "lon": 103.85614230014258,
+        "lat": 1.3734983781748773,
+        "height": 1000
+      },
+      {
+        "time": "2026-09-15T00:00:14.800000Z",
+        "lon": 103.8569510146335,
+        "lat": 1.3734983702705572,
+        "height": 1000
+      },
+      {
+        "time": "2026-09-15T00:00:15.200000Z",
+        "lon": 103.85775972911968,
+        "lat": 1.3734983620908634,
+        "height": 1000
+      },
+      {
+        "time": "2026-09-15T00:00:15.600000Z",
+        "lon": 103.85856844360096,
+        "lat": 1.3734983536357968,
+        "height": 1000
+      },
+      {
+        "time": "2026-09-15T00:00:16.000000Z",
+        "lon": 103.85937715807718,
+        "lat": 1.3734983449053557,
+        "height": 1000
+      },
+      {
+        "time": "2026-09-15T00:00:16.400000Z",
+        "lon": 103.86018587254816,
+        "lat": 1.3734983358995414,
+        "height": 1000
+      },
+      {
+        "time": "2026-09-15T00:00:16.800000Z",
+        "lon": 103.86099458701378,
+        "lat": 1.3734983266183536,
+        "height": 1000
+      },
+      {
+        "time": "2026-09-15T00:00:17.200000Z",
+        "lon": 103.86180330147381,
+        "lat": 1.3734983170617923,
+        "height": 1000
+      },
+      {
+        "time": "2026-09-15T00:00:17.600000Z",
+        "lon": 103.86261201592815,
+        "lat": 1.3734983072298572,
+        "height": 1000
+      },
+      {
+        "time": "2026-09-15T00:00:18.000000Z",
+        "lon": 103.86342073037662,
+        "lat": 1.3734982971225487,
+        "height": 1000
+      },
+      {
+        "time": "2026-09-15T00:00:18.400000Z",
+        "lon": 103.86422944481905,
+        "lat": 1.3734982867398668,
+        "height": 1000
+      },
+      {
+        "time": "2026-09-15T00:00:18.800000Z",
+        "lon": 103.86503815925526,
+        "lat": 1.3734982760818113,
+        "height": 1000
+      },
+      {
+        "time": "2026-09-15T00:00:19.200000Z",
+        "lon": 103.86584687368513,
+        "lat": 1.373498265148382,
+        "height": 1000
+      },
+      {
+        "time": "2026-09-15T00:00:19.600000Z",
+        "lon": 103.86665558810846,
+        "lat": 1.3734982539395797,
+        "height": 1000
+      },
+      {
+        "time": "2026-09-15T00:00:20.000000Z",
+        "lon": 103.86746430252511,
+        "lat": 1.3734982424554036,
+        "height": 1000
+      }
+    ]
+  },
+  "candidates": [
+    {
+      "id": "demo-fictional-threat__demo-synthetic-interceptor__k1",
+      "sampleIndex": 1,
+      "timeFromStartS": 0.4,
+      "time": "2026-09-15T00:00:00.400000Z",
+      "position": {
+        "lon": 103.82783729123533,
+        "lat": 1.3734984813406645,
+        "height": 1000
+      },
+      "reachable": false,
+      "requiredTravelTimeS": 23.572047493721684,
+      "timeMarginS": -23.172047493721685,
+      "paretoEfficient": false,
+      "categories": [],
+      "eligibleForRecommendation": false,
+      "ineligibilityReasons": [
+        "unreachable"
+      ]
+    },
+    {
+      "id": "demo-fictional-threat__demo-synthetic-interceptor__k2",
+      "sampleIndex": 2,
+      "timeFromStartS": 0.8,
+      "time": "2026-09-15T00:00:00.800000Z",
+      "position": {
+        "lon": 103.82864600578989,
+        "lat": 1.373498483074424,
+        "height": 1000
+      },
+      "reachable": false,
+      "requiredTravelTimeS": 23.635823735984477,
+      "timeMarginS": -22.835823735984476,
+      "paretoEfficient": false,
+      "categories": [],
+      "eligibleForRecommendation": false,
+      "ineligibilityReasons": [
+        "unreachable"
+      ]
+    },
+    {
+      "id": "demo-fictional-threat__demo-synthetic-interceptor__k3",
+      "sampleIndex": 3,
+      "timeFromStartS": 1.2,
+      "time": "2026-09-15T00:00:01.200000Z",
+      "position": {
+        "lon": 103.8294547203454,
+        "lat": 1.3734984845328093,
+        "height": 1000
+      },
+      "reachable": false,
+      "requiredTravelTimeS": 23.692836955339537,
+      "timeMarginS": -22.492836955339538,
+      "paretoEfficient": false,
+      "categories": [],
+      "eligibleForRecommendation": false,
+      "ineligibilityReasons": [
+        "unreachable"
+      ]
+    },
+    {
+      "id": "demo-fictional-threat__demo-synthetic-interceptor__k4",
+      "sampleIndex": 4,
+      "timeFromStartS": 1.6,
+      "time": "2026-09-15T00:00:01.600000Z",
+      "position": {
+        "lon": 103.83026343490168,
+        "lat": 1.373498485715821,
+        "height": 1000
+      },
+      "reachable": false,
+      "requiredTravelTimeS": 23.74296833648311,
+      "timeMarginS": -22.142968336483108,
+      "paretoEfficient": false,
+      "categories": [],
+      "eligibleForRecommendation": false,
+      "ineligibilityReasons": [
+        "unreachable"
+      ]
+    },
+    {
+      "id": "demo-fictional-threat__demo-synthetic-interceptor__k5",
+      "sampleIndex": 5,
+      "timeFromStartS": 2.0,
+      "time": "2026-09-15T00:00:02.000000Z",
+      "position": {
+        "lon": 103.83107214945858,
+        "lat": 1.3734984866234587,
+        "height": 1000
+      },
+      "reachable": false,
+      "requiredTravelTimeS": 23.786116605606946,
+      "timeMarginS": -21.786116605606946,
+      "paretoEfficient": false,
+      "categories": [],
+      "eligibleForRecommendation": false,
+      "ineligibilityReasons": [
+        "unreachable"
+      ]
+    },
+    {
+      "id": "demo-fictional-threat__demo-synthetic-interceptor__k6",
+      "sampleIndex": 6,
+      "timeFromStartS": 2.4,
+      "time": "2026-09-15T00:00:02.400000Z",
+      "position": {
+        "lon": 103.83188086401593,
+        "lat": 1.3734984872557225,
+        "height": 1000
+      },
+      "reachable": false,
+      "requiredTravelTimeS": 23.822197689498676,
+      "timeMarginS": -21.422197689498677,
+      "paretoEfficient": false,
+      "categories": [],
+      "eligibleForRecommendation": false,
+      "ineligibilityReasons": [
+        "unreachable"
+      ]
+    },
+    {
+      "id": "demo-fictional-threat__demo-synthetic-interceptor__k7",
+      "sampleIndex": 7,
+      "timeFromStartS": 2.8000000000000003,
+      "time": "2026-09-15T00:00:02.800000Z",
+      "position": {
+        "lon": 103.83268957857358,
+        "lat": 1.3734984876126133,
+        "height": 1000
+      },
+      "reachable": false,
+      "requiredTravelTimeS": 23.851143992757628,
+      "timeMarginS": -21.051143992757627,
+      "paretoEfficient": false,
+      "categories": [],
+      "eligibleForRecommendation": false,
+      "ineligibilityReasons": [
+        "unreachable"
+      ]
+    },
+    {
+      "id": "demo-fictional-threat__demo-synthetic-interceptor__k8",
+      "sampleIndex": 8,
+      "timeFromStartS": 3.2,
+      "time": "2026-09-15T00:00:03.200000Z",
+      "position": {
+        "lon": 103.83349829313136,
+        "lat": 1.3734984876941299,
+        "height": 1000
+      },
+      "reachable": false,
+      "requiredTravelTimeS": 23.872903333166345,
+      "timeMarginS": -20.672903333166346,
+      "paretoEfficient": false,
+      "categories": [],
+      "eligibleForRecommendation": false,
+      "ineligibilityReasons": [
+        "unreachable"
+      ]
+    },
+    {
+      "id": "demo-fictional-threat__demo-synthetic-interceptor__k9",
+      "sampleIndex": 9,
+      "timeFromStartS": 3.5999999999999996,
+      "time": "2026-09-15T00:00:03.600000Z",
+      "position": {
+        "lon": 103.83430700768909,
+        "lat": 1.373498487500273,
+        "height": 1000
+      },
+      "reachable": false,
+      "requiredTravelTimeS": 23.887437580788415,
+      "timeMarginS": -20.287437580788414,
+      "paretoEfficient": false,
+      "categories": [],
+      "eligibleForRecommendation": false,
+      "ineligibilityReasons": [
+        "unreachable"
+      ]
+    },
+    {
+      "id": "demo-fictional-threat__demo-synthetic-interceptor__k10",
+      "sampleIndex": 10,
+      "timeFromStartS": 4.0,
+      "time": "2026-09-15T00:00:04.000000Z",
+      "position": {
+        "lon": 103.83511572224664,
+        "lat": 1.3734984870310425,
+        "height": 1000
+      },
+      "reachable": false,
+      "requiredTravelTimeS": 23.894721048509542,
+      "timeMarginS": -19.894721048509542,
+      "paretoEfficient": false,
+      "categories": [],
+      "eligibleForRecommendation": false,
+      "ineligibilityReasons": [
+        "unreachable"
+      ]
+    },
+    {
+      "id": "demo-fictional-threat__demo-synthetic-interceptor__k11",
+      "sampleIndex": 11,
+      "timeFromStartS": 4.4,
+      "time": "2026-09-15T00:00:04.400000Z",
+      "position": {
+        "lon": 103.83592443680382,
+        "lat": 1.373498486286438,
+        "height": 1000
+      },
+      "reachable": true,
+      "requiredTravelTimeS": 4.114790227835386,
+      "timeMarginS": 0.2852097721646141,
+      "paretoEfficient": true,
+      "categories": [
+        "earliest_viable",
+        "highest_success"
+      ],
+      "eligibleForRecommendation": true,
+      "ineligibilityReasons": [],
+      "suppliedSuccessProbability": 0.9524,
+      "exposure": {
+        "status": "complete",
+        "peoplePotentiallyExposed": 15251.839989865413,
+        "knownAreaExposure": 15251.839989865413,
+        "coveredAreaFraction": 1.0
+      },
+      "footprint": {
+        "id": "demo-fictional-threat__demo-synthetic-interceptor__k11__footprint",
+        "radiusM": 500
+      }
+    },
+    {
+      "id": "demo-fictional-threat__demo-synthetic-interceptor__k12",
+      "sampleIndex": 12,
+      "timeFromStartS": 4.8,
+      "time": "2026-09-15T00:00:04.800000Z",
+      "position": {
+        "lon": 103.83673315136049,
+        "lat": 1.37349848526646,
+        "height": 1000
+      },
+      "reachable": true,
+      "requiredTravelTimeS": 4.230666046984622,
+      "timeMarginS": 0.569333953015378,
+      "paretoEfficient": false,
+      "categories": [],
+      "eligibleForRecommendation": true,
+      "ineligibilityReasons": [],
+      "suppliedSuccessProbability": 0.9508,
+      "exposure": {
+        "status": "complete",
+        "peoplePotentiallyExposed": 16283.709081212271,
+        "knownAreaExposure": 16283.709081212271,
+        "coveredAreaFraction": 1.0
+      },
+      "footprint": {
+        "id": "demo-fictional-threat__demo-synthetic-interceptor__k12__footprint",
+        "radiusM": 500
+      }
+    },
+    {
+      "id": "demo-fictional-threat__demo-synthetic-interceptor__k13",
+      "sampleIndex": 13,
+      "timeFromStartS": 5.2,
+      "time": "2026-09-15T00:00:05.200000Z",
+      "position": {
+        "lon": 103.83754186591648,
+        "lat": 1.373498483971108,
+        "height": 1000
+      },
+      "reachable": true,
+      "requiredTravelTimeS": 4.362120630628456,
+      "timeMarginS": 0.8378793693715441,
+      "paretoEfficient": false,
+      "categories": [],
+      "eligibleForRecommendation": true,
+      "ineligibilityReasons": [],
+      "suppliedSuccessProbability": 0.9491999999999999,
+      "exposure": {
+        "status": "complete",
+        "peoplePotentiallyExposed": 17166.711944125767,
+        "knownAreaExposure": 17166.711944125767,
+        "coveredAreaFraction": 1.0
+      },
+      "footprint": {
+        "id": "demo-fictional-threat__demo-synthetic-interceptor__k13__footprint",
+        "radiusM": 500
+      }
+    },
+    {
+      "id": "demo-fictional-threat__demo-synthetic-interceptor__k14",
+      "sampleIndex": 14,
+      "timeFromStartS": 5.6000000000000005,
+      "time": "2026-09-15T00:00:05.600000Z",
+      "position": {
+        "lon": 103.83835058047161,
+        "lat": 1.3734984824003824,
+        "height": 1000
+      },
+      "reachable": true,
+      "requiredTravelTimeS": 4.502197016170195,
+      "timeMarginS": 1.0978029838298058,
+      "paretoEfficient": false,
+      "categories": [],
+      "eligibleForRecommendation": true,
+      "ineligibilityReasons": [],
+      "suppliedSuccessProbability": 0.9476,
+      "exposure": {
+        "status": "complete",
+        "peoplePotentiallyExposed": 17300.9451418026,
+        "knownAreaExposure": 17300.9451418026,
+        "coveredAreaFraction": 1.0
+      },
+      "footprint": {
+        "id": "demo-fictional-threat__demo-synthetic-interceptor__k14__footprint",
+        "radiusM": 500
+      }
+    },
+    {
+      "id": "demo-fictional-threat__demo-synthetic-interceptor__k15",
+      "sampleIndex": 15,
+      "timeFromStartS": 6.0,
+      "time": "2026-09-15T00:00:06.000000Z",
+      "position": {
+        "lon": 103.83915929502575,
+        "lat": 1.3734984805542834,
+        "height": 1000
+      },
+      "reachable": true,
+      "requiredTravelTimeS": 4.648218442805333,
+      "timeMarginS": 1.3517815571946672,
+      "paretoEfficient": false,
+      "categories": [],
+      "eligibleForRecommendation": true,
+      "ineligibilityReasons": [],
+      "suppliedSuccessProbability": 0.946,
+      "exposure": {
+        "status": "complete",
+        "peoplePotentiallyExposed": 17310.374264707265,
+        "knownAreaExposure": 17310.374264707265,
+        "coveredAreaFraction": 1.0
+      },
+      "footprint": {
+        "id": "demo-fictional-threat__demo-synthetic-interceptor__k15__footprint",
+        "radiusM": 500
+      }
+    },
+    {
+      "id": "demo-fictional-threat__demo-synthetic-interceptor__k16",
+      "sampleIndex": 16,
+      "timeFromStartS": 6.4,
+      "time": "2026-09-15T00:00:06.400000Z",
+      "position": {
+        "lon": 103.83996800957871,
+        "lat": 1.3734984784328104,
+        "height": 1000
+      },
+      "reachable": true,
+      "requiredTravelTimeS": 4.798688656796745,
+      "timeMarginS": 1.601311343203255,
+      "paretoEfficient": false,
+      "categories": [],
+      "eligibleForRecommendation": true,
+      "ineligibilityReasons": [],
+      "suppliedSuccessProbability": 0.9444,
+      "exposure": {
+        "status": "complete",
+        "peoplePotentiallyExposed": 17301.918527592505,
+        "knownAreaExposure": 17301.918527592505,
+        "coveredAreaFraction": 1.0
+      },
+      "footprint": {
+        "id": "demo-fictional-threat__demo-synthetic-interceptor__k16__footprint",
+        "radiusM": 500
+      }
+    },
+    {
+      "id": "demo-fictional-threat__demo-synthetic-interceptor__k17",
+      "sampleIndex": 17,
+      "timeFromStartS": 6.800000000000001,
+      "time": "2026-09-15T00:00:06.800000Z",
+      "position": {
+        "lon": 103.84077672413035,
+        "lat": 1.3734984760359639,
+        "height": 1000
+      },
+      "reachable": true,
+      "requiredTravelTimeS": 4.952646279857712,
+      "timeMarginS": 1.847353720142289,
+      "paretoEfficient": false,
+      "categories": [],
+      "eligibleForRecommendation": true,
+      "ineligibilityReasons": [],
+      "suppliedSuccessProbability": 0.9428,
+      "exposure": {
+        "status": "complete",
+        "peoplePotentiallyExposed": 17270.1209488385,
+        "knownAreaExposure": 17270.1209488385,
+        "coveredAreaFraction": 1.0
+      },
+      "footprint": {
+        "id": "demo-fictional-threat__demo-synthetic-interceptor__k17__footprint",
+        "radiusM": 500
+      }
+    },
+    {
+      "id": "demo-fictional-threat__demo-synthetic-interceptor__k18",
+      "sampleIndex": 18,
+      "timeFromStartS": 7.199999999999999,
+      "time": "2026-09-15T00:00:07.200000Z",
+      "position": {
+        "lon": 103.8415854386805,
+        "lat": 1.3734984733637432,
+        "height": 1000
+      },
+      "reachable": true,
+      "requiredTravelTimeS": 5.109423306997564,
+      "timeMarginS": 2.0905766930024354,
+      "paretoEfficient": false,
+      "categories": [],
+      "eligibleForRecommendation": true,
+      "ineligibilityReasons": [],
+      "suppliedSuccessProbability": 0.9411999999999999,
+      "exposure": {
+        "status": "complete",
+        "peoplePotentiallyExposed": 16980.361021920635,
+        "knownAreaExposure": 16980.361021920635,
+        "coveredAreaFraction": 1.0
+      },
+      "footprint": {
+        "id": "demo-fictional-threat__demo-synthetic-interceptor__k18__footprint",
+        "radiusM": 500
+      }
+    },
+    {
+      "id": "demo-fictional-threat__demo-synthetic-interceptor__k19",
+      "sampleIndex": 19,
+      "timeFromStartS": 7.6,
+      "time": "2026-09-15T00:00:07.600000Z",
+      "position": {
+        "lon": 103.84239415322898,
+        "lat": 1.373498470416149,
+        "height": 1000
+      },
+      "reachable": true,
+      "requiredTravelTimeS": 5.268531204799915,
+      "timeMarginS": 2.3314687952000845,
+      "paretoEfficient": false,
+      "categories": [],
+      "eligibleForRecommendation": true,
+      "ineligibilityReasons": [],
+      "suppliedSuccessProbability": 0.9396,
+      "exposure": {
+        "status": "complete",
+        "peoplePotentiallyExposed": 16544.948414932864,
+        "knownAreaExposure": 16544.948414932864,
+        "coveredAreaFraction": 1.0
+      },
+      "footprint": {
+        "id": "demo-fictional-threat__demo-synthetic-interceptor__k19__footprint",
+        "radiusM": 500
+      }
+    },
+    {
+      "id": "demo-fictional-threat__demo-synthetic-interceptor__k20",
+      "sampleIndex": 20,
+      "timeFromStartS": 8.0,
+      "time": "2026-09-15T00:00:08.000000Z",
+      "position": {
+        "lon": 103.84320286777564,
+        "lat": 1.3734984671931814,
+        "height": 1000
+      },
+      "reachable": true,
+      "requiredTravelTimeS": 5.429599412740998,
+      "timeMarginS": 2.5704005872590017,
+      "paretoEfficient": false,
+      "categories": [],
+      "eligibleForRecommendation": true,
+      "ineligibilityReasons": [],
+      "suppliedSuccessProbability": 0.938,
+      "exposure": {
+        "status": "complete",
+        "peoplePotentiallyExposed": 15959.735585531125,
+        "knownAreaExposure": 15959.735585531125,
+        "coveredAreaFraction": 1.0
+      },
+      "footprint": {
+        "id": "demo-fictional-threat__demo-synthetic-interceptor__k20__footprint",
+        "radiusM": 500
+      }
+    },
+    {
+      "id": "demo-fictional-threat__demo-synthetic-interceptor__k21",
+      "sampleIndex": 21,
+      "timeFromStartS": 8.4,
+      "time": "2026-09-15T00:00:08.400000Z",
+      "position": {
+        "lon": 103.84401158232032,
+        "lat": 1.37349846369484,
+        "height": 1000
+      },
+      "reachable": true,
+      "requiredTravelTimeS": 5.592339001425145,
+      "timeMarginS": 2.807660998574855,
+      "paretoEfficient": false,
+      "categories": [],
+      "eligibleForRecommendation": true,
+      "ineligibilityReasons": [],
+      "suppliedSuccessProbability": 0.9364,
+      "exposure": {
+        "status": "complete",
+        "peoplePotentiallyExposed": 15421.12480823653,
+        "knownAreaExposure": 15421.12480823653,
+        "coveredAreaFraction": 1.0
+      },
+      "footprint": {
+        "id": "demo-fictional-threat__demo-synthetic-interceptor__k21__footprint",
+        "radiusM": 500
+      }
+    },
+    {
+      "id": "demo-fictional-threat__demo-synthetic-interceptor__k22",
+      "sampleIndex": 22,
+      "timeFromStartS": 8.8,
+      "time": "2026-09-15T00:00:08.800000Z",
+      "position": {
+        "lon": 103.84482029686288,
+        "lat": 1.3734984599211246,
+        "height": 1000
+      },
+      "reachable": true,
+      "requiredTravelTimeS": 5.756519753713258,
+      "timeMarginS": 3.0434802462867427,
+      "paretoEfficient": false,
+      "categories": [],
+      "eligibleForRecommendation": true,
+      "ineligibilityReasons": [],
+      "suppliedSuccessProbability": 0.9348,
+      "exposure": {
+        "status": "complete",
+        "peoplePotentiallyExposed": 15302.301240113442,
+        "knownAreaExposure": 15302.301240113442,
+        "coveredAreaFraction": 1.0
+      },
+      "footprint": {
+        "id": "demo-fictional-threat__demo-synthetic-interceptor__k22__footprint",
+        "radiusM": 500
+      }
+    },
+    {
+      "id": "demo-fictional-threat__demo-synthetic-interceptor__k23",
+      "sampleIndex": 23,
+      "timeFromStartS": 9.200000000000001,
+      "time": "2026-09-15T00:00:09.200000Z",
+      "position": {
+        "lon": 103.84562901140312,
+        "lat": 1.3734984558720358,
+        "height": 1000
+      },
+      "reachable": true,
+      "requiredTravelTimeS": 5.921954980579294,
+      "timeMarginS": 3.2780450194207074,
+      "paretoEfficient": false,
+      "categories": [],
+      "eligibleForRecommendation": true,
+      "ineligibilityReasons": [],
+      "suppliedSuccessProbability": 0.9331999999999999,
+      "exposure": {
+        "status": "complete",
+        "peoplePotentiallyExposed": 15305.754779785953,
+        "knownAreaExposure": 15305.754779785953,
+        "coveredAreaFraction": 1.0
+      },
+      "footprint": {
+        "id": "demo-fictional-threat__demo-synthetic-interceptor__k23__footprint",
+        "radiusM": 500
+      }
+    },
+    {
+      "id": "demo-fictional-threat__demo-synthetic-interceptor__k24",
+      "sampleIndex": 24,
+      "timeFromStartS": 9.6,
+      "time": "2026-09-15T00:00:09.600000Z",
+      "position": {
+        "lon": 103.84643772594087,
+        "lat": 1.3734984515475734,
+        "height": 1000
+      },
+      "reachable": true,
+      "requiredTravelTimeS": 6.088491063765321,
+      "timeMarginS": 3.5115089362346783,
+      "paretoEfficient": false,
+      "categories": [],
+      "eligibleForRecommendation": true,
+      "ineligibilityReasons": [],
+      "suppliedSuccessProbability": 0.9316,
+      "exposure": {
+        "status": "complete",
+        "peoplePotentiallyExposed": 15390.354018363452,
+        "knownAreaExposure": 15390.354018363452,
+        "coveredAreaFraction": 1.0
+      },
+      "footprint": {
+        "id": "demo-fictional-threat__demo-synthetic-interceptor__k24__footprint",
+        "radiusM": 500
+      }
+    },
+    {
+      "id": "demo-fictional-threat__demo-synthetic-interceptor__k25",
+      "sampleIndex": 25,
+      "timeFromStartS": 10.0,
+      "time": "2026-09-15T00:00:10.000000Z",
+      "position": {
+        "lon": 103.84724644047601,
+        "lat": 1.373498446947737,
+        "height": 1000
+      },
+      "reachable": true,
+      "requiredTravelTimeS": 6.256000024474815,
+      "timeMarginS": 3.7439999755251847,
+      "paretoEfficient": false,
+      "categories": [],
+      "eligibleForRecommendation": true,
+      "ineligibilityReasons": [],
+      "suppliedSuccessProbability": 0.9299999999999999,
+      "exposure": {
+        "status": "complete",
+        "peoplePotentiallyExposed": 15627.398006621843,
+        "knownAreaExposure": 15627.398006621843,
+        "coveredAreaFraction": 1.0
+      },
+      "footprint": {
+        "id": "demo-fictional-threat__demo-synthetic-interceptor__k25__footprint",
+        "radiusM": 500
+      }
+    },
+    {
+      "id": "demo-fictional-threat__demo-synthetic-interceptor__k26",
+      "sampleIndex": 26,
+      "timeFromStartS": 10.4,
+      "time": "2026-09-15T00:00:10.400000Z",
+      "position": {
+        "lon": 103.84805515500837,
+        "lat": 1.3734984420725271,
+        "height": 1000
+      },
+      "reachable": true,
+      "requiredTravelTimeS": 6.424374103811957,
+      "timeMarginS": 3.9756258961880437,
+      "paretoEfficient": false,
+      "categories": [],
+      "eligibleForRecommendation": true,
+      "ineligibilityReasons": [],
+      "suppliedSuccessProbability": 0.9284,
+      "exposure": {
+        "status": "complete",
+        "peoplePotentiallyExposed": 15987.463041154047,
+        "knownAreaExposure": 15987.463041154047,
+        "coveredAreaFraction": 1.0
+      },
+      "footprint": {
+        "id": "demo-fictional-threat__demo-synthetic-interceptor__k26__footprint",
+        "radiusM": 500
+      }
+    },
+    {
+      "id": "demo-fictional-threat__demo-synthetic-interceptor__k27",
+      "sampleIndex": 27,
+      "timeFromStartS": 10.8,
+      "time": "2026-09-15T00:00:10.800000Z",
+      "position": {
+        "lon": 103.84886386953775,
+        "lat": 1.3734984369219436,
+        "height": 1000
+      },
+      "reachable": true,
+      "requiredTravelTimeS": 6.593521723175651,
+      "timeMarginS": 4.20647827682435,
+      "paretoEfficient": false,
+      "categories": [],
+      "eligibleForRecommendation": true,
+      "ineligibilityReasons": [],
+      "suppliedSuccessProbability": 0.9268,
+      "exposure": {
+        "status": "complete",
+        "peoplePotentiallyExposed": 16457.799802404865,
+        "knownAreaExposure": 16457.799802404865,
+        "coveredAreaFraction": 1.0
+      },
+      "footprint": {
+        "id": "demo-fictional-threat__demo-synthetic-interceptor__k27__footprint",
+        "radiusM": 500
+      }
+    },
+    {
+      "id": "demo-fictional-threat__demo-synthetic-interceptor__k28",
+      "sampleIndex": 28,
+      "timeFromStartS": 11.200000000000001,
+      "time": "2026-09-15T00:00:11.200000Z",
+      "position": {
+        "lon": 103.84967258406404,
+        "lat": 1.3734984314959866,
+        "height": 1000
+      },
+      "reachable": true,
+      "requiredTravelTimeS": 6.763364416557986,
+      "timeMarginS": 4.4366355834420155,
+      "paretoEfficient": false,
+      "categories": [],
+      "eligibleForRecommendation": true,
+      "ineligibilityReasons": [],
+      "suppliedSuccessProbability": 0.9252,
+      "exposure": {
+        "status": "complete",
+        "peoplePotentiallyExposed": 17081.91085351939,
+        "knownAreaExposure": 17081.91085351939,
+        "coveredAreaFraction": 1.0
+      },
+      "footprint": {
+        "id": "demo-fictional-threat__demo-synthetic-interceptor__k28__footprint",
+        "radiusM": 500
+      }
+    },
+    {
+      "id": "demo-fictional-threat__demo-synthetic-interceptor__k29",
+      "sampleIndex": 29,
+      "timeFromStartS": 11.6,
+      "time": "2026-09-15T00:00:11.600000Z",
+      "position": {
+        "lon": 103.85048129858704,
+        "lat": 1.3734984257946554,
+        "height": 1000
+      },
+      "reachable": true,
+      "requiredTravelTimeS": 6.933834462999457,
+      "timeMarginS": 4.666165537000543,
+      "paretoEfficient": false,
+      "categories": [],
+      "eligibleForRecommendation": true,
+      "ineligibilityReasons": [],
+      "suppliedSuccessProbability": 0.9236,
+      "exposure": {
+        "status": "complete",
+        "peoplePotentiallyExposed": 17904.018406354786,
+        "knownAreaExposure": 17904.018406354786,
+        "coveredAreaFraction": 1.0
+      },
+      "footprint": {
+        "id": "demo-fictional-threat__demo-synthetic-interceptor__k29__footprint",
+        "radiusM": 500
+      }
+    },
+    {
+      "id": "demo-fictional-threat__demo-synthetic-interceptor__k30",
+      "sampleIndex": 30,
+      "timeFromStartS": 12.0,
+      "time": "2026-09-15T00:00:12.000000Z",
+      "position": {
+        "lon": 103.85129001310658,
+        "lat": 1.3734984198179507,
+        "height": 1000
+      },
+      "reachable": true,
+      "requiredTravelTimeS": 7.104873033403897,
+      "timeMarginS": 4.895126966596103,
+      "paretoEfficient": false,
+      "categories": [],
+      "eligibleForRecommendation": true,
+      "ineligibilityReasons": [],
+      "suppliedSuccessProbability": 0.9219999999999999,
+      "exposure": {
+        "status": "complete",
+        "peoplePotentiallyExposed": 18683.854343204,
+        "knownAreaExposure": 18683.854343204,
+        "coveredAreaFraction": 1.0
+      },
+      "footprint": {
+        "id": "demo-fictional-threat__demo-synthetic-interceptor__k30__footprint",
+        "radiusM": 500
+      }
+    },
+    {
+      "id": "demo-fictional-threat__demo-synthetic-interceptor__k31",
+      "sampleIndex": 31,
+      "timeFromStartS": 12.4,
+      "time": "2026-09-15T00:00:12.400000Z",
+      "position": {
+        "lon": 103.85209872762255,
+        "lat": 1.3734984135658728,
+        "height": 1000
+      },
+      "reachable": true,
+      "requiredTravelTimeS": 7.276428721749183,
+      "timeMarginS": 5.123571278250817,
+      "paretoEfficient": false,
+      "categories": [],
+      "eligibleForRecommendation": true,
+      "ineligibilityReasons": [],
+      "suppliedSuccessProbability": 0.9204,
+      "exposure": {
+        "status": "complete",
+        "peoplePotentiallyExposed": 19313.338706948896,
+        "knownAreaExposure": 19313.338706948896,
+        "coveredAreaFraction": 1.0
+      },
+      "footprint": {
+        "id": "demo-fictional-threat__demo-synthetic-interceptor__k31__footprint",
+        "radiusM": 500
+      }
+    },
+    {
+      "id": "demo-fictional-threat__demo-synthetic-interceptor__k32",
+      "sampleIndex": 32,
+      "timeFromStartS": 12.8,
+      "time": "2026-09-15T00:00:12.800000Z",
+      "position": {
+        "lon": 103.85290744213474,
+        "lat": 1.3734984070384209,
+        "height": 1000
+      },
+      "reachable": true,
+      "requiredTravelTimeS": 7.448456367947627,
+      "timeMarginS": 5.3515436320523735,
+      "paretoEfficient": false,
+      "categories": [],
+      "eligibleForRecommendation": true,
+      "ineligibilityReasons": [],
+      "suppliedSuccessProbability": 0.9188,
+      "exposure": {
+        "status": "complete",
+        "peoplePotentiallyExposed": 19465.822054609613,
+        "knownAreaExposure": 19465.822054609613,
+        "coveredAreaFraction": 1.0
+      },
+      "footprint": {
+        "id": "demo-fictional-threat__demo-synthetic-interceptor__k32__footprint",
+        "radiusM": 500
+      }
+    },
+    {
+      "id": "demo-fictional-threat__demo-synthetic-interceptor__k33",
+      "sampleIndex": 33,
+      "timeFromStartS": 13.200000000000001,
+      "time": "2026-09-15T00:00:13.200000Z",
+      "position": {
+        "lon": 103.85371615664299,
+        "lat": 1.3734984002355952,
+        "height": 1000
+      },
+      "reachable": true,
+      "requiredTravelTimeS": 7.620916104988802,
+      "timeMarginS": 5.579083895011199,
+      "paretoEfficient": false,
+      "categories": [],
+      "eligibleForRecommendation": true,
+      "ineligibilityReasons": [],
+      "suppliedSuccessProbability": 0.9172,
+      "exposure": {
+        "status": "complete",
+        "peoplePotentiallyExposed": 19396.39465576331,
+        "knownAreaExposure": 19396.39465576331,
+        "coveredAreaFraction": 1.0
+      },
+      "footprint": {
+        "id": "demo-fictional-threat__demo-synthetic-interceptor__k33__footprint",
+        "radiusM": 500
+      }
+    },
+    {
+      "id": "demo-fictional-threat__demo-synthetic-interceptor__k34",
+      "sampleIndex": 34,
+      "timeFromStartS": 13.600000000000001,
+      "time": "2026-09-15T00:00:13.600000Z",
+      "position": {
+        "lon": 103.85452487114715,
+        "lat": 1.3734983931573963,
+        "height": 1000
+      },
+      "reachable": true,
+      "requiredTravelTimeS": 7.793772580654366,
+      "timeMarginS": 5.806227419345635,
+      "paretoEfficient": false,
+      "categories": [],
+      "eligibleForRecommendation": true,
+      "ineligibilityReasons": [],
+      "suppliedSuccessProbability": 0.9156,
+      "exposure": {
+        "status": "complete",
+        "peoplePotentiallyExposed": 19417.498553408815,
+        "knownAreaExposure": 19417.498553408815,
+        "coveredAreaFraction": 1.0
+      },
+      "footprint": {
+        "id": "demo-fictional-threat__demo-synthetic-interceptor__k34__footprint",
+        "radiusM": 500
+      }
+    },
+    {
+      "id": "demo-fictional-threat__demo-synthetic-interceptor__k35",
+      "sampleIndex": 35,
+      "timeFromStartS": 14.0,
+      "time": "2026-09-15T00:00:14.000000Z",
+      "position": {
+        "lon": 103.85533358564707,
+        "lat": 1.3734983858038237,
+        "height": 1000
+      },
+      "reachable": true,
+      "requiredTravelTimeS": 7.966994316601449,
+      "timeMarginS": 6.033005683398551,
+      "paretoEfficient": false,
+      "categories": [],
+      "eligibleForRecommendation": true,
+      "ineligibilityReasons": [],
+      "suppliedSuccessProbability": 0.9139999999999999,
+      "exposure": {
+        "status": "complete",
+        "peoplePotentiallyExposed": 18940.129533086616,
+        "knownAreaExposure": 18940.129533086616,
+        "coveredAreaFraction": 1.0
+      },
+      "footprint": {
+        "id": "demo-fictional-threat__demo-synthetic-interceptor__k35__footprint",
+        "radiusM": 500
+      }
+    },
+    {
+      "id": "demo-fictional-threat__demo-synthetic-interceptor__k36",
+      "sampleIndex": 36,
+      "timeFromStartS": 14.399999999999999,
+      "time": "2026-09-15T00:00:14.400000Z",
+      "position": {
+        "lon": 103.85614230014258,
+        "lat": 1.3734983781748773,
+        "height": 1000
+      },
+      "reachable": true,
+      "requiredTravelTimeS": 8.140553176613738,
+      "timeMarginS": 6.259446823386261,
+      "paretoEfficient": false,
+      "categories": [],
+      "eligibleForRecommendation": true,
+      "ineligibilityReasons": [],
+      "suppliedSuccessProbability": 0.9124,
+      "exposure": {
+        "status": "complete",
+        "peoplePotentiallyExposed": 17848.72926951843,
+        "knownAreaExposure": 17848.72926951843,
+        "coveredAreaFraction": 1.0
+      },
+      "footprint": {
+        "id": "demo-fictional-threat__demo-synthetic-interceptor__k36__footprint",
+        "radiusM": 500
+      }
+    },
+    {
+      "id": "demo-fictional-threat__demo-synthetic-interceptor__k37",
+      "sampleIndex": 37,
+      "timeFromStartS": 14.8,
+      "time": "2026-09-15T00:00:14.800000Z",
+      "position": {
+        "lon": 103.8569510146335,
+        "lat": 1.3734983702705572,
+        "height": 1000
+      },
+      "reachable": true,
+      "requiredTravelTimeS": 8.31442392239488,
+      "timeMarginS": 6.485576077605121,
+      "paretoEfficient": false,
+      "categories": [],
+      "eligibleForRecommendation": true,
+      "ineligibilityReasons": [],
+      "suppliedSuccessProbability": 0.9107999999999999,
+      "exposure": {
+        "status": "complete",
+        "peoplePotentiallyExposed": 16512.023533827334,
+        "knownAreaExposure": 16512.023533827334,
+        "coveredAreaFraction": 1.0
+      },
+      "footprint": {
+        "id": "demo-fictional-threat__demo-synthetic-interceptor__k37__footprint",
+        "radiusM": 500
+      }
+    },
+    {
+      "id": "demo-fictional-threat__demo-synthetic-interceptor__k38",
+      "sampleIndex": 38,
+      "timeFromStartS": 15.2,
+      "time": "2026-09-15T00:00:15.200000Z",
+      "position": {
+        "lon": 103.85775972911968,
+        "lat": 1.3734983620908634,
+        "height": 1000
+      },
+      "reachable": true,
+      "requiredTravelTimeS": 8.488583840144932,
+      "timeMarginS": 6.711416159855068,
+      "paretoEfficient": true,
+      "categories": [],
+      "eligibleForRecommendation": true,
+      "ineligibilityReasons": [],
+      "suppliedSuccessProbability": 0.9092,
+      "exposure": {
+        "status": "complete",
+        "peoplePotentiallyExposed": 14960.003972503966,
+        "knownAreaExposure": 14960.003972503966,
+        "coveredAreaFraction": 1.0
+      },
+      "footprint": {
+        "id": "demo-fictional-threat__demo-synthetic-interceptor__k38__footprint",
+        "radiusM": 500
+      }
+    },
+    {
+      "id": "demo-fictional-threat__demo-synthetic-interceptor__k39",
+      "sampleIndex": 39,
+      "timeFromStartS": 15.600000000000001,
+      "time": "2026-09-15T00:00:15.600000Z",
+      "position": {
+        "lon": 103.85856844360096,
+        "lat": 1.3734983536357968,
+        "height": 1000
+      },
+      "reachable": true,
+      "requiredTravelTimeS": 8.663012424805698,
+      "timeMarginS": 6.936987575194303,
+      "paretoEfficient": true,
+      "categories": [],
+      "eligibleForRecommendation": true,
+      "ineligibilityReasons": [],
+      "suppliedSuccessProbability": 0.9076,
+      "exposure": {
+        "status": "complete",
+        "peoplePotentiallyExposed": 13212.503452284805,
+        "knownAreaExposure": 13212.503452284805,
+        "coveredAreaFraction": 1.0
+      },
+      "footprint": {
+        "id": "demo-fictional-threat__demo-synthetic-interceptor__k39__footprint",
+        "radiusM": 500
+      }
+    },
+    {
+      "id": "demo-fictional-threat__demo-synthetic-interceptor__k40",
+      "sampleIndex": 40,
+      "timeFromStartS": 16.0,
+      "time": "2026-09-15T00:00:16.000000Z",
+      "position": {
+        "lon": 103.85937715807718,
+        "lat": 1.3734983449053557,
+        "height": 1000
+      },
+      "reachable": true,
+      "requiredTravelTimeS": 8.837691111621464,
+      "timeMarginS": 7.162308888378536,
+      "paretoEfficient": true,
+      "categories": [],
+      "eligibleForRecommendation": true,
+      "ineligibilityReasons": [],
+      "suppliedSuccessProbability": 0.9059999999999999,
+      "exposure": {
+        "status": "complete",
+        "peoplePotentiallyExposed": 11332.407075008958,
+        "knownAreaExposure": 11332.407075008958,
+        "coveredAreaFraction": 1.0
+      },
+      "footprint": {
+        "id": "demo-fictional-threat__demo-synthetic-interceptor__k40__footprint",
+        "radiusM": 500
+      }
+    },
+    {
+      "id": "demo-fictional-threat__demo-synthetic-interceptor__k41",
+      "sampleIndex": 41,
+      "timeFromStartS": 16.4,
+      "time": "2026-09-15T00:00:16.400000Z",
+      "position": {
+        "lon": 103.86018587254816,
+        "lat": 1.3734983358995414,
+        "height": 1000
+      },
+      "reachable": true,
+      "requiredTravelTimeS": 9.01260304677366,
+      "timeMarginS": 7.387396953226338,
+      "paretoEfficient": true,
+      "categories": [],
+      "eligibleForRecommendation": true,
+      "ineligibilityReasons": [],
+      "suppliedSuccessProbability": 0.9044,
+      "exposure": {
+        "status": "complete",
+        "peoplePotentiallyExposed": 9427.72945060571,
+        "knownAreaExposure": 9427.72945060571,
+        "coveredAreaFraction": 1.0
+      },
+      "footprint": {
+        "id": "demo-fictional-threat__demo-synthetic-interceptor__k41__footprint",
+        "radiusM": 500
+      }
+    },
+    {
+      "id": "demo-fictional-threat__demo-synthetic-interceptor__k42",
+      "sampleIndex": 42,
+      "timeFromStartS": 16.8,
+      "time": "2026-09-15T00:00:16.800000Z",
+      "position": {
+        "lon": 103.86099458701378,
+        "lat": 1.3734983266183536,
+        "height": 1000
+      },
+      "reachable": true,
+      "requiredTravelTimeS": 9.18773289047927,
+      "timeMarginS": 7.612267109520731,
+      "paretoEfficient": true,
+      "categories": [],
+      "eligibleForRecommendation": true,
+      "ineligibilityReasons": [],
+      "suppliedSuccessProbability": 0.9027999999999999,
+      "exposure": {
+        "status": "complete",
+        "peoplePotentiallyExposed": 7481.262944186026,
+        "knownAreaExposure": 7481.262944186026,
+        "coveredAreaFraction": 1.0
+      },
+      "footprint": {
+        "id": "demo-fictional-threat__demo-synthetic-interceptor__k42__footprint",
+        "radiusM": 500
+      }
+    },
+    {
+      "id": "demo-fictional-threat__demo-synthetic-interceptor__k43",
+      "sampleIndex": 43,
+      "timeFromStartS": 17.2,
+      "time": "2026-09-15T00:00:17.200000Z",
+      "position": {
+        "lon": 103.86180330147381,
+        "lat": 1.3734983170617923,
+        "height": 1000
+      },
+      "reachable": true,
+      "requiredTravelTimeS": 9.363066647213511,
+      "timeMarginS": 7.836933352786488,
+      "paretoEfficient": true,
+      "categories": [],
+      "eligibleForRecommendation": true,
+      "ineligibilityReasons": [],
+      "suppliedSuccessProbability": 0.9012,
+      "exposure": {
+        "status": "complete",
+        "peoplePotentiallyExposed": 5491.652359916933,
+        "knownAreaExposure": 5491.652359916933,
+        "coveredAreaFraction": 1.0
+      },
+      "footprint": {
+        "id": "demo-fictional-threat__demo-synthetic-interceptor__k43__footprint",
+        "radiusM": 500
+      }
+    },
+    {
+      "id": "demo-fictional-threat__demo-synthetic-interceptor__k44",
+      "sampleIndex": 44,
+      "timeFromStartS": 17.6,
+      "time": "2026-09-15T00:00:17.600000Z",
+      "position": {
+        "lon": 103.86261201592815,
+        "lat": 1.3734983072298572,
+        "height": 1000
+      },
+      "reachable": true,
+      "requiredTravelTimeS": 9.538591518715293,
+      "timeMarginS": 8.061408481284708,
+      "paretoEfficient": true,
+      "categories": [],
+      "eligibleForRecommendation": true,
+      "ineligibilityReasons": [],
+      "suppliedSuccessProbability": 0.8996,
+      "exposure": {
+        "status": "complete",
+        "peoplePotentiallyExposed": 3644.9924137319,
+        "knownAreaExposure": 3644.9924137319,
+        "coveredAreaFraction": 1.0
+      },
+      "footprint": {
+        "id": "demo-fictional-threat__demo-synthetic-interceptor__k44__footprint",
+        "radiusM": 500
+      }
+    },
+    {
+      "id": "demo-fictional-threat__demo-synthetic-interceptor__k45",
+      "sampleIndex": 45,
+      "timeFromStartS": 18.0,
+      "time": "2026-09-15T00:00:18.000000Z",
+      "position": {
+        "lon": 103.86342073037662,
+        "lat": 1.3734982971225487,
+        "height": 1000
+      },
+      "reachable": true,
+      "requiredTravelTimeS": 9.714295776223638,
+      "timeMarginS": 8.285704223776362,
+      "paretoEfficient": true,
+      "categories": [],
+      "eligibleForRecommendation": true,
+      "ineligibilityReasons": [],
+      "suppliedSuccessProbability": 0.8979999999999999,
+      "exposure": {
+        "status": "complete",
+        "peoplePotentiallyExposed": 2203.5571595028973,
+        "knownAreaExposure": 2203.5571595028973,
+        "coveredAreaFraction": 1.0
+      },
+      "footprint": {
+        "id": "demo-fictional-threat__demo-synthetic-interceptor__k45__footprint",
+        "radiusM": 500
+      }
+    },
+    {
+      "id": "demo-fictional-threat__demo-synthetic-interceptor__k46",
+      "sampleIndex": 46,
+      "timeFromStartS": 18.400000000000002,
+      "time": "2026-09-15T00:00:18.400000Z",
+      "position": {
+        "lon": 103.86422944481905,
+        "lat": 1.3734982867398668,
+        "height": 1000
+      },
+      "reachable": true,
+      "requiredTravelTimeS": 9.890168649022499,
+      "timeMarginS": 8.509831350977503,
+      "paretoEfficient": true,
+      "categories": [
+        "lowest_exposure"
+      ],
+      "eligibleForRecommendation": true,
+      "ineligibilityReasons": [],
+      "suppliedSuccessProbability": 0.8964,
+      "exposure": {
+        "status": "complete",
+        "peoplePotentiallyExposed": 1643.1006303157176,
+        "knownAreaExposure": 1643.1006303157176,
+        "coveredAreaFraction": 1.0
+      },
+      "footprint": {
+        "id": "demo-fictional-threat__demo-synthetic-interceptor__k46__footprint",
+        "radiusM": 500
+      }
+    },
+    {
+      "id": "demo-fictional-threat__demo-synthetic-interceptor__k47",
+      "sampleIndex": 47,
+      "timeFromStartS": 18.799999999999997,
+      "time": "2026-09-15T00:00:18.800000Z",
+      "position": {
+        "lon": 103.86503815925526,
+        "lat": 1.3734982760818113,
+        "height": 1000
+      },
+      "reachable": true,
+      "requiredTravelTimeS": 10.066200226876063,
+      "timeMarginS": 8.733799773123934,
+      "paretoEfficient": false,
+      "categories": [],
+      "eligibleForRecommendation": true,
+      "ineligibilityReasons": [],
+      "suppliedSuccessProbability": 0.8948,
+      "exposure": {
+        "status": "complete",
+        "peoplePotentiallyExposed": 2616.9608429779514,
+        "knownAreaExposure": 2616.9608429779514,
+        "coveredAreaFraction": 1.0
+      },
+      "footprint": {
+        "id": "demo-fictional-threat__demo-synthetic-interceptor__k47__footprint",
+        "radiusM": 500
+      }
+    },
+    {
+      "id": "demo-fictional-threat__demo-synthetic-interceptor__k48",
+      "sampleIndex": 48,
+      "timeFromStartS": 19.2,
+      "time": "2026-09-15T00:00:19.200000Z",
+      "position": {
+        "lon": 103.86584687368513,
+        "lat": 1.373498265148382,
+        "height": 1000
+      },
+      "reachable": true,
+      "requiredTravelTimeS": 10.24238137434412,
+      "timeMarginS": 8.95761862565588,
+      "paretoEfficient": false,
+      "categories": [],
+      "eligibleForRecommendation": true,
+      "ineligibilityReasons": [],
+      "suppliedSuccessProbability": 0.8932,
+      "exposure": {
+        "status": "complete",
+        "peoplePotentiallyExposed": 3675.56238420813,
+        "knownAreaExposure": 3675.56238420813,
+        "coveredAreaFraction": 1.0
+      },
+      "footprint": {
+        "id": "demo-fictional-threat__demo-synthetic-interceptor__k48__footprint",
+        "radiusM": 500
+      }
+    },
+    {
+      "id": "demo-fictional-threat__demo-synthetic-interceptor__k49",
+      "sampleIndex": 49,
+      "timeFromStartS": 19.6,
+      "time": "2026-09-15T00:00:19.600000Z",
+      "position": {
+        "lon": 103.86665558810846,
+        "lat": 1.3734982539395797,
+        "height": 1000
+      },
+      "reachable": true,
+      "requiredTravelTimeS": 10.418703655297582,
+      "timeMarginS": 9.18129634470242,
+      "paretoEfficient": false,
+      "categories": [],
+      "eligibleForRecommendation": true,
+      "ineligibilityReasons": [],
+      "suppliedSuccessProbability": 0.8916,
+      "exposure": {
+        "status": "complete",
+        "peoplePotentiallyExposed": 4724.599885192116,
+        "knownAreaExposure": 4724.599885192116,
+        "coveredAreaFraction": 1.0
+      },
+      "footprint": {
+        "id": "demo-fictional-threat__demo-synthetic-interceptor__k49__footprint",
+        "radiusM": 500
+      }
+    },
+    {
+      "id": "demo-fictional-threat__demo-synthetic-interceptor__k50",
+      "sampleIndex": 50,
+      "timeFromStartS": 20.0,
+      "time": "2026-09-15T00:00:20.000000Z",
+      "position": {
+        "lon": 103.86746430252511,
+        "lat": 1.3734982424554036,
+        "height": 1000
+      },
+      "reachable": true,
+      "requiredTravelTimeS": 10.595159266224258,
+      "timeMarginS": 9.404840733775742,
+      "paretoEfficient": false,
+      "categories": [],
+      "eligibleForRecommendation": true,
+      "ineligibilityReasons": [],
+      "suppliedSuccessProbability": 0.89,
+      "exposure": {
+        "status": "complete",
+        "peoplePotentiallyExposed": 5763.331846258607,
+        "knownAreaExposure": 5763.331846258607,
+        "coveredAreaFraction": 1.0
+      },
+      "footprint": {
+        "id": "demo-fictional-threat__demo-synthetic-interceptor__k50__footprint",
+        "radiusM": 500
+      }
+    }
+  ],
+  "paretoCandidateIds": [
+    "demo-fictional-threat__demo-synthetic-interceptor__k11",
+    "demo-fictional-threat__demo-synthetic-interceptor__k38",
+    "demo-fictional-threat__demo-synthetic-interceptor__k39",
+    "demo-fictional-threat__demo-synthetic-interceptor__k40",
+    "demo-fictional-threat__demo-synthetic-interceptor__k41",
+    "demo-fictional-threat__demo-synthetic-interceptor__k42",
+    "demo-fictional-threat__demo-synthetic-interceptor__k43",
+    "demo-fictional-threat__demo-synthetic-interceptor__k44",
+    "demo-fictional-threat__demo-synthetic-interceptor__k45",
+    "demo-fictional-threat__demo-synthetic-interceptor__k46"
+  ],
+  "categoryAssignments": {
+    "earliestViable": "demo-fictional-threat__demo-synthetic-interceptor__k11",
+    "highestSuccess": "demo-fictional-threat__demo-synthetic-interceptor__k11",
+    "lowestExposure": "demo-fictional-threat__demo-synthetic-interceptor__k46"
+  },
+  "representativeCandidateIds": [
+    "demo-fictional-threat__demo-synthetic-interceptor__k11",
+    "demo-fictional-threat__demo-synthetic-interceptor__k46"
+  ],
+  "comparisons": [
+    {
+      "referenceCandidateId": "demo-fictional-threat__demo-synthetic-interceptor__k11",
+      "comparisonCandidateId": "demo-fictional-threat__demo-synthetic-interceptor__k46",
+      "deltaTimeS": 14.000000000000002,
+      "deltaSuccessProbability": -0.05600000000000005,
+      "deltaSuccessPercentagePoints": -5.600000000000005,
+      "deltaPeoplePotentiallyExposed": -13608.739359549696,
+      "relativeExposureChange": -0.8922686947012604
+    },
+    {
+      "referenceCandidateId": "demo-fictional-threat__demo-synthetic-interceptor__k46",
+      "comparisonCandidateId": "demo-fictional-threat__demo-synthetic-interceptor__k11",
+      "deltaTimeS": -14.000000000000002,
+      "deltaSuccessProbability": 0.05600000000000005,
+      "deltaSuccessPercentagePoints": 5.600000000000005,
+      "deltaPeoplePotentiallyExposed": 13608.739359549696,
+      "relativeExposureChange": 8.282352954203914
+    }
+  ],
+  "diagnostics": {
+    "totalCandidates": 50,
+    "reachableCandidates": 40,
+    "eligibleCandidates": 40,
+    "paretoCandidates": 10
+  },
+  "assumptions": {
+    "successModel": "synthetic_linear_decay",
+    "footprintModel": "supplied_fixed_circle",
+    "footprintRadiusM": 500,
+    "populationExposureMeaning": "estimated_people_potentially_exposed",
+    "kinematicsCalibration": "synthetic_not_operational",
+    "visualizationHeightM": 1000,
+    "heightMeaning": "synthetic_visualization_only",
+    "scenarioTimeMeaning": "synthetic_presentation_clock"
+  },
+  "populationProvenance": {
+    "datasetId": "sg-residents-2020-mp2019",
+    "datasetVersion": "sg-residents-2020-mp2019-cbb1c395f60918c1",
+    "coordinateReferenceSystem": "EPSG:3414",
+    "calculatorVersion": "0.1.0"
+  }
+}

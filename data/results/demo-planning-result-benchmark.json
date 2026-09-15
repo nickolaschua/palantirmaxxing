@@ -1,0 +1,89 @@
+{
+  "schemaVersion": "planning-result-benchmark/1",
+  "scenarioFixture": "data/scenarios/demo-singapore.json",
+  "populationDatasetVersion": "sg-residents-2020-mp2019-cbb1c395f60918c1",
+  "method": {
+    "warmUpRuns": 1,
+    "measuredRuns": 7,
+    "populationPreparedOutsideTiming": true,
+    "clock": "time.perf_counter_ns",
+    "boundary": "static evaluation through validated JSON-ready dictionary",
+    "excludes": [
+      "file IO",
+      "JSON text encoding",
+      "network",
+      "frontend rendering"
+    ],
+    "interpretation": "Small engineering benchmark, not rigorous performance characterization"
+  },
+  "environment": {
+    "python": "3.9.6",
+    "platform": "macOS-26.5.1-arm64-arm-64bit",
+    "pyproj": "3.6.1",
+    "shapely": "2.0.7",
+    "geos": "3.11.4"
+  },
+  "runs": [
+    {
+      "run": 1,
+      "planningMs": 82.775042,
+      "presentationMs": 0.503167,
+      "totalMs": 83.278209
+    },
+    {
+      "run": 2,
+      "planningMs": 79.66075,
+      "presentationMs": 0.522208,
+      "totalMs": 80.182958
+    },
+    {
+      "run": 3,
+      "planningMs": 80.884125,
+      "presentationMs": 0.489875,
+      "totalMs": 81.374
+    },
+    {
+      "run": 4,
+      "planningMs": 78.964042,
+      "presentationMs": 0.510917,
+      "totalMs": 79.474959
+    },
+    {
+      "run": 5,
+      "planningMs": 81.987625,
+      "presentationMs": 0.527292,
+      "totalMs": 82.514917
+    },
+    {
+      "run": 6,
+      "planningMs": 83.160625,
+      "presentationMs": 0.502917,
+      "totalMs": 83.663542
+    },
+    {
+      "run": 7,
+      "planningMs": 81.078833,
+      "presentationMs": 0.568209,
+      "totalMs": 81.647042
+    }
+  ],
+  "summary": {
+    "planningMs": {
+      "median": 81.078833,
+      "minimum": 78.964042,
+      "maximum": 83.160625
+    },
+    "presentationMs": {
+      "median": 0.510917,
+      "minimum": 0.489875,
+      "maximum": 0.568209
+    },
+    "totalMs": {
+      "median": 81.647042,
+      "minimum": 79.474959,
+      "maximum": 83.663542
+    }
+  },
+  "targetMs": 100,
+  "targetMetByMedian": true
+}

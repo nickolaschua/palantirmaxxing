@@ -1,4 +1,5 @@
 import { createSingaporeCanvas, FlightCancelled, PRESETS } from "../lib/index.js";
+import { mountPopulation } from "./population.js";
 import type { BasemapKind, LightingPreset } from "../lib/index.js";
 import "./style.css";
 
@@ -14,6 +15,9 @@ const setStatus = (text: string): void => {
 const canvas = await createSingaporeCanvas(container, {
   ionToken: import.meta.env.VITE_CESIUM_ION_TOKEN,
   googleApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
+}).catch(async () => {
+  setStatus("Remote basemap unavailable — using plain globe.");
+  return createSingaporeCanvas(container, { basemap: "plain" });
 });
 
 /**
@@ -54,24 +58,24 @@ for (const id of canvas.camera.presets) {
   );
 }
 
-// Basemap
+// Basemap: all modes remain directly selectable even if another provider fails.
 panel.append(group("Basemap"));
-let basemap: BasemapKind = canvas.scene.basemap;
-const basemapBtn = button(`Basemap: ${basemap}`, () => {
-  basemap = basemap === "photorealistic" ? "extruded" : "photorealistic";
-  basemapBtn.disabled = true;
-  setStatus(`Loading ${basemap}…`);
-  canvas.scene
-    .setBasemap(basemap)
-    .then(() => setStatus(`Basemap: ${basemap}`))
-    .catch(() => setStatus(`${basemap} failed — check keys`))
-    .finally(() => {
-      basemap = canvas.scene.basemap;
-      basemapBtn.textContent = `Basemap: ${basemap}`;
-      basemapBtn.disabled = false;
-    });
-});
-panel.append(basemapBtn);
+const basemapSelect = document.createElement("select");
+basemapSelect.setAttribute("aria-label", "Basemap");
+for (const [value, label] of [["plain", "Plain globe"], ["extruded", "Terrain + OSM buildings"], ["photorealistic", "Google photorealistic"]]) {
+  basemapSelect.add(new Option(label, value));
+}
+basemapSelect.value = canvas.scene.basemap;
+basemapSelect.onchange = () => {
+  const next = basemapSelect.value as BasemapKind;
+  basemapSelect.disabled = true;
+  setStatus(`Loading ${next}…`);
+  canvas.scene.setBasemap(next)
+    .then(() => setStatus(`Basemap: ${next}`))
+    .catch(() => setStatus(`${next} failed — check provider credentials; previous map retained.`))
+    .finally(() => { basemapSelect.disabled = false; basemapSelect.value = canvas.scene.basemap; });
+};
+panel.append(basemapSelect);
 
 // Lighting
 let lighting: LightingPreset = "midday";
@@ -113,7 +117,15 @@ canvas.on("boundsHit", ({ edge }) => {
   }, 900);
 });
 
+canvas.on("renderError", ({ message }) => setStatus(`Map rendering failed: ${message}`));
+
 // The promise resolving IS the ready signal — there is no "ready" event.
-setStatus("Singapore");
+setStatus(`Singapore · ${canvas.scene.basemap} basemap`);
+const disposePopulation = await mountPopulation(canvas);
+if (import.meta.hot) import.meta.hot.dispose(() => {
+  window.clearTimeout(edgeTimer);
+  disposePopulation();
+  canvas.destroy();
+});
 
 Object.assign(window, { __canvas: canvas });

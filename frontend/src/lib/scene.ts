@@ -1,5 +1,6 @@
 import {
   Cesium3DTileset,
+  EllipsoidTerrainProvider,
   JulianDate,
   Viewer,
   createGooglePhotorealistic3DTileset,
@@ -22,6 +23,7 @@ export interface SceneInternals {
   module: SceneModule;
   /** The active city tileset, or null. Layers needs this for clip regions. */
   tileset(): Cesium3DTileset | null;
+  requireGlobe(required: boolean): void;
   destroy(): void;
 }
 
@@ -33,6 +35,7 @@ export async function createScene(
   let current: BasemapKind = initial;
   let tileset: Cesium3DTileset | null = null;
   let ground: Ground | null = null;
+  let globeRequired = false;
 
   function clearTileset(): void {
     if (!tileset) return;
@@ -42,38 +45,27 @@ export async function createScene(
   }
 
   async function load(kind: BasemapKind): Promise<void> {
-    clearTileset();
-
+    // Acquire before swapping so a failed remote request preserves the current map.
+    let next: Cesium3DTileset | null = null;
+    let terrain = viewer.terrainProvider;
     if (kind === "photorealistic") {
-      tileset = await createGooglePhotorealistic3DTileset({
-        onlyUsingWithGoogleGeocoder: true,
-      });
-      tileset.clippingPolygons = singaporeClip();
-      viewer.scene.primitives.add(tileset);
-      // Google tiles carry their own ground surface; the ellipsoid underneath
-      // z-fights with them.
-      viewer.scene.globe.show = false;
+      next = await createGooglePhotorealistic3DTileset({ onlyUsingWithGoogleGeocoder: true });
+    } else if (kind === "extruded") {
+      terrain = await createWorldTerrainAsync();
+      next = await Cesium3DTileset.fromIonAssetId(OSM_BUILDINGS_ASSET);
     } else {
-      viewer.terrainProvider = await createWorldTerrainAsync();
-      viewer.scene.globe.show = true;
-      // Drop satellite imagery: the ground should read as the same material as
-      // the buildings, not as a photo underneath them.
-      viewer.imageryLayers.removeAll();
-      // The globe paints everything unpainted, so its base colour is the open
-      // sea. Land and inland water are drawn back on top by the ground layer.
-      viewer.scene.globe.baseColor = SEA_BLUE;
-      tileset = await Cesium3DTileset.fromIonAssetId(OSM_BUILDINGS_ASSET);
-      // Cesium OSM Buildings is global — without this, Johor Bahru renders
-      // across the strait.
-      tileset.clippingPolygons = singaporeClip();
-      viewer.scene.primitives.add(tileset);
+      terrain = new EllipsoidTerrainProvider();
     }
-
-    // The ground drapes onto the globe, so it is only meaningful when the globe
-    // is showing. Photorealistic tiles carry their own coast and water.
-    ground?.setVisible(kind === "extruded");
-
+    if (next) next.clippingPolygons = singaporeClip();
+    clearTileset();
+    tileset = next;
+    if (next) viewer.scene.primitives.add(next);
+    viewer.terrainProvider = terrain;
+    viewer.imageryLayers.removeAll();
+    viewer.scene.globe.baseColor = SEA_BLUE;
     current = kind;
+    viewer.scene.globe.show = kind !== "photorealistic" || globeRequired;
+    ground?.setVisible(kind !== "photorealistic" && !globeRequired);
   }
 
   function setLighting(preset: LightingPreset): void {
@@ -107,6 +99,11 @@ export async function createScene(
       },
     },
     tileset: () => tileset,
+    requireGlobe(required) {
+      globeRequired = required;
+      ground?.setVisible(current !== "photorealistic" && !required);
+      viewer.scene.globe.show = current !== "photorealistic" || required;
+    },
     destroy(): void {
       clearTileset();
       ground?.destroy();

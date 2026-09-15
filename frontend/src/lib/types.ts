@@ -22,7 +22,7 @@ export interface CameraOrientation {
 
 export interface CameraPose extends GeoPoint, CameraOrientation {}
 
-export type BasemapKind = "photorealistic" | "extruded";
+export type BasemapKind = "photorealistic" | "extruded" | "plain";
 export type LightingPreset = "midday" | "blue-hour";
 export type BoundsEdge = "west" | "south" | "east" | "north" | "ceiling" | "floor";
 
@@ -51,6 +51,7 @@ export interface CanvasOptions {
 }
 
 export type CanvasEvents = {
+  renderError: { message: string };
   cameraChange: CameraPose;
   tileLoadProgress: { pending: number };
   boundsHit: { edge: BoundsEdge };

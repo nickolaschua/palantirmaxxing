@@ -1,5 +1,7 @@
 # Singapore Canvas — complete codebase summary
 
+Population milestone update (14 September 2026): the viewer now has an independent `addPolygonLayer` capability, population explorer and offline data-preparation tests. See the [current implementation and verification](docs/POPULATION-VERIFICATION.md). The original review/design below is retained as historical context; planned playback, tracks and camera-follow features remain unimplemented.
+
 Reviewed on 14 September 2026 against commit `6850b79` on `main`.
 
 The application was subsequently moved into `frontend/`. Unless stated otherwise, file paths and shell commands below are relative to that directory. The repository root contains the project README and shared Git configuration.

@@ -1,14 +1,29 @@
 import { GoogleMaps, Ion, Viewer } from "cesium";
 import { createCamera } from "./camera.js";
 import { createScene } from "./scene.js";
+import { createTime } from "./time.js";
 import { Emitter } from "./events.js";
 import { addPolygonLayer } from "./polygons.js";
-import type { PolygonLayer, PolygonCallbacks } from "./polygons.js";
-export type { PolygonLayer, PolygonStyle } from "./polygons.js";
+import type { PolygonLayer, PolygonCallbacks, PolygonLayerOptions } from "./polygons.js";
+export type { PolygonLayer, PolygonLayerOptions, PolygonStyle } from "./polygons.js";
+import { addLabels } from "./labels.js";
+import type { LabelLayer } from "./labels.js";
+export type { LabelLayer } from "./labels.js";
+import { addBurst } from "./burst.js";
+import type { BurstLayer } from "./burst.js";
+export type { BurstLayer } from "./burst.js";
+import { addBuildingTint } from "./tint.js";
+import type { TintArea, TintLayer, TintStyle } from "./tint.js";
+export type { TintArea, TintLayer, TintStyle } from "./tint.js";
+import { addGroundCircles, addMarkers, addPath } from "./overlays.js";
+import type { CircleCallbacks, CircleLayer, MarkerLayer, PathLayer, PathStyle } from "./overlays.js";
+export type { CircleCallbacks, CircleLayer, CircleStyle, MarkerLayer, MarkerStyle, PathLayer, PathStyle } from "./overlays.js";
 import { SINGAPORE_BOUNDS } from "./types.js";
 import type { CameraModule } from "./camera.js";
 import type { SceneModule } from "./scene.js";
-import type { CanvasEvents, CanvasOptions } from "./types.js";
+import type { TimeModule } from "./time.js";
+export type { TimeModule } from "./time.js";
+import type { CanvasEvents, CanvasOptions, GeoPoint, TimedSample } from "./types.js";
 
 export type {
   Bounds,
@@ -19,6 +34,7 @@ export type {
   CanvasOptions,
   GeoPoint,
   LightingPreset,
+  TimedSample,
 } from "./types.js";
 export { FlightCancelled, SINGAPORE_BOUNDS } from "./types.js";
 export type { CameraPreset } from "./presets.js";
@@ -27,7 +43,19 @@ export { PRESETS } from "./presets.js";
 export interface SingaporeCanvas {
   readonly camera: CameraModule;
   readonly scene: SceneModule;
-  addPolygonLayer(data: object, callbacks: PolygonCallbacks): Promise<PolygonLayer>;
+  readonly time: TimeModule;
+  addPolygonLayer(data: object, callbacks: PolygonCallbacks, options?: PolygonLayerOptions): Promise<PolygonLayer>;
+  addLabels(labels: readonly { position: GeoPoint; text: string }[], style?: { font?: string }): LabelLayer;
+  addPath(samples: readonly TimedSample[], style?: PathStyle): PathLayer;
+  addMarkers(markers: readonly { id: string; position: GeoPoint }[]): MarkerLayer;
+  addGroundCircles(
+    circles: readonly { id: string; center: GeoPoint; radiusM: number }[],
+    callbacks?: CircleCallbacks,
+  ): CircleLayer;
+  /** A one-shot burst at a point. Build it early: its ground geometry takes a moment. */
+  addBurst(center: GeoPoint, options?: { color?: string; radiusM?: number; durationS?: number }): BurstLayer;
+  /** Colours the city's buildings inside `areas` and outlines the areas. Google's tiles get the outline only. */
+  addBuildingTint(areas: readonly TintArea[], style: TintStyle): TintLayer;
   on<K extends keyof CanvasEvents>(
     event: K,
     handler: (payload: CanvasEvents[K]) => void,
@@ -70,11 +98,22 @@ export async function createSingaporeCanvas(
   viewer.scene.renderError.addEventListener((_scene: unknown, error: Error) => {
     emit.emit("renderError", { message: error.message });
   });
-  const sceneParts = await createScene(viewer, basemap, options.lighting ?? "midday").catch((error: unknown) => {
+  // Time first: lighting pins the sun through it.
+  const timeParts = createTime(viewer, emit);
+  const sceneParts = await createScene(
+    viewer, basemap, options.lighting ?? "midday", timeParts.setSunInstant, options.maximumScreenSpaceError,
+  ).catch((error: unknown) => {
+    timeParts.destroy();
     if (!viewer.isDestroyed()) viewer.destroy();
     throw error;
   });
   const polygonLayers = new Set<PolygonLayer>();
+  // Every other layer; none of them affects the globe rule.
+  const layers = new Set<{ destroy(): void }>();
+  const track = <T extends { destroy(): void }>(layer: T): T => {
+    layers.add(layer);
+    return layer;
+  };
   const visibleLayers = new Set<object>();
   const cameraParts = createCamera(viewer, bounds, maxHeight, minHeight, emit);
 
@@ -89,21 +128,31 @@ export async function createSingaporeCanvas(
   return {
     camera: cameraParts.module,
     scene: sceneParts.module,
-    async addPolygonLayer(data, callbacks) {
+    time: timeParts.module,
+    async addPolygonLayer(data, callbacks, options) {
       const token = {};
       const layer = await addPolygonLayer(viewer, data, callbacks, (visible) => {
         if (visible) visibleLayers.add(token); else visibleLayers.delete(token);
         sceneParts.requireGlobe(visibleLayers.size > 0);
-      });
+      }, options);
       polygonLayers.add(layer);
       return layer;
     },
+    addLabels: (labels, style) => track(addLabels(viewer, labels, style)),
+    addPath: (samples, style) => track(addPath(viewer, timeParts.now, samples, style)),
+    addMarkers: (markers) => track(addMarkers(viewer, markers)),
+    addGroundCircles: (circles, callbacks) => track(addGroundCircles(viewer, circles, callbacks)),
+    addBurst: (center, options) => track(addBurst(viewer, center, options)),
+    addBuildingTint: (areas, style) => track(addBuildingTint(viewer, sceneParts.onTileset, areas, style)),
     on: (event, handler) => emit.on(event, handler),
     destroy(): void {
       viewer.scene.globe.tileLoadProgressEvent.removeEventListener(tileProgress);
       for (const layer of polygonLayers) layer.destroy();
       polygonLayers.clear();
+      for (const layer of layers) layer.destroy();
+      layers.clear();
       cameraParts.destroy();
+      timeParts.destroy();
       sceneParts.destroy();
       emit.clear();
       if (!viewer.isDestroyed()) viewer.destroy();

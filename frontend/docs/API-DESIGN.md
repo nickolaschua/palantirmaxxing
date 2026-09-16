@@ -1,25 +1,26 @@
 # Singapore canvas — API design
 
-Population milestone update (14 September 2026): the viewer now has an independent `addPolygonLayer` capability, population explorer and offline data-preparation tests. See the [current implementation and verification](POPULATION-VERIFICATION.md). The original review/design below is retained as historical context; planned playback, tracks and camera-follow features remain unimplemented.
+Last updated 2026-09-15. The first half describes the library **as built**. The
+next section records the approved structure for the three-view decision demo.
+The `planning-result/1` contract at the end is owned by the backend and is the
+single source of truth for backend data.
 
-Last updated 2026-09-14. Reflects what is built through step 5 and the signed-off
-scope for step 6.
+Population milestone (14 September 2026): the viewer gained an independent
+`addPolygonLayer` capability, a population explorer and offline data-preparation
+tests — see [POPULATION-VERIFICATION.md](POPULATION-VERIFICATION.md).
 
 | Status | Surface |
 |---|---|
-| **Built** (steps 1–5) | `createSingaporeCanvas`, `camera` (except `follow`), `scene`, `on`, `destroy` |
-| **Step 6** (scoped, not built) | `time`, `layers.addTracks` / `addPath` / `addBurst` / `addGroundOverlay` / `updateGroundOverlay`, `camera.follow` |
-| **Deferred** | `layers.addPoints` / `addModel` / `addPolygons` / `addClipRegion`, `pick` event |
-
-Step 6 is scoped around one scenario — an intercept debris footprint — but every
-verb below is domain-agnostic. The library never learns the word "missile"; that
-vocabulary lives only in `src/demo/`.
+| **Built** | `createSingaporeCanvas`, `camera`, `scene`, `time`, `addPolygonLayer`, `addLabels`, `addPath`, `addMarkers`, `addGroundCircles`, `on`, `destroy`; the three-view demo switcher |
+| **Next** | grey-canvas features, the decision demo — see "Next" below |
+| **Dropped** | the earlier debris design — moving tracks, particle bursts, ground heatmap, `camera.follow` (removed) |
 
 ## Shape
 
 ```ts
 const canvas = await createSingaporeCanvas(element, options);  // resolving IS "ready"
-canvas.camera / canvas.scene / canvas.time / canvas.layers
+canvas.camera / canvas.scene
+canvas.addPolygonLayer(data, callbacks)
 canvas.on(event, handler)                                        // returns its own unsubscribe
 canvas.destroy()
 ```
@@ -30,6 +31,8 @@ Ids everywhere. No Cesium object ever crosses the boundary.
 
 - **Positions** are `GeoPoint { lon, lat, height? }` — WGS84 degrees and metres. `Cartesian3` stays inside.
 - **Instants** are JS `Date`. `JulianDate` stays inside.
+- **Timed positions** are `TimedSample extends GeoPoint { time: Date }`. The
+  `planning-result/1` contract below refers to this type.
 
 ---
 
@@ -37,15 +40,17 @@ Ids everywhere. No Cesium object ever crosses the boundary.
 
 ```ts
 interface Bounds { west: number; south: number; east: number; north: number }  // WGS84 degrees
+type BasemapKind = "plain" | "extruded" | "photorealistic";
 
 interface CanvasOptions {
   ionToken?: string;
   googleApiKey?: string;
-  basemap?: "photorealistic" | "extruded";  // default: photorealistic if googleApiKey, else extruded
-  lighting?: "midday" | "blue-hour";         // default "midday"
-  bounds?: Bounds | null;                    // default SINGAPORE_BOUNDS; null unlocks the cage
-  maxHeight?: number;                        // default 80_000 m
-  minHeight?: number;                        // default 60 m
+  basemap?: BasemapKind;              // default: photorealistic if googleApiKey, else extruded if ionToken, else plain
+  lighting?: "midday" | "blue-hour";  // default "midday"
+  bounds?: Bounds | null;             // default SINGAPORE_BOUNDS; null unlocks the cage
+  maxHeight?: number;                 // default 80_000 m
+  minHeight?: number;                 // default 60 m
+  maximumScreenSpaceError?: number;   // Cesium's tile detail threshold, default 16; smaller is finer
 }
 ```
 
@@ -53,15 +58,14 @@ The cage is enforced per frame — Cesium has no built-in geographic bounds.
 `minHeight` rarely binds in practice: terrain collision stops the camera around
 97–102 m above the ellipsoid first.
 
-## camera — built, except `follow`
+## camera — built
 
 ```ts
 interface CameraModule {
   flyToPreset(name: string, opts?: { duration?: number }): Promise<void>;
   flyTo(pose: CameraPose, opts?: { duration?: number }): Promise<void>;
   orbit(opts: { centre: GeoPoint; radius: number; pitch?: number; degreesPerSecond?: number }): void;
-  follow(layerId: string, trackId?: string, opts?: { range?: number; pitch?: number }): void;  // step 6
-  stop(): void;                           // cancels flight, orbit and follow
+  stop(): void;                          // cancels flight and orbit
   readonly pose: CameraPose;
   readonly presets: readonly string[];
 }
@@ -69,178 +73,82 @@ interface CameraModule {
 
 Flights resolve on arrival and reject with `FlightCancelled` when interrupted.
 
-**`follow` changed from `follow(pathId)`** so it can reach into a layer:
-`follow("missile")` follows a path; `follow("fragments", "f-0412")` follows one
-track inside a tracks layer.
-
-**`follow` respects the cage.** Library flights and orbits suspend the cage;
-follow does not. The follow position is computed each frame from the target plus
-the offset and then clamped, so an object approaching from outside Singapore
-leaves the camera pinned at the boundary, looking toward it, until it crosses in.
-While the target has no position (before its first sample) the camera holds its
-last pose.
-
 ## scene — built
 
 ```ts
 interface SceneModule {
-  setBasemap(kind: "photorealistic" | "extruded"): Promise<void>;
+  setBasemap(kind: BasemapKind): Promise<void>;
   setLighting(preset: "midday" | "blue-hour"): void;
-  readonly basemap: "photorealistic" | "extruded";
+  readonly basemap: BasemapKind;
 }
 ```
 
-On photorealistic the globe is hidden, so the grey/blue ground layer (coastline,
-reservoirs, roads, pavements) is hidden too — Google's mesh carries its own.
+| Basemap | What it is |
+|---|---|
+| `plain` | Flat globe, no terrain or buildings, with the grey/blue ground layer. Needs no credentials; the fallback when remote data fails |
+| `extruded` | World terrain + OSM buildings + the grey/blue ground layer |
+| `photorealistic` | Google Photorealistic 3D Tiles |
 
----
+The grey/blue ground layer (coastline, reservoirs, roads, pavements) is hidden on
+`photorealistic`, and **also whenever a polygon layer is visible** — both draw on
+the ground surface and would paint over each other. A failed remote basemap load
+keeps the current map rather than blanking it.
 
-## time — step 6, pulled forward from step 7
-
-Unchanged from the original design. Every step 6 layer moves in time, so layers
-are meaningless without a clock.
+## polygon layers — built
 
 ```ts
-interface TimeModule {
-  setRange(start: Date, stop: Date): void;
-  play(): void;
-  pause(): void;
-  seek(t: Date): void;
-  setMultiplier(n: number): void;
-  readonly current: Date;
-  readonly playing: boolean;
+canvas.addPolygonLayer(data: object, callbacks: PolygonCallbacks, options?: { outline?: string }): Promise<PolygonLayer>;
+
+interface PolygonCallbacks { hover(id: string | null): void; click(id: string | null): void }
+interface PolygonLayer {
+  setVisible(visible: boolean): void;
+  setStyles(styles: ReadonlyMap<string, PolygonStyle>): void;
+  destroy(): void;
 }
+interface PolygonStyle { color: string; visible: boolean; selected?: boolean }
 ```
 
-## layers — step 6
+`data` is geographic GeoJSON of `Polygon` / `MultiPolygon` features with unique
+string IDs, drawn clamped to the ground. Picking returns the feature ID or `null`.
+The loader replaces feature properties internally, so keep domain data in
+application state keyed by ID. A multipart feature keeps its one ID.
+
+`outline` (added 2026-09-16) draws every ring's boundary as a 2 px ground-draped
+line in that CSS colour. It follows the layer's visibility, not each feature's
+`visible` style.
+
+## labels — built
 
 ```ts
-/** Replaces PathSample: same shape, now shared by both moving-object verbs. */
-interface TimedSample extends GeoPoint { time: Date }
-
-type OverlaySource = HTMLCanvasElement | HTMLImageElement | string;
-interface PathStyle { color?: string; width?: number; trailTime?: number; leadTime?: number }
-
-interface LayersModule {
-  /** Many moving objects. Primitive-backed. Designed for ~1,000 tracks; not enforced. */
-  addTracks(
-    id: string,
-    tracks: readonly { id: string; samples: readonly TimedSample[] }[],
-    style?: { color?: string; size?: number; trailFor?: readonly string[]; trailTime?: number },
-  ): void;
-
-  /** One moving object that always draws a trail. Entity-backed. */
-  addPath(id: string, samples: readonly TimedSample[], style?: PathStyle): void;
-
-  /** A one-shot particle burst at a place and a clock moment. */
-  addBurst(id: string, spec: {
-    position: GeoPoint;
-    time: Date;
-    duration?: number;
-    color?: string;
-    endColor?: string;
-    particleCount?: number;
-    maxSpeed?: number;
-  }): void;
-
-  /** An image draped over the active basemap. */
-  addGroundOverlay(id: string, source: OverlaySource, bbox: Bounds): void;
-  /** Swap the image. The demo uses this to redraw the heatmap during playback. */
-  updateGroundOverlay(id: string, source: OverlaySource): void;
-
-  setVisible(id: string, visible: boolean): void;
-  remove(id: string): void;
-  removeAll(): void;
-  has(id: string): boolean;
-  readonly ids: readonly string[];
-}
+canvas.addLabels(labels: readonly { position: GeoPoint; text: string }[], style?: { font?: string }): LabelLayer;
+interface LabelLayer { setVisible(visible: boolean): void; destroy(): void }
 ```
 
-Adding a duplicate id throws. `remove` on an unknown id is a no-op. `trailTime`
-is in seconds on both verbs. `trailFor` names which tracks get a trail — at a
-thousand tracks, only a chosen subset can carry one.
+Added 2026-09-16 for the population view's area names. White text with a dark
+outline, never hidden by terrain or buildings, not pickable. A position without
+`height` sits on the ground. Non-finite positions throw. The population view
+uses two layers — planning-area names above 12 km camera height, subzone names
+below — toggled through `cameraChange`.
 
-### How it is built — approach A, hybrid
-
-| Verb | Backing |
-|---|---|
-| `addTracks` | One `PointPrimitiveCollection`; every track's `SampledPositionProperty` evaluated at clock time each frame |
-| `addTracks` trails | One entity with `PathGraphics` per id in `trailFor`, sharing that track's position property |
-| `addPath` | One entity with `PathGraphics` |
-| `addBurst` | `ParticleSystem` |
-| `addGroundOverlay` | An `ImageryLayer` on the active tileset's `imageryLayers` |
-
-Primitives only where the count demands it; Cesium's own interpolation and trail
-code everywhere else. Interpolation is polynomial, not linear — linear turns
-ballistic arcs into chevrons.
-
-`tileset.imageryLayers` is marked **experimental** in Cesium ("subject to change
-without Cesium's standard deprecation policy"). That is acceptable only because
-the version is pinned to 1.145.
-
-### Behaviour over time
-
-| Case | Behaviour |
-|---|---|
-| Track before its first sample | Hidden |
-| Track after its last sample | Held at its final position |
-| Clock crosses a burst's `time` going forward | Burst fires |
-| Seek to before a burst's `time` | Burst cleared |
-| Seek into a burst's window | Burst starts fresh |
-
-### Validating input
-
-Samples arrive from a backend, so the library checks them rather than trusting them.
-
-| Input | Handling |
-|---|---|
-| Samples out of time order | Sorted on ingest |
-| Duplicate timestamps within a track | First kept, later duplicates dropped |
-| Non-finite values, lon outside ±180, lat outside ±90 | That sample dropped |
-| Track left with 1 sample | Drawn as a static point |
-| Track left with 0 samples | Skipped, with a console warning |
-
-The sanitiser is a pure function with no Cesium import, in its own module, so it
-can carry a runnable check.
-
-### Basemap switch
-
-Overlays attach to a specific tileset, and `setBasemap` replaces the tileset —
-so an overlay would silently vanish. Scene raises an internal tileset-changed
-hook and layers re-attaches every overlay. Invisible to the host.
-
-### Known limitations
-
-- On the **extruded** basemap, an overlay's ground portion sits under the grey
-  land fill. Photorealistic, the stage basemap, is unaffected.
-- A burst cannot be scrubbed frame-accurately; it replays from its start instead.
-
-### To verify against the live tiles at build time
-
-1. Whether swapping an overlay's image at ~4 Hz flickers. Fallback: the demo
-   draws the heatmap once, after the last track lands.
-2. Whether `ParticleSystem` advances on the scrubbed clock or on real frame time.
-   The burst rules above hold either way.
-3. The `ExtrapolationType` member that holds the last position.
-4. Whether draped imagery streaks on vertical walls. Expected, since the image is
-   georeferenced 2D.
-5. Frame rate with 1,000 tracks plus trails, on the demo machine. Headless Chrome
-   caps `requestAnimationFrame` at one per second, so it cannot be measured there.
-
-### Deferred — designed, not in step 6
+## addBuildingTint — built
 
 ```ts
-interface PointDatum extends GeoPoint { color?: string; size?: number; id?: string }
-interface PointStyle { color?: string; size?: number; outlineColor?: string; outlineWidth?: number }
-interface PolygonStyle { fill?: string; outline?: string; extrudeProperty?: string; extrudeScale?: number }
-
-addPoints(id: string, points: readonly PointDatum[], style?: PointStyle): void;
-addModel(id: string, spec: { url: string; position: GeoPoint; orientation?: CameraOrientation; scale?: number }): Promise<void>;
-addPolygons(id: string, geojson: GeoJSON.FeatureCollection, style?: PolygonStyle): Promise<void>;
-addClipRegion(id: string, ring: readonly GeoPoint[]): void;
+addBuildingTint(
+  areas: readonly { id: string; ring: readonly GeoPoint[] }[],
+  style: { color: string; outlineColor?: string; outlineWidth?: number },
+): TintLayer;                       // setVisible, destroy
 ```
 
----
+Added 2026-09-16. Colours the city's buildings whose footprint centre lies
+inside any of `areas` and, when `outlineColor` is set, draws each area's
+boundary on the ground (on Google's tiles too). Buildings are painted per tile
+as tiles come into view, through a scene-internal `onTileset` hook, so the tint
+survives basemap switches and tile reloads. It reads the footprint centre from
+Cesium OSM Buildings' `cesium#longitude` / `cesium#latitude` feature
+properties; Google's photorealistic tiles carry no per-building features, so
+there only the outline draws. Outer rings only, no holes. Duplicate ids and
+rings under three finite points throw. Known limit: after `destroy()`,
+buildings already painted keep their colour until their tile reloads.
 
 ## events — built
 
@@ -255,19 +163,475 @@ type CanvasEvents = {
 - **`ready` was removed.** It fired inside `createSingaporeCanvas` before the
   function returned, so no caller could ever subscribe in time. The resolved
   promise is the ready signal.
-- **`pick` is deferred.** Designed as
-  `{ layerId; index; datumId?; position } | null`. Click-to-highlight a fragment
-  would demo well, but the scenario does not need it.
+- **There is no generic `pick` event.** Polygon layers take their own hover and
+  click callbacks.
 
 `on` returns its own unsubscribe. There is no `off(event, handler)` —
 identity-matching handlers leaks whenever a caller passes an inline arrow function.
 
 ---
 
+## Next — three views and decision demo
+
+Design status, 2026-09-15: sections 1–3 are **approved**. The red areas and the
+side window in section 3 are the user's own requests, with a few details still
+**open**. Section 5 (data, errors, verification) is a **draft**, not yet
+approved. Every unanswered item is in "Open questions" at the end of this
+section. Implementation has not started.
+
+### 1. Structure — approved
+
+```
+frontend/src/lib/                      library — no defence concepts
+  time.ts             NEW       clock: setRange, play, pause, seek
+  overlays.ts         NEW       addPath, addMarkers, addGroundCircles
+  coastline.ts        EXTENDED  + forest / parks greens, road + rail bridges & tunnels
+  camera.ts           CHANGED   `follow` stub removed
+  scene.ts            unchanged — terrain stays at true heights
+  polygons.ts         unchanged
+
+frontend/src/demo/                     the application
+  main.ts             CHANGED   three-view switcher replaces the basemap dropdown
+  decision.ts         NEW       loads planning-result/1; cards, countdowns, FIRE, outcome
+  decision-model.ts   NEW       pure logic: validation, countdown maths, deadline positions, flow states
+  inspector.ts        NEW       side window: a zoomed second canvas on one area, plus its stats
+  population.ts       TRIMMED   colours + legend + hover/click details only
+  population-model.ts unchanged, along with its test
+```
+
+**Three exclusive views**, grey canvas by default:
+
+| View | Scene basemap | Extra |
+|---|---|---|
+| Grey canvas *(default)* | `extruded` | grey ground + forest/parks greens + road & MRT/LRT bridges and tunnels, true-height terrain |
+| Population | `plain` | coloured subzones, legend, hover/click details — no search, filter or ranking |
+| Google | `photorealistic` | — |
+
+The threat path, candidate markers, deadline marks and red option areas are added
+once and survive view switches. `plain` is no longer a menu option: it is the
+automatic fallback if terrain or buildings fail to load, and the base of the
+population view.
+
+**Terrain stays at true heights — no exaggeration.** `Scene.verticalExaggeration`
+stretches terrain and every 3D tileset together, and no per-tileset opt-out was
+found in the Cesium3DTileset source, so exaggeration would misstate building
+heights. Canvas heights never feed the backend, which plans in 2D. Building
+heights are recorded OSM values, or 3 m per level (at least one level) when OSM
+has none.
+
+**Heads-up for the backend partner:** `population.ts` loses its search,
+planning-area filter, ranking chart and browse list; `plain` leaves the basemap
+menu; `frontend/CODEBASE-SUMMARY.md` §10 still describes the dropped debris plan.
+
+### 2. Library API — approved
+
+Follows the `addPolygonLayer` pattern: each call returns a small handle, items
+inside are addressed by string IDs, and no Cesium object leaves the library.
+
+```ts
+interface TimeModule {
+  setRange(start: Date, stop: Date): void;   // stops at `stop`, never loops
+  play(): void;                              // actual speed, 1×
+  pause(): void;
+  seek(t: Date): void;
+  readonly current: Date;
+  readonly playing: boolean;
+}
+type CanvasEvents = { /* existing … */ clockTick: Date };  // drives the countdowns
+
+// Threat route: the full line, plus a marker that moves with the clock
+addPath(samples: readonly TimedSample[], style?: { color?: string; width?: number }): PathLayer;
+interface PathLayer { setVisible(visible: boolean): void; destroy(): void }
+
+// Candidate markers and deadline marks — not pickable
+addMarkers(markers: readonly { id: string; position: GeoPoint }[]): MarkerLayer;
+interface MarkerStyle { color: string; size: number; visible: boolean; label?: string }
+interface MarkerLayer {
+  setStyles(styles: ReadonlyMap<string, MarkerStyle>): void;
+  setVisible(visible: boolean): void;
+  destroy(): void;
+}
+
+// Option areas, draped on whatever surface is showing — pickable
+addGroundCircles(
+  circles: readonly { id: string; center: GeoPoint; radiusM: number }[],
+  callbacks?: CircleCallbacks,
+): CircleLayer;
+interface CircleCallbacks { hover(id: string | null): void; click(id: string | null): void }
+interface CircleStyle { fill: string; outline: string; visible: boolean }
+interface CircleLayer {
+  readonly ready: Promise<void>;   // added in step 8 — see "Built in step 8"
+  setStyles(styles: ReadonlyMap<string, CircleStyle>): void;
+  setVisible(visible: boolean): void;
+  destroy(): void;
+}
+```
+
+| Call | Built on |
+|---|---|
+| clock | Viewer clock, `ClockStep.SYSTEM_CLOCK_MULTIPLIER` at ×1, `ClockRange.CLAMPED` *(verified)* |
+| `addPath` | A route polyline, plus a point whose position is a `SampledPositionProperty` |
+| `addMarkers` | A `PointPrimitiveCollection` with labels |
+| `addGroundCircles` | `GroundPrimitive` + `EllipseGeometry`, radius in metres *(verified)*, draped on terrain and 3D tiles |
+
+- **Actual speed only.** `setMultiplier` stays out of the API; slowed playback was
+  considered and dropped.
+- Countdowns subscribe through `clockTick` on the existing `on()`.
+- The threat holds at its first sample before T+0.4 s, and at its last after T+20 s.
+- **Circles are pickable; markers are not.** Circle hover and click return a
+  circle ID, mirroring `addPolygonLayer`, and drive the side window.
+- Circles never trigger the "require globe" rule, so the grey canvas stays visible.
+- Duplicate IDs and non-finite coordinates or radii throw. Full payload
+  validation happens once, in `decision-model.ts`.
+- Deadline marks need no new API: `decision-model.ts` computes where the threat
+  is at each option's close time, and they draw through `addMarkers`.
+- The side window needs no new API: it is a second `createSingaporeCanvas`
+  instance (the no-singleton rule allows it), framed with the existing
+  `camera.flyTo`.
+- Grey-canvas features need no API; they are internal to the ground layer.
+
+**Built 2026-09-16 (step 7).** Checked in the browser against the demo result:
+
+1. Circles render on Google's 3D tiles — **yes**, draped over the buildings.
+2. Circles draw above the grey land and road fills — **yes** (vegetation is step 9).
+3. A circle's fill and outline colour change without rebuilding — **yes**, via
+   per-instance attributes once the primitives are ready; styles set earlier wait.
+4. `ExtrapolationType.HOLD` holds the threat before its first and after its last sample.
+5. `clockTick` does **not** fire while paused and unchanged: it fires whenever
+   host time changes — every frame while playing, once per `seek`.
+6. Picking a circle returns its ID — **yes**, on hover and click.
+7. In population view, clicking a circle does not pin the zone underneath —
+   **yes**: a polygon layer yields the pick when another layer's string-ID hit
+   is on top.
+8. Cost of the second canvas — still open; measured in step 8.
+
+**Clock and sun.** Lighting pins the sun by setting the Viewer clock, and the
+host animates with its own dates, so the time module maps between them: the
+Viewer clock reads `sunInstant + (host − rangeStart)`. A 20 s scenario moves the
+sun 20 s; switching lighting mid-play keeps host time. `setRange` seeks to the
+start and pauses; playback stops at `stop` and `playing` turns false.
+
+**Seen during the check:** the route and markers sit at the payload's synthetic
+1,000 m height while circles drape on the ground, so at an oblique camera the
+route appears offset from its circles. True scale, not nudged; a steeper camera
+reduces it. Decide the Standby framing in step 8.
+
+### 3. Demo flow — approved
+
+**Data: `data/results/demo-planning-result.json`.** A fictional eastbound Ang Mo
+Kio → Serangoon path: 20 s, 4.5 km at 225 m/s, a synthetic 1,000 m display
+height, supplied 500 m footprints and real Census 2020 population. 50 candidates,
+40 reachable, 10 on the frontier. Do **not** use `static-mvp-planning-result.json`
+on stage — its population is synthetic.
+
+| Option | Categories | Threat at circle | Window closes | People potentially exposed | Supplied success |
+|---|---|---:|---:|---:|---:|
+| `k11` | earliest viable, highest success | T+4.4 s | T+0.29 s | 15,252 | 0.9524 |
+| `k46` | lowest exposure | T+18.4 s | T+8.51 s | 1,643 | 0.8964 |
+
+```
+STANDBY ──[Space: threat detected]──▶ LIVE ──[Enter: FIRE]──▶ FIRED ──(clock reaches intercept)──▶ OUTCOME
+                                        │                                                           │
+                                        └──(every option's window closes)──▶ EXPIRED                │
+                                                                                  │                 │
+                                                          STANDBY ◀──[R: reset]───┴─────────────────┘
+```
+
+| State | Clock | Map | Decision tray |
+|---|---|---|---|
+| **Standby** | Stopped at T+0 | Camera zoomed out, framing the whole path and every option's area; nothing drawn yet | "Standby — press Space on detection" |
+| **Live** | Runs at actual speed, 1× | Route, moving threat, candidate markers, deadline marks, options' areas in red | One card per option: category badges, people potentially exposed, supplied success, intercept time, countdown bar; FIRE on the selected card |
+| **Fired** | Keeps running | Chosen area locked; other areas and markers dimmed | Chosen card locked; others disabled |
+| **Outcome** | Stops at the intercept time | Threat held at the intercept point, inside its area | Summary |
+| **Expired** | Runs to T+20 s | Threat continues along the route; areas faded | "All engagement windows expired — nothing fired" |
+
+- **Actual speed, zoomed out.** The threat moves at its real supplied speed. The
+  camera is far enough out to frame the whole path and every option's area, so
+  real-speed motion reads slowly on screen. Slowed playback was considered and
+  dropped.
+- **Countdown = `timeMarginS − elapsed`.** Confirmed as-is for now, although
+  the backend assumes the interceptor launches at T+0 and models no decision
+  delay. At zero the card greys out; if it was selected, the selection clears.
+  With nothing fired, the flow reaches Expired when the last window closes —
+  T+8.51 s for the demo file.
+- **Deadline marks.** Each option gets a mark on the path where the threat will be
+  when that option's window closes; the threat crossing the mark is the option
+  expiring. An option does **not** expire when the threat reaches its circle
+  (`k46`'s window closes about 10 s of flight before that). A close time before
+  the first sample (`k11`, T+0.29 s) pins the mark to the start of the path,
+  shown expired.
+- **Option areas in red.** Each option's supplied 500 m area is highlighted red
+  from the start of Live. The selected option's area is emphasised; an expired
+  option's area fades. See open question 1.
+- **Side window.** Hovering a red area opens a side window with a live, zoomed-in
+  view of that area and its stats: intercept time, people potentially exposed,
+  supplied success, time left in its window or "expired", and coverage status.
+  Clicking pins it, like the population details card. See open questions 2–3.
+- **Cards come from `representativeCandidateIds`,** in backend order, with badges
+  from each candidate's `categories`. Unknown future categories get a readable
+  fallback label. Nothing else is selectable, so the dominated `k32` contrast is
+  not shown.
+- **Wording comes from `assumptions`:** "people potentially exposed", "supplied
+  success (synthetic)", "supplied 500 m area". Never "damage", "casualties" or
+  "destroyed". The areas may be red and informally called the blast radius, but
+  on-screen labels say "supplied 500 m area" — the backend does not calculate a
+  blast radius. Labels are read from `assumptions.footprintModel` and
+  `footprintRadiusM`, never hard-coded, so a new radius shows automatically. If
+  the backend later calculates footprints, its new `footprintModel` value gets
+  its own wording, and unknown values fall back to a neutral label. A
+  non-circular footprint would need a contract change.
+- **Outcome summary:** intercept time, people potentially exposed, supplied
+  success, and deltas against the other options from `comparisons` — e.g. `k46`
+  vs `k11`: −13,609 people potentially exposed (−89.2%), −5.6 pp supplied success.
+  The threat is held at the intercept point; success is a supplied probability,
+  not a result.
+- **Missile path only.** The payload has no interceptor path or launch origin,
+  and none is drawn.
+- **The drawn circle is a display approximation** of PEC's 128-edge calculation
+  polygon. Accepted.
+- **Time shows as T+seconds from detection.** The contract's 2026-09-15 date has
+  no meaning and is never shown.
+- **Keyboard:** Space detect, 1–9 select, Enter FIRE, R reset. The mouse also works.
+- **The result loads and validates in Standby,** so no loading or error happens
+  mid-countdown.
+- **The main camera frames the corridor in Standby** and never flies
+  automatically during Live. Only the side window's own camera moves.
+- **Layout:** map full-screen; compact top-left panel (view switcher, lighting,
+  17 town presets collapsed); decision tray along the bottom; side window on the
+  right. The population hover card moves so it doesn't collide with the side
+  window — placed in the layout pass.
+
+### 4. Stashed — presentation polish (step after grey-canvas detail)
+
+Requested 2026-09-15 with a reference screenshot of an ops-console style
+interface. The zoomed-out framing, red areas and side window have moved into
+section 3; what remains is styling, designed in its own pass once the decision
+flow works. None of it changes the library API.
+
+- **Ops-console styling:** dark side panels and a bottom timeline with a "now" cursor.
+- **A larger, more visible missile marker,** with the trajectory marked out ahead of it.
+
+### 5. Data, errors and verification — draft, not yet approved
+
+- **Loading the result.** It lives in `data/results/`, outside `frontend/`, and
+  Vite only serves `frontend/public/`. Either import it into the bundle (the Vite
+  dev server must be allowed to read the parent folder) or copy it into
+  `public/`. Undecided.
+- **Validation in `decision-model.ts`:** `schemaVersion` must be
+  `planning-result/1`; representative and category IDs must resolve; numbers must
+  be finite. An empty frontier is a valid state with its own message. Any failure
+  blocks in Standby and says why.
+- **Grey-canvas feature data** comes from OSM via Overpass: forest, nature
+  reserves and mangroves; parks, grass and golf courses; road bridges and tunnels
+  (roads re-fetched with their bridge/tunnel tags); MRT/LRT viaducts and tunnels.
+  Overpass rate-limits large pulls, so fetch in bands with pauses. The bundle is
+  already about 6.3 MB.
+- **Population view** needs `frontend/public/population.geojson` from the
+  partner's Python pipeline. It is missing locally, so it goes on the pre-demo
+  checklist.
+- **Checks:** browser verification, per `CLAUDE.md`. `decision-model.ts` is pure,
+  so it carries one runnable check — countdown, expiry, deadline positions,
+  validation — through the existing `npm test` runner.
+- **Height accuracy check** before the grey canvas ships: compare terrain height in
+  an open field against a dense HDB estate, and building bases against the
+  surrounding terrain. Cesium's terrain draws on SRTM, which can partly measure
+  rooftops and canopy; its docs don't state the source or datum for Singapore.
+- **Frame rate** cannot be measured in the headless browser; check it on the demo
+  machine — especially with the side window's second canvas running.
+
+### Decisions for step 8 — answered 2026-09-16
+
+These supersede the matching bullets in section 3.
+
+- **Areas drawn:** only the backend's representatives (2 in the demo file).
+- **Area colours by backend category**, one colour per area, priority
+  highest success → lowest exposure → earliest viable: highest success **blue**,
+  lowest exposure **red**, earliest viable **amber**, unknown future categories
+  a neutral fallback. `k11` (earliest viable + highest success) is blue; its card
+  still shows both badges. The user also wants **military sites in green** —
+  the contract has no such data, so that is a request for the partner (see 6).
+- **FIRE is a pointer click on a visible FIRE button only.** No Enter-key fire;
+  keyboard activation of the button is ignored. Clicking a map area only pins the
+  side window — it never selects or fires. Cards and number keys select.
+- **Side window:** a live second canvas mirroring the current basemap (the
+  population layer is not duplicated), plus the stats.
+- **Playback starts at T+0.**
+- **Loading:** the demo imports `data/results/demo-planning-result.json` into
+  the bundle; the Vite dev server is allowed to read the parent folder.
+- **Camera:** Standby frames the corridor at about −70° pitch, so the route at
+  1,000 m appears ~360 m from its circles — inside the 500 m radius.
+- **Temporary presenter buttons,** bottom-right: Play (= Space, detect) and
+  Restart (= R). Removed in the polish pass.
+
+### Built in step 8 — 2026-09-16
+
+`decision-model.ts`, `decision.ts`, `inspector.ts`; `decision-model.test.ts` runs
+under `npm test`. Two Cesium problems surfaced once the second canvas existed:
+
+- **Shared environment-map queue (Cesium 1.145 bug).**
+  `DynamicEnvironmentMapManager` queues its compute commands in one module-level
+  queue shared by every Scene, so with two canvases one WebGL context executed
+  the other's commands: "object does not belong to this context" warnings and a
+  large corrupted shape on the main map. `scene.ts` now sets
+  `tileset.environmentMapManager.enabled = false` on every tileset. Visible cost:
+  OSM building walls lose their olive image-based shading and read flat light
+  grey. Google tiles are unaffected.
+- **Slow circle builds.** Ground geometry builds on Cesium's shared web workers;
+  with the side window also building its road layer, the areas took ~9.6 s after
+  Standby to become drawable — longer than `k46`'s whole window. `CircleLayer`
+  gained `ready: Promise<void>`, and Standby shows "Preparing map layers…" and
+  refuses detection until both canvases' areas are ready (~14 s after load
+  here). A `display:none` canvas never renders and so never builds, so the side
+  window pre-builds while laid out with `visibility:hidden`, then hides.
+
+**Fixed 2026-09-16 — side window map rendered white (grey view).** Stats,
+pin/unpin and countdown worked and the circle drew, but the rest of the zoomed
+map was white. Pixel probes showed the white was the OSM Buildings tileset
+itself: hiding it fixed the window, hiding the globe did not, and the corner
+pixels picked buildings kilometres outside the view. Cause: Cesium 1.145
+generates `CESIUM_primitive_outline` outlines by rewriting each tile's index
+array in place (`PrimitiveOutlineGenerator`), and that array is a view onto
+bytes the module-level `ResourceCache` shares between scenes. When two
+canvases load the same tile at once, whichever runs its outline pass second
+reads already-rewritten indices and draws stretched triangles across its view.
+Upstream: CesiumGS/cesium#11484 (open; the cause is not identified there).
+Fix: `scene.ts` loads the tileset with `enableShowOutline: false` in every
+canvas, which removes the in-place rewrite. A single canvas cannot opt back in
+without reintroducing the race. Cost: no building edge lines — invisible at
+the demo framing, a small loss up close. The environment map stays off (the
+user chose the flat light-grey buildings); the corrupted shape seen when the
+second canvas first appeared may have been this bug rather than the env-map
+queue, so re-enabling the env map is worth one retest if the walls matter.
+
+### Built in step 9 — grey-canvas detail, 2026-09-16
+
+`scripts/fetch-ground-detail.mjs` (new, no dependencies) pulls four OSM layers
+from Overpass in three latitude bands with pauses, drops areas under 3,000 m²
+and anything whose centroid falls outside the coastline rings, simplifies
+(~11 m areas, ~9 m lines) and writes `src/lib/greens.json` and
+`src/lib/structures.json` in the same delta-encoded integer form as
+`roads.json`. Re-run it only when the data should change; it is not part of the
+build.
+
+`coastline.ts` draws them, no API change: land → forest → parks → water →
+pavements → roads → road bridges/tunnels → MRT/LRT viaducts and tunnels →
+coast. Forest `#5f6f57`, parks `#74845e`, road structures `#44484d`, rail
+`#383c42`.
+
+Known limits: outer rings only, so a hole in a green area shows the green
+underneath unless water covers it; rail is viaducts and tunnels only, per the
+plan, so at-grade MRT/LRT sections leave gaps; features on islands outside the
+two coastline rings (Ubin, Tekong) are dropped, as with the existing water.
+
+### Built in steps 10 and 11 — 2026-09-16
+
+**Presentation polish.** Monospace is used only for figures, so ticking numbers
+do not jitter. The temporary Play/Restart buttons stay for now, at the user's
+request.
+
+**No bottom timeline.** One was built — ticks, a bar per option to its window
+close, a diamond at each intercept, a now cursor — and the user removed it
+outright ("get rid of this totally"). The cards already carry each countdown.
+Do not rebuild it unless asked.
+
+**Missile marker.** `addPath` gained `PathStyle`: `trailColor` dims the stretch
+already flown, `markerSize` sets the marker (0 draws a line with no marker at
+all), and `dashed` draws a dashed line. The threat now has a 16 px marker with a
+halo, a bright track ahead and a dim trail behind.
+
+**Illustrative inbound track.** The user asked for the track to reach back to a
+likely origin outside Singapore. `planning-result/1` supplies no launch origin,
+so `approachOrigin()` extrapolates the first two samples' heading and speed
+backwards to 6 km beyond the canvas bounds (~35 km, about 150 s before
+detection). It draws dashed and dim, is labelled "Illustrative inbound track ·
+not supplied" on the map, and is called out in the tray footnote. Nothing about
+it is presented as planner output, and the flow still starts at T+0. Replace it
+as soon as the backend supplies a long-range scenario.
+
+**Lighting.** Both presets now set every value explicitly, so switching is
+symmetric: sun instant, `scene.light` (a `SunLight` at midday, a low cool
+`DirectionalLight` at blue hour), globe and sky atmosphere shifts, and fog.
+
+The ground layer draws in flat colours that Cesium does not light, so the sun
+alone barely changed the grey canvas. Blue hour therefore also runs a colour
+grade over the finished frame (`PostProcessStage`, tint × brightness), which
+moves ground, buildings and Google tiles together. Midday disables the stage.
+
+### Intercept sequence — 2026-09-16
+
+Requested by the user: the threat should leave its route at the intercept, come
+down inside the chosen option's area, and burst there.
+
+Flow gains an `impact` phase: Fired → (intercept time) Impact → (`DESCENT_S`,
+2 s) Outcome. At the intercept the supplied route's marker hides and a second
+path draws the fall; the clock then holds at intercept + `DESCENT_S`. With
+nothing fired, the clock holds at the supplied end (T+20) instead. The clock
+range is extended past the latest intercept so the fall has room.
+
+`descentSamples()` drops straight onto the area's centre — which is where the
+contract centres the footprint — with an accelerating fall. `PathLayer` gained
+`setMarkerVisible`.
+
+**Illustration, stated on screen.** The contract supplies no impact model,
+debris physics or post-intercept path, so the footnote says the descent and
+burst are illustration. Nothing here is presented as planner output.
+
+### Marker and burst — 2026-09-16
+
+Two new library modules, drafted by Fable 5.1 subagents at the user's explicit
+request for this task only (the repo's "no subagent fan-out" rule stands for
+everything else), then tuned and integrated here.
+
+```ts
+// craft.ts — a solid marker that points along its direction of travel
+addCraftMarker(viewer, { color?, lengthM?, minimumPixelLength? }): CraftMarker
+// burst.ts — a one-shot burst at a point
+canvas.addBurst(center, { color?, radiusM?, durationS? }): BurstLayer
+```
+
+- `PathStyle.markerShape: "point" | "craft"` swaps the dot for the solid shape.
+  It is built from a cylinder body, a cone nose and four fins, lit rather than
+  flat, and scaled per frame so it never drops below a minimum pixel length.
+- The burst is a bright core, a fading dome and a ground wave, animated on
+  wall-clock time because the app's clock is paused when it plays. It is created
+  with the result so its ground geometry is built before it is needed.
+- Tuned after seeing them: fins cut to ~2.4x the body radius; core widened to
+  1.2x the area radius and the dome density raised, because at the demo's 6 km
+  framing the first values vanished. The chosen area's fill drops to 0.18 alpha
+  during impact so the burst reads over it.
+- Both modules keep the library domain-agnostic: "craft" and "burst", no
+  defence vocabulary.
+
+Known limits: the craft is depth-tested, so at very low camera angles a tall
+building can hide it; the burst's dome is depth-tested too, so towers poke
+through it.
+
+### Open questions — original list, now answered above
+
+1. **Which areas are red.** Recommended: only the backend's options — 2 in the
+   demo file. Alternatives: all 40 reachable candidates, which overlap into one
+   continuous red band along the path; or only the selected option.
+2. **Does clicking a red area also select that option for FIRE,** or only pin the
+   side window? Cards and number keys select either way.
+3. **Side window view and cost.** A live second canvas mirroring the current view
+   is the most faithful, but loads a second map — rebuilding the ~243k-line
+   ground layer and, on the Google view, doubling Map Tiles usage. A lighter inset
+   (for example, the grey canvas without roads and pavements) would be cheaper.
+4. **Where playback starts.** Raised alongside the dropped slow-motion idea: the
+   missile appearing about 0.5 s before the first circle. Starting at the
+   backend's T+0 keeps every window whole — the first sample (T+0.4 s) is 400 m
+   before `k11`'s circle edge, about 1.8 s of flight. Starting later, e.g.
+   T+3.9 s, cuts `k46`'s window from 8.51 s to 4.61 s. Still wanted?
+5. **Result loading:** bundle import or a copy in `public/`.
+6. **For the partner:** objectives beyond the three categories need a contract
+   change, since `CandidateCategory` lists exactly three values.
+
+---
+
 ## Demo ↔ backend contract — planning-result/1
 
 This section is the **single source of truth for the frontend-facing planning
-result**. It supersedes the historical `Scenario` proposal below for this path.
+result**. It supersedes the earlier `Scenario` proposal, since removed.
 It describes backend JSON, not the Singapore Canvas library API. The frontend
 owns rendering, clock playback, camera, markers, footprint drawing, cards and
 the human go/no-go decision. No UI changes accompany this contract.
@@ -564,67 +928,65 @@ The engineering target is a total median below 100 ms for 50 candidates.
 The backend supplies **no fragment trajectories, particle tracks, physical fall
 simulation, interceptor animation path or selected intercept action**. Optional
 frontend visual effects must not be presented as backend-calculated physics.
-The historical `ScenarioSource` proposal below needs frontend adaptation to
-consume `planning-result/1`; the new payload does not pretend to satisfy its
-fragment-bearing shape.
 
-## Demo ↔ backend contract — historical Scenario proposal (superseded)
+### Grades and urgency — 2026-09-16
 
-The following unagreed proposal is retained as historical design context only.
-For the current planning-result path, use `planning-result/1` above. Statements
-below about replacing the mock or supplying fragments are not backend promises.
+Requested by the user after seeing the side window: figures coloured "at a
+glance", and countdowns that redden as time runs out. Buckets are the user's
+delegated call; they are in `decision-model.ts` (`successGrade`,
+`exposureGrade`, `urgency`) with a unit test.
 
-**Not part of the library API.** This is the shape `src/demo/` expects from
-whoever computes the intercept — something to take to the backend owner. Nothing
-here is confirmed.
+- **Supplied success** is a probability, so the marks are fixed: ≥ 80% good
+  (green), ≥ 50% fair (amber), below poor (red).
+- **People potentially exposed** has no absolute scale in the contract, so it is
+  graded only against the other options in the same result: lowest third of the
+  range good, highest third poor, middle fair. One option, or all equal, gets no
+  colour. The tray footnote says so.
+- **Urgency** is 0 with the whole window ahead and 1 at close. The countdown
+  text (cards and side window) and the card's bar blend toward red with
+  `color-mix` on urgency², so the shift is gentle early and steep in the last
+  seconds. It only runs while the option is open in Live.
+- **Side window:** 400 × 300 px map (was 340 × 240), framed at 1.2 × the area
+  radius (was 1.5), so the area fills about half the width.
+- **Every building in the side window.** Cesium picks tile detail from
+  screen-space error, which scales with canvas height, so the 300 px window
+  only loaded the coarse OSM tiles and the smaller buildings were missing until
+  you zoomed in. Measured at the k46 pose: threshold 16 selects 5,064 building
+  features, 4 selects 6,475, 2 selects 13,163 and 1 saturates at 13,179, for
+  14 MB. New `CanvasOptions.maximumScreenSpaceError` (applied to whichever
+  city tileset the canvas shows); the side window passes 2. Not yet measured
+  on Google tiles, where a fine threshold in a small window means many more
+  tile requests.
 
-```ts
-type Sample = { t: string; lon: number; lat: number; height: number };  // t is ISO 8601
+Verified in the headless browser by computed colours: at T+3.0 s the option 2
+countdown is barely tinted, at T+7.5 s (1.0 s left) it is most of the way to
+red. Screenshots cannot catch a mid-countdown frame there (1 fps), so eyeball
+the ramp on the demo machine.
 
-interface Scenario {
-  start: string;
-  end: string;
-  missile: Sample[];
-  interceptor: Sample[];
-  intercept: Sample;
-  fragments: { id: string; samples: Sample[] }[];
-}
-```
+### Military bases — 2026-09-16
 
-**Agree the sample rate first.** The budget is 1,000 fragments. At about 1 Hz over
-a 60 s fall that is 60,000 samples, fine as plain JSON; at 10 Hz it is 600,000.
-Ballistic arcs are smooth, so 1 Hz plus polynomial interpolation on our side
-reproduces them.
+Requested by the user: "identify all military bases in Singapore and colour
+all of these models in the military base purple". This is a map layer from
+public OSM data, not contract data; the option categories still cannot say
+whether an intercept is over a base (see "Decisions for step 8").
 
-The demo reads a scenario through one seam, `ScenarioSource.load(): Promise<Scenario>`.
-Today that is a mock generating toy gravity parabolas — a UI stand-in, not a
-physics model. The real backend replaces the mock behind the same seam, and a
-streaming source can sit behind it later. The heatmap density is computed in the
-demo from where fragments have landed by the current clock time, and redrawn at
-about 4 Hz during playback.
-
-## New files for step 6
-
-| File | Job |
-|---|---|
-| `src/lib/time.ts` | The clock |
-| `src/lib/layers.ts` | Tracks, paths, bursts, overlays |
-| `src/lib/samples.ts` | The input sanitiser — pure, no Cesium |
-| `src/demo/scenario.ts` | Contract types, `ScenarioSource`, the mock |
-| `src/demo/debris.ts` | Scenario → canvas calls, heatmap density binning |
-
-## Verification
-
-No TDD and no test harness, per `CLAUDE.md`. Verification is loading the page and
-looking:
-
-- Fragments appear at the intercept, fall, and hold where they land
-- The heatmap blooms during playback and un-blooms on scrub-back
-- The burst fires at the intercept and clears on seek-back
-- `follow("missile")` pins at the cage edge until the missile enters Singapore
-- Switching basemap keeps the heatmap
-
-The one exception is `samples.ts`. A parser at a trust boundary is exactly the
-logic that should leave a check behind: one assert-based check, run with plain
-`node` using Node 24's built-in TypeScript type stripping (confirmed when built),
-with no test framework and no new dependency.
+- **Data:** `scripts/fetch-ground-detail.mjs military` pulls
+  `landuse=military` areas plus `military=base|barracks|airfield|naval_base`
+  (ranges, danger areas and training areas excluded) into
+  `src/demo/military.json`, keeping each area's OSM name. The script now joins
+  a relation's outer member ways into closed rings; greens and structures were
+  not re-fetched with that change. 81 areas on the two coastline rings, 69
+  named. OSM tags Home Team sites the same way (Home Team Academy, Police K-9
+  Unit, Civil Defence Academy, ISD), so they are in the layer too; prune the
+  JSON if that is wrong for the demo.
+- **Demo:** `military.ts` mounts the layer on both canvases through
+  `addBuildingTint` (purple `#a970ff`, 2 px outline) and, on the main map,
+  labels each named base once on its largest ring below a 20 km camera height.
+  The panel gains a "Layers" legend line naming the source. Off on the
+  population view, which has its own labels and colours.
+- **Checked in the browser:** at Paya Lebar Air Base every hangar and shelter
+  inside the boundary is purple and the civilian blocks outside stay white.
+  Many camps have no building footprints in OSM at all (Amoy Quee Camp shows
+  only its boundary), and at the 6 km Standby framing the tileset drops small
+  buildings anyway, so the tint reads best up close and in the side window.
+- **Google view:** outline and label only.

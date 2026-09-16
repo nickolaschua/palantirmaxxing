@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { colorOf, parseDataset, rankZones, selectZones, UNKNOWN_COLOR, valueOf } from "../../frontend/src/demo/population-model.ts";
+import { colorOf, labelPoint, parseDataset, planningAreaLabelPoints, rankZones, selectZones, UNKNOWN_COLOR, valueOf } from "../../frontend/src/demo/population-model.ts";
 import type { PopulationData, Zone } from "../../frontend/src/demo/population-model.ts";
 
 const zone = (id: string, area: string, population: number | null, density: number | null): Zone => ({
@@ -33,4 +33,18 @@ test("payload validation rejects wrong vintage, duplicate IDs and non-finite val
   assert.throws(()=>parseDataset({...data,metadata:{...data.metadata,population_year:2021}}));
   assert.throws(()=>parseDataset({...data,features:[data.features[0],data.features[0]]}));
   assert.throws(()=>parseDataset({...data,features:[zone("X","A",NaN,0)]}));
+});
+test("label anchors: largest part's centroid, planning areas weighted by zone area", () => {
+  const square = (x: number, y: number, side: number) => [[[x, y], [x + side, y], [x + side, y + side], [x, y + side], [x, y]]];
+  const shaped = (id: string, area: string, geometry: Zone["geometry"]): Zone => ({ ...zone(id, area, 1, 1), geometry });
+  const near = (a: number, b: number) => assert.ok(Math.abs(a - b) < 1e-9, `${a} vs ${b}`);
+  const single = labelPoint(shaped("S", "P", { type: "Polygon", coordinates: square(103.8, 1.3, 0.02) }));
+  near(single.lon, 103.81); near(single.lat, 1.31); near(single.weight, 0.0004);
+  const multi = labelPoint(shaped("M", "P", { type: "MultiPolygon", coordinates: [square(10, 10, 1), square(0, 0, 2)] }));
+  near(multi.lon, 1); near(multi.lat, 1); near(multi.weight, 5);
+  const [area] = planningAreaLabelPoints([
+    shaped("A", "EAST", { type: "Polygon", coordinates: square(0, 0, 2) }),
+    shaped("B", "EAST", { type: "Polygon", coordinates: square(4, 0, 2) }),
+  ]);
+  assert.equal(area?.name, "EAST"); near(area!.lon, 3); near(area!.lat, 1);
 });

@@ -1,9 +1,15 @@
 import {
-  Cartesian2, ClassificationType, Color, ColorMaterialProperty, ConstantProperty,
-  Entity, GeoJsonDataSource, ScreenSpaceEventHandler, ScreenSpaceEventType, Viewer,
+  Cartesian2, Cartesian3, ClassificationType, Color, ColorGeometryInstanceAttribute, ColorMaterialProperty, ConstantProperty,
+  Entity, GeoJsonDataSource, GeometryInstance, GroundPolylineGeometry, GroundPolylinePrimitive, PolylineColorAppearance,
+  ScreenSpaceEventHandler, ScreenSpaceEventType, Viewer,
 } from "cesium";
+import { dedupe } from "./coastline.js";
 
 export interface PolygonStyle { color: string; visible: boolean; selected?: boolean }
+export interface PolygonLayerOptions {
+  /** CSS colour for every ring's boundary line, draped on the ground. Omit for no boundaries. */
+  outline?: string;
+}
 export interface PolygonLayer {
   setVisible(visible: boolean): void;
   setStyles(styles: ReadonlyMap<string, PolygonStyle>): void;
@@ -17,9 +23,9 @@ export interface PolygonCallbacks {
 /** Domain-neutral GeoJSON polygons, including MultiPolygons, with feature-ID picking. */
 export async function addPolygonLayer(
   viewer: Viewer, data: object, callbacks: PolygonCallbacks,
-  visibilityChanged: (visible: boolean) => void,
+  visibilityChanged: (visible: boolean) => void, options: PolygonLayerOptions = {},
 ): Promise<PolygonLayer> {
-  const collection = data as { type?: string; features?: { id?: unknown; geometry?: { type?: string } }[] };
+  const collection = data as { type?: string; features?: { id?: unknown; geometry?: { type?: string; coordinates?: unknown } }[] };
   if (collection.type !== "FeatureCollection" || !Array.isArray(collection.features)) throw new Error("Expected polygon FeatureCollection");
   const ids = new Set<string>();
   const features = collection.features.map(feature => {
@@ -33,6 +39,7 @@ export async function addPolygonLayer(
   });
   const source = await GeoJsonDataSource.load({ type: "FeatureCollection", features }, { clampToGround: true, stroke: Color.WHITE, strokeWidth: 1, describe: () => "" });
   await viewer.dataSources.add(source);
+  const outline = options.outline ? addOutline(viewer, features, Color.fromCssColorString(options.outline)) : undefined;
   const handler = new ScreenSpaceEventHandler(viewer.scene.canvas);
   let visible = true;
   let destroyed = false;
@@ -44,6 +51,8 @@ export async function addPolygonLayer(
     if (!visible) return null;
     // drillPick finds ground polygons even where a building is also pickable.
     for (const hit of viewer.scene.drillPick(position, 12)) {
+      // A string id is another id-addressed layer (ground circles) drawn on top; it wins the pick.
+      if (typeof hit.id === "string") return null;
       if (hit.id instanceof Entity && source.entities.contains(hit.id) && hit.id.show) return featureId(hit.id);
     }
     return null;
@@ -60,6 +69,7 @@ export async function addPolygonLayer(
     setVisible(value) {
       visible = value;
       source.show = value;
+      if (outline) outline.show = value;
       if (!value) leave();
       visibilityChanged(value);
       viewer.scene.requestRender();
@@ -86,7 +96,34 @@ export async function addPolygonLayer(
       handler.destroy();
       viewer.scene.canvas.removeEventListener("mouseleave", leave);
       viewer.dataSources.remove(source, true);
+      if (outline) viewer.scene.primitives.remove(outline);
       visibilityChanged(false);
     },
   };
+}
+
+/**
+ * One ground-draped line per ring, outer and holes, in a single primitive.
+ * ponytail: follows the layer's visibility only, not each feature's `visible` style;
+ * per-instance show attributes if a caller ever hides individual features.
+ */
+function addOutline(viewer: Viewer, features: readonly { geometry?: { type?: string; coordinates?: unknown } }[], color: Color): GroundPolylinePrimitive {
+  const instances: GeometryInstance[] = [];
+  for (const { geometry } of features) {
+    const polygons = (geometry?.type === "Polygon" ? [geometry.coordinates] : geometry?.coordinates) as number[][][][];
+    for (const ring of polygons.flat()) {
+      const flat = dedupe(ring.flatMap(([lon, lat]) => [lon!, lat!]));
+      if (flat.length < 6) continue;
+      instances.push(new GeometryInstance({
+        geometry: new GroundPolylineGeometry({ positions: Cartesian3.fromDegreesArray(flat), width: 2, loop: true }),
+        attributes: { color: ColorGeometryInstanceAttribute.fromColor(color) },
+      }));
+    }
+  }
+  return viewer.scene.primitives.add(new GroundPolylinePrimitive({
+    classificationType: ClassificationType.BOTH,
+    appearance: new PolylineColorAppearance(),
+    allowPicking: false,
+    geometryInstances: instances,
+  }));
 }

@@ -18,6 +18,8 @@ import landRings from "./coastline.json";
 import waterRings from "./water.json";
 import roadLines from "./roads.json";
 import pathLines from "./paths.json";
+import greenRings from "./greens.json";
+import structureLines from "./structures.json";
 
 /**
  * The ground: Singapore's landmass, its coastline, and its inland water.
@@ -41,6 +43,12 @@ import pathLines from "./paths.json";
  * and service, including link roads. 162,905 ways / 344k points. Pavements are
  * footway, path, steps, pedestrian and cycleway — 80,523 ways / 183k points.
  * Both clipped to Singapore and simplified to ~13 m.
+ *
+ * Greens and structures come from `scripts/fetch-ground-detail.mjs`: forest,
+ * nature reserves and mangrove; parks, grass and golf courses; road bridges and
+ * tunnels; MRT/LRT viaducts and tunnels. Outer rings only — an enclosed
+ * reservoir shows because water draws after the greens — and areas under
+ * 3,000 m² are dropped.
  */
 
 /** Open sea. This is the globe's base colour, so it covers everything unpainted. */
@@ -55,6 +63,14 @@ export const COAST_GREY = Color.fromCssColorString("#c2c6cb");
 export const ROAD_GREY = Color.fromCssColorString("#5f6469");
 /** Pavements and park connectors — between land and road, and thinner. */
 export const PAVEMENT_GREY = Color.fromCssColorString("#7c8188");
+/** Forest, nature reserves and mangrove. Muted, so the canvas stays grey first. */
+export const FOREST_GREEN = Color.fromCssColorString("#5f6f57");
+/** Parks, grass and golf courses — a step lighter than forest. */
+export const PARK_GREEN = Color.fromCssColorString("#74845e");
+/** Road bridges and tunnels — darker than the carriageways around them. */
+export const STRUCTURE_GREY = Color.fromCssColorString("#44484d");
+/** MRT and LRT viaducts and tunnels. */
+export const RAIL_GREY = Color.fromCssColorString("#383c42");
 
 export interface Ground {
   setVisible(visible: boolean): void;
@@ -67,7 +83,7 @@ export interface Ground {
  * zero vector, which throws "normalized result is not a number" and halts the
  * whole render loop. Runs on the shared ring data rather than at each use site.
  */
-function dedupe(flat: readonly number[]): number[] {
+export function dedupe(flat: readonly number[]): number[] {
   const out: number[] = [];
   for (let i = 0; i < flat.length; i += 2) {
     const lon = flat[i] as number;
@@ -116,6 +132,10 @@ function toPositions(lines: number[][]): Cartesian3[][] {
 
 const roadPositions = toPositions(roadLines as number[][]);
 const pathPositions = toPositions(pathLines as number[][]);
+const forestPositions = toPositions(greenRings.forest as number[][]);
+const parkPositions = toPositions(greenRings.park as number[][]);
+const roadStructurePositions = toPositions(structureLines.road as number[][]);
+const railStructurePositions = toPositions(structureLines.rail as number[][]);
 
 function lineLayer(lines: Cartesian3[][], color: Color, width: number): GroundPolylinePrimitive {
   return new GroundPolylinePrimitive({
@@ -162,6 +182,8 @@ export function addGround(viewer: Viewer): Ground {
   const scene = viewer.scene;
 
   const land = fill(landPositions, LAND_GREY);
+  const forest = fill(forestPositions, FOREST_GREEN);
+  const parks = fill(parkPositions, PARK_GREEN);
   const water = fill(waterPositions, WATER_BLUE);
 
   const coast = new GroundPolylinePrimitive({
@@ -178,29 +200,21 @@ export function addGround(viewer: Viewer): Ground {
 
   const roads = lineLayer(roadPositions, ROAD_GREY, 2.5);
   const paths = lineLayer(pathPositions, PAVEMENT_GREY, 1);
+  const roadStructures = lineLayer(roadStructurePositions, STRUCTURE_GREY, 2.5);
+  const railStructures = lineLayer(railStructurePositions, RAIL_GREY, 3);
 
-  // Order matters: land, then water, then pavements under roads so junctions
-  // read correctly, then the coast edge on top.
-  scene.primitives.add(land);
-  scene.primitives.add(water);
-  scene.primitives.add(paths);
-  scene.primitives.add(roads);
-  scene.primitives.add(coast);
+  // Order matters: land, then vegetation, then water over both, then pavements
+  // under roads so junctions read correctly, bridges and tunnels over the
+  // carriageways they carry, and the coast edge on top.
+  const layers = [land, forest, parks, water, paths, roads, roadStructures, railStructures, coast];
+  for (const layer of layers) scene.primitives.add(layer);
 
   return {
     setVisible(visible: boolean): void {
-      land.show = visible;
-      water.show = visible;
-      roads.show = visible;
-      paths.show = visible;
-      coast.show = visible;
+      for (const layer of layers) layer.show = visible;
     },
     destroy(): void {
-      scene.primitives.remove(land);
-      scene.primitives.remove(water);
-      scene.primitives.remove(roads);
-      scene.primitives.remove(paths);
-      scene.primitives.remove(coast);
+      for (const layer of layers) scene.primitives.remove(layer);
     },
   };
 }

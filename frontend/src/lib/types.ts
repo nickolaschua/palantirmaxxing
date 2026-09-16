@@ -5,6 +5,11 @@ export interface GeoPoint {
   height?: number;
 }
 
+/** A position at an instant. */
+export interface TimedSample extends GeoPoint {
+  time: Date;
+}
+
 /** WGS84 degrees. */
 export interface Bounds {
   west: number;
@@ -48,6 +53,13 @@ export interface CanvasOptions {
   maxHeight?: number;
   /** Metres above the ellipsoid. Stops the camera burrowing through the mesh. */
   minHeight?: number;
+  /**
+   * Cesium's tile detail threshold for the city tilesets; its default is 16.
+   * Smaller loads finer tiles. Tile choice scales with canvas height, so a
+   * small canvas needs a small value to show what a large one shows at the
+   * same pose: a 300 px tall window wants about 2.
+   */
+  maximumScreenSpaceError?: number;
 }
 
 export type CanvasEvents = {
@@ -55,6 +67,8 @@ export type CanvasEvents = {
   cameraChange: CameraPose;
   tileLoadProgress: { pending: number };
   boundsHit: { edge: BoundsEdge };
+  /** Host time, whenever it changes — every frame while playing, once per seek. */
+  clockTick: Date;
 };
 
 /** Rejection reason when a flight is interrupted by another camera command. */

@@ -1,5 +1,8 @@
 import { createSingaporeCanvas, FlightCancelled, PRESETS } from "../lib/index.js";
 import { mountPopulation } from "./population.js";
+import { MILITARY_COLOUR, MILITARY_SOURCE, mountMilitary } from "./military.js";
+import { mountDecision } from "./decision.js";
+import type { Decision } from "./decision.js";
 import type { BasemapKind, LightingPreset } from "../lib/index.js";
 import "./style.css";
 
@@ -12,13 +15,16 @@ const setStatus = (text: string): void => {
   statusEl.textContent = text;
 };
 
-const canvas = await createSingaporeCanvas(container, {
+const FALLBACK_STATUS = "Terrain or buildings unavailable — plain fallback.";
+
+const keys = {
   ionToken: import.meta.env.VITE_CESIUM_ION_TOKEN,
   googleApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
-}).catch(async () => {
-  setStatus("Remote basemap unavailable — using plain globe.");
-  return createSingaporeCanvas(container, { basemap: "plain" });
-});
+};
+
+// Grey canvas is the default view. `plain` is only ever the fallback.
+const canvas = await createSingaporeCanvas(container, { ...keys, basemap: "extruded" })
+  .catch(() => createSingaporeCanvas(container, { basemap: "plain" }));
 
 /**
  * Clicking a second preset cancels the first; that rejection is expected.
@@ -49,61 +55,83 @@ function group(label: string): HTMLParagraphElement {
   return el;
 }
 
-// Presets, straight from the library's own data file.
-for (const id of canvas.camera.presets) {
-  panel.append(
-    button(PRESETS[id]?.label ?? id, () => {
-      canvas.camera.flyToPreset(id).catch(ignoreCancel);
-    }),
-  );
+// Views: three exclusive looks at the same scene.
+type View = "grey" | "population" | "google";
+const VIEWS: readonly { id: View; label: string; basemap: BasemapKind }[] = [
+  { id: "grey", label: "Grey canvas", basemap: "extruded" },
+  { id: "population", label: "Population", basemap: "plain" },
+  { id: "google", label: "Google", basemap: "photorealistic" },
+];
+let view: View = "grey";
+// Mounted last; the panel can be used before it is ready.
+let decision: Decision | undefined;
+const viewButtons = new Map<View, HTMLButtonElement>();
+
+async function setView(next: (typeof VIEWS)[number]): Promise<void> {
+  for (const b of viewButtons.values()) b.disabled = true;
+  setStatus(`Loading ${next.label}…`);
+  try {
+    await canvas.scene.setBasemap(next.basemap);
+    setStatus("Singapore");
+  } catch {
+    // A failed load keeps the current map, so Google failing leaves the view as it was.
+    if (next.id !== "grey") {
+      setStatus(`${next.label} failed — check provider credentials; view unchanged.`);
+      return;
+    }
+    await canvas.scene.setBasemap("plain");
+    setStatus(FALLBACK_STATUS);
+  } finally {
+    for (const b of viewButtons.values()) b.disabled = false;
+  }
+  view = next.id;
+  population.setActive(view === "population");
+  military.setVisible(view !== "population"); // that view has its own labels and colours
+  decision?.setBasemap(canvas.scene.basemap);
+  for (const [id, b] of viewButtons) b.setAttribute("aria-pressed", String(id === view));
 }
 
-// Basemap: all modes remain directly selectable even if another provider fails.
-panel.append(group("Basemap"));
-const basemapSelect = document.createElement("select");
-basemapSelect.setAttribute("aria-label", "Basemap");
-for (const [value, label] of [["plain", "Plain globe"], ["extruded", "Terrain + OSM buildings"], ["photorealistic", "Google photorealistic"]]) {
-  basemapSelect.add(new Option(label, value));
+panel.append(group("View"));
+for (const v of VIEWS) {
+  const b = button(v.label, () => void setView(v));
+  b.setAttribute("aria-pressed", String(v.id === view));
+  viewButtons.set(v.id, b);
+  panel.append(b);
 }
-basemapSelect.value = canvas.scene.basemap;
-basemapSelect.onchange = () => {
-  const next = basemapSelect.value as BasemapKind;
-  basemapSelect.disabled = true;
-  setStatus(`Loading ${next}…`);
-  canvas.scene.setBasemap(next)
-    .then(() => setStatus(`Basemap: ${next}`))
-    .catch(() => setStatus(`${next} failed — check provider credentials; previous map retained.`))
-    .finally(() => { basemapSelect.disabled = false; basemapSelect.value = canvas.scene.basemap; });
-};
-panel.append(basemapSelect);
+const population = mountPopulation(canvas, panel);
+
+// Military bases from OSM: purple buildings and boundaries, named up close.
+const military = mountMilitary(canvas, { labels: true });
+const legend = document.createElement("p");
+legend.className = "legend";
+const swatch = document.createElement("i");
+swatch.style.background = MILITARY_COLOUR;
+legend.append(swatch, `Military bases · ${MILITARY_SOURCE}`);
+panel.append(group("Layers"), legend);
 
 // Lighting
 let lighting: LightingPreset = "midday";
 const lightBtn = button(`Light: ${lighting}`, () => {
   lighting = lighting === "midday" ? "blue-hour" : "midday";
   canvas.scene.setLighting(lighting);
+  decision?.setLighting(lighting);
   lightBtn.textContent = `Light: ${lighting}`;
 });
-panel.append(lightBtn);
+panel.append(group("Lighting"), lightBtn);
 
-// Camera
-panel.append(group("Camera"));
-let orbiting = false;
-const orbitBtn = button("Start orbit", () => {
-  orbiting = !orbiting;
-  if (orbiting) {
-    canvas.camera.orbit({
-      centre: { lon: 103.8607, lat: 1.2834 },
-      radius: 1200,
-      pitch: -22,
-      degreesPerSecond: 5,
-    });
-  } else {
-    canvas.camera.stop();
-  }
-  orbitBtn.textContent = orbiting ? "Stop orbit" : "Start orbit";
-});
-panel.append(orbitBtn);
+// Presets, straight from the library's own data file, collapsed.
+const places = document.createElement("details");
+const placesSummary = document.createElement("summary");
+placesSummary.textContent = "Places";
+places.append(placesSummary);
+for (const id of canvas.camera.presets) {
+  places.append(
+    button(PRESETS[id]?.label ?? id, () => {
+      canvas.camera.flyToPreset(id).catch(ignoreCancel);
+    }),
+  );
+}
+panel.append(places);
 
 // The cage, made visible. Without feedback a hard clamp just feels broken.
 let edgeTimer: number | undefined;
@@ -120,11 +148,12 @@ canvas.on("boundsHit", ({ edge }) => {
 canvas.on("renderError", ({ message }) => setStatus(`Map rendering failed: ${message}`));
 
 // The promise resolving IS the ready signal — there is no "ready" event.
-setStatus(`Singapore · ${canvas.scene.basemap} basemap`);
-const disposePopulation = await mountPopulation(canvas);
+setStatus(canvas.scene.basemap === "plain" ? FALLBACK_STATUS : "Singapore");
+decision = await mountDecision(canvas, { ...keys, lighting });
 if (import.meta.hot) import.meta.hot.dispose(() => {
   window.clearTimeout(edgeTimer);
-  disposePopulation();
+  decision?.dispose();
+  population.dispose();
   canvas.destroy();
 });
 

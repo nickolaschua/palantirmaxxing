@@ -32,7 +32,7 @@ const UNANCHOR = Cartesian3.negate(ANCHOR, new Cartesian3());
  */
 export function addCraftMarker(
   viewer: Viewer,
-  options: { color?: string; lengthM?: number; minimumPixelLength?: number } = {},
+  options: { color?: string; lengthM?: number; minimumPixelLength?: number; pulse?: boolean } = {},
 ): CraftMarker {
   const scene = viewer.scene;
   const lengthM = options.lengthM ?? 60;
@@ -40,6 +40,12 @@ export function addCraftMarker(
   const bodyColor = Color.fromCssColorString(options.color ?? "#f5f7fa");
   // Nose and fins a step darker so the silhouette reads against a grey map.
   const trimColor = bodyColor.darken(0.3, new Color());
+  // Pulsing swings the whole craft between a shaded version of its colour and
+  // pure white, so even a white craft visibly flashes.
+  const PULSE_MS = 1200;
+  const dimBody = bodyColor.darken(0.45, new Color());
+  const dimTrim = bodyColor.darken(0.6, new Color());
+  const PART_IDS = ["body", "nose", "fin0", "fin1", "fin2", "fin3"] as const;
 
   const vertexFormat = PerInstanceColorAppearance.VERTEX_FORMAT; // the lit shader needs normals
   const radius = lengthM / 24; // body 9x longer than wide
@@ -50,8 +56,8 @@ export function addCraftMarker(
   const placed = (x: number, rotation: Matrix3): Matrix4 => Matrix4.multiplyByMatrix3(
     Matrix4.fromTranslation(new Cartesian3(ANCHOR.x + x, ANCHOR.y, ANCHOR.z)), rotation, new Matrix4(),
   );
-  const part = (geometry: CylinderGeometry | BoxGeometry, modelMatrix: Matrix4, color: Color): GeometryInstance =>
-    new GeometryInstance({ geometry, modelMatrix, attributes: { color: ColorGeometryInstanceAttribute.fromColor(color) } });
+  const part = (id: string, geometry: CylinderGeometry | BoxGeometry, modelMatrix: Matrix4, color: Color): GeometryInstance =>
+    new GeometryInstance({ id, geometry, modelMatrix, attributes: { color: ColorGeometryInstanceAttribute.fromColor(color) } });
   // Fin root sits inside the body so there is no seam; the box is off-centre so rotating it about X fans the fins out.
   const fin = (): BoxGeometry => new BoxGeometry({
     minimum: new Cartesian3(-lengthM / 2, -lengthM * 0.005, radius * 0.5),
@@ -60,11 +66,11 @@ export function addCraftMarker(
   });
   const primitive = scene.primitives.add(new Primitive({
     geometryInstances: [
-      part(new CylinderGeometry({ length: bodyLength, topRadius: radius, bottomRadius: radius, slices: 24, vertexFormat }),
+      part("body", new CylinderGeometry({ length: bodyLength, topRadius: radius, bottomRadius: radius, slices: 24, vertexFormat }),
         placed(-noseLength / 2, alongX), bodyColor),
-      part(new CylinderGeometry({ length: noseLength, topRadius: 0, bottomRadius: radius, slices: 24, vertexFormat }),
+      part("nose", new CylinderGeometry({ length: noseLength, topRadius: 0, bottomRadius: radius, slices: 24, vertexFormat }),
         placed(bodyLength / 2, alongX), trimColor),
-      ...[0, 1, 2, 3].map(k => part(fin(), placed(0, Matrix3.fromRotationX((k * Math.PI) / 2)), trimColor)),
+      ...[0, 1, 2, 3].map(k => part(`fin${k}`, fin(), placed(0, Matrix3.fromRotationX((k * Math.PI) / 2)), trimColor)),
     ],
     appearance: new PerInstanceColorAppearance({ translucent: false, closed: true }),
     allowPicking: false,
@@ -81,6 +87,9 @@ export function addCraftMarker(
   const applyShow = (): void => { primitive.show = shown && posed; };
   applyShow();
 
+  const pulseBody = new Color();
+  const pulseTrim = new Color();
+  const pulseValue = new Uint8Array(4);
   const fit = (): void => {
     if (!posed) return;
     // ponytail: assumes the craft is seen side-on; nose-on it looks shorter than minimumPixelLength.
@@ -88,6 +97,15 @@ export function addCraftMarker(
     const scale = Math.max(1, (minimumPixelLength * metresPerPixel) / lengthM);
     Matrix4.multiplyByUniformScale(pose, scale, primitive.modelMatrix);
     Matrix4.multiplyByTranslation(primitive.modelMatrix, UNANCHOR, primitive.modelMatrix);
+    if (options.pulse && primitive.ready) {
+      const t = (1 + Math.sin((performance.now() / PULSE_MS) * 2 * Math.PI)) / 2;
+      Color.lerp(dimBody, Color.WHITE, t, pulseBody);
+      Color.lerp(dimTrim, Color.WHITE, t, pulseTrim);
+      for (const id of PART_IDS) {
+        // The setter copies the bytes into the vertex buffer, so one scratch array serves every part.
+        primitive.getGeometryInstanceAttributes(id).color = ColorGeometryInstanceAttribute.toValue(id === "body" ? pulseBody : pulseTrim, pulseValue);
+      }
+    }
   };
   scene.preRender.addEventListener(fit);
 

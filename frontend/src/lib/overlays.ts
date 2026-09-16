@@ -25,6 +25,8 @@ export interface PathStyle {
   markerSize?: number;
   /** "craft" swaps the dot for a solid shape that points along the direction of travel. */
   markerShape?: "point" | "craft";
+  /** The craft brightens to white and back on a ~1 s cycle, so it stays findable when the map is zoomed out. */
+  markerPulse?: boolean;
   dashed?: boolean;
 }
 
@@ -102,7 +104,7 @@ export function addPath(
   lines.add({ positions, width, material: material(Color.fromCssColorString(style.trailColor ?? "#6e7681")) });
   const ahead = size > 0 ? lines.add({ positions, width, material: material(color) }) : undefined;
   const craft = size > 0 && style.markerShape === "craft"
-    ? addCraftMarker(viewer, { color: style.color ?? "#f5f7fa", minimumPixelLength: size * 2.5 })
+    ? addCraftMarker(viewer, { color: style.color ?? "#f5f7fa", lengthM: size * 3.75, minimumPixelLength: size * 2.5, pulse: style.markerPulse })
     : undefined;
   const points = size > 0 && !craft ? scene.primitives.add(new PointPrimitiveCollection()) as PointPrimitiveCollection : undefined;
   const halo = points?.add({

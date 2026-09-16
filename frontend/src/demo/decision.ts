@@ -102,7 +102,7 @@ export async function mountDecision(
   const endS = (new Date(result.end).getTime() - start.getTime()) / 1000;
   const latestIntercept = Math.max(endS, ...options.map(o => o.timeFromStartS + DESCENT_S + 0.5));
   canvas.time.setRange(start, new Date(start.getTime() + latestIntercept * 1000));
-  const path = canvas.addPath(samples, { color: "#f5f7fa", width: 2, trailColor: "#5b6270", markerSize: 16, markerShape: "craft" });
+  const path = canvas.addPath(samples, { color: "#f5f7fa", width: 4, trailColor: "rgba(245, 247, 250, 0.5)", markerSize: 35, markerShape: "craft", markerPulse: true });
   // Illustration: the payload has no launch origin, so this is extrapolated from
   // the first two samples and drawn dashed, dim and labelled.
   const origin = approachOrigin(result, SINGAPORE_BOUNDS);
@@ -112,7 +112,7 @@ export async function mountDecision(
   if (origin && first) {
     approach = canvas.addPath(
       [{ ...origin, time: new Date(start.getTime() + origin.timeFromStartS * 1000) }, first],
-      { color: "#7d8590", width: 2, dashed: true, markerSize: 0 },
+      { color: "rgba(245, 247, 250, 0.65)", width: 3, dashed: true, markerSize: 0 },
     );
     approachLabel = canvas.addLabels(
       [{ position: origin, text: `Illustrative inbound track · not supplied · ${Math.round(-origin.timeFromStartS)} s earlier` }],
@@ -244,7 +244,7 @@ export async function mountDecision(
     if (descent) return;
     path.setMarkerVisible(false); // the threat leaves its supplied route here
     descent = canvas.addPath(descentSamples(chosen, start), {
-      color: "#ff7043", trailColor: "#ff7043", width: 2, markerSize: 16, markerShape: "craft",
+      color: "#ff7043", trailColor: "#ff7043", width: 2, markerSize: 35, markerShape: "craft", markerPulse: true,
     });
   }
 

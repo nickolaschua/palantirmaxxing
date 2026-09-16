@@ -198,16 +198,16 @@ body {
   bottom: 40px;
   transform: translateX(-50%);
   box-sizing: border-box;
-  width: min(760px, calc(100vw - 32px));
-  max-height: 45vh;
+  width: min(960px, calc(100vw - 32px));
+  max-height: 50vh;
   overflow-y: auto;
-  padding: 12px 14px;
-  background: var(--panel);
+  padding: 16px 18px;
+  background: rgba(13, 17, 23, 0.7); /* a step more see-through than the other panels: the map shows under it */
   backdrop-filter: blur(12px);
   border: 1px solid var(--line);
   border-radius: 6px;
   color: var(--text);
-  font: 12px/1.45 ui-sans-serif, -apple-system, "Segoe UI", sans-serif;
+  font: 14px/1.45 ui-sans-serif, -apple-system, "Segoe UI", sans-serif;
 }
 
 #decision-tray header {
@@ -217,7 +217,7 @@ body {
 }
 
 #decision-tray .phase {
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 650;
   letter-spacing: 0.15em;
   color: var(--muted);
@@ -229,23 +229,23 @@ body {
 }
 
 #decision-tray .clock {
-  font: 600 18px ui-monospace, Consolas, monospace;
+  font: 600 22px ui-monospace, Consolas, monospace;
   font-variant-numeric: tabular-nums;
 }
 
 #decision-tray .message {
-  margin: 2px 0 10px;
-  font-size: 13px;
+  margin: 2px 0 12px;
+  font-size: 16px;
 }
 
 #decision-tray .cards {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 12px;
 }
 
 #decision-tray .card {
-  flex: 1 1 220px;
+  flex: 1 1 280px;
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -254,7 +254,7 @@ body {
 #decision-tray .pick {
   display: block;
   width: 100%;
-  padding: 8px 10px;
+  padding: 10px 12px;
   text-align: left;
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid var(--line);
@@ -273,13 +273,14 @@ body {
 #decision-tray .card-title {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
+  font-size: 15px;
   font-weight: 600;
 }
 
 #decision-tray kbd,
 #decision-tray code {
-  font: 10px ui-monospace, Consolas, monospace;
+  font: 12px ui-monospace, Consolas, monospace;
   color: var(--muted);
 }
 
@@ -289,20 +290,20 @@ body {
 #decision-tray .badges {
   display: flex;
   flex-wrap: wrap;
-  gap: 2px 10px;
-  margin: 4px 0;
-  font-size: 11px;
+  gap: 2px 12px;
+  margin: 5px 0;
+  font-size: 13px;
 }
 
 #decision-tray .badge { display: inline-flex; align-items: center; gap: 5px; }
-#decision-tray .badge i { width: 9px; height: 9px; border-radius: 50%; }
+#decision-tray .badge i { width: 10px; height: 10px; border-radius: 50%; }
 
 #decision-tray dl {
   display: grid;
   grid-template-columns: 1fr auto;
-  gap: 2px 10px;
-  margin: 4px 0 6px;
-  font-size: 11px;
+  gap: 3px 12px;
+  margin: 5px 0 8px;
+  font-size: 13px;
 }
 
 #decision-tray dt { color: var(--muted); }
@@ -310,7 +311,7 @@ body {
 
 #decision-tray .bar {
   display: block;
-  height: 3px;
+  height: 4px;
   overflow: hidden;
   background: rgba(255, 255, 255, 0.1);
   border-radius: 2px;
@@ -324,8 +325,8 @@ body {
 
 #decision-tray .left {
   display: block;
-  margin-top: 3px;
-  font: 11px ui-monospace, Consolas, monospace;
+  margin-top: 4px;
+  font: 13px ui-monospace, Consolas, monospace;
   font-variant-numeric: tabular-nums;
 }
 
@@ -342,21 +343,21 @@ dd[data-grade="poor"] { color: var(--poor); }
 #decision-tray dd { font-variant-numeric: tabular-nums; }
 
 #decision-tray .fire {
-  padding: 9px;
+  padding: 11px;
   background: #b71c1c;
   border: 1px solid #ff6b6b;
   border-radius: 4px;
   color: #fff;
-  font: 700 13px/1 ui-sans-serif, -apple-system, "Segoe UI", sans-serif;
+  font: 700 15px/1 ui-sans-serif, -apple-system, "Segoe UI", sans-serif;
   letter-spacing: 0.08em;
   cursor: pointer;
 }
 
 #decision-tray .fire:hover { background: #d32f2f; }
 
-#decision-tray .summary { margin: 8px 0 0; padding-left: 16px; }
+#decision-tray .summary { margin: 10px 0 0; padding-left: 18px; }
 #decision-tray .summary:empty { display: none; }
-#decision-tray .footnote { margin: 8px 0 0; font-size: 10px; color: var(--muted); }
+#decision-tray .footnote { margin: 10px 0 0; font-size: 12px; color: var(--muted); }
 
 /* Side window: the zoomed second canvas and one area's stats. */
 #inspector {

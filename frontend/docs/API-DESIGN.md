@@ -990,3 +990,14 @@ whether an intercept is over a base (see "Decisions for step 8").
   only its boundary), and at the 6 km Standby framing the tileset drops small
   buildings anyway, so the tint reads best up close and in the side window.
 - **Google view:** outline and label only.
+
+### Bigger, pulsing missile — 2026-09-16
+
+The user asked for the missile at three times its size, pulsing white so it is
+findable zoomed out. `PathStyle.markerPulse` (library, generic) makes the craft
+swing between a shaded version of its colour and pure white on a 1.2 s cycle,
+by rewriting its six per-instance colour attributes each frame. `markerSize`
+now sets both the craft's minimum on-screen length (2.5 × size px) and its true
+length (3.75 × size m). The demo uses 35 (88 px, 131 m): the user tried three
+times the original 16 and settled on 2.2 ×. Both the route craft and the fall
+craft pulse.

@@ -25,7 +25,6 @@ export interface CameraModule {
   flyToPreset(name: string, opts?: { duration?: number }): Promise<void>;
   flyTo(pose: CameraPose, opts?: { duration?: number }): Promise<void>;
   orbit(opts: OrbitOptions): void;
-  follow(pathId: string, opts?: { range?: number; pitch?: number }): void;
   stop(): void;
   readonly pose: CameraPose;
   readonly presets: readonly string[];
@@ -232,12 +231,6 @@ export function createCamera(
     scene.preRender.addEventListener(orbitTick);
   }
 
-  function follow(_pathId: string): void {
-    throw new Error(
-      "camera.follow() needs path layers, which arrive in step 6 (layers module).",
-    );
-  }
-
   function stop(): void {
     cancelActive?.();
     cam.cancelFlight();
@@ -270,7 +263,6 @@ export function createCamera(
       flyToPreset,
       flyTo,
       orbit,
-      follow,
       stop,
       get pose() {
         return pose();

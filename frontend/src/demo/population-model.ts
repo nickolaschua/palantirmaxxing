@@ -42,6 +42,44 @@ export function rankZones(zones: Zone[], metric: Metric): Zone[] {
   return zones.filter(z => valueOf(z, metric) !== null).sort((a, b) =>
     (valueOf(b, metric) ?? 0) - (valueOf(a, metric) ?? 0) || a.id.localeCompare(b.id));
 }
+/**
+ * Label anchor for a zone: the centroid of its largest outer ring, weighted by
+ * the total outer-ring area (square degrees — only used to compare zones).
+ * ponytail: a centroid can fall outside a strongly concave ring; switch to a pole
+ * of inaccessibility if a label visibly misses its zone.
+ */
+export function labelPoint(zone: Zone): { lon: number; lat: number; weight: number } {
+  const polygons = (zone.geometry.type === "Polygon" ? [zone.geometry.coordinates] : zone.geometry.coordinates) as number[][][][];
+  let best = { lon: NaN, lat: NaN, area: 0 };
+  let weight = 0;
+  for (const [outer] of polygons) {
+    if (!outer?.length) continue;
+    // Shoelace relative to the first vertex, so large absolute degrees don't cancel.
+    const [ox, oy] = outer[0] as [number, number];
+    let twiceArea = 0, cx = 0, cy = 0;
+    for (let i = 0, j = outer.length - 1; i < outer.length; j = i++) {
+      const x0 = outer[j]![0]! - ox, y0 = outer[j]![1]! - oy, x1 = outer[i]![0]! - ox, y1 = outer[i]![1]! - oy;
+      const cross = x0 * y1 - x1 * y0;
+      twiceArea += cross; cx += (x0 + x1) * cross; cy += (y0 + y1) * cross;
+    }
+    const area = Math.abs(twiceArea / 2);
+    weight += area;
+    if (area > best.area) best = { lon: ox + cx / (3 * twiceArea), lat: oy + cy / (3 * twiceArea), area };
+  }
+  return { lon: best.lon, lat: best.lat, weight };
+}
+/** One anchor per planning area: its zones' label points, weighted by zone area. */
+export function planningAreaLabelPoints(zones: readonly Zone[]): { name: string; lon: number; lat: number }[] {
+  const sums = new Map<string, { lon: number; lat: number; weight: number }>();
+  for (const zone of zones) {
+    const p = labelPoint(zone);
+    if (!(p.weight > 0) || !Number.isFinite(p.lon) || !Number.isFinite(p.lat)) continue;
+    const s = sums.get(zone.properties.planning_area) ?? { lon: 0, lat: 0, weight: 0 };
+    s.lon += p.lon * p.weight; s.lat += p.lat * p.weight; s.weight += p.weight;
+    sums.set(zone.properties.planning_area, s);
+  }
+  return [...sums].map(([name, s]) => ({ name, lon: s.lon / s.weight, lat: s.lat / s.weight }));
+}
 export function parseDataset(value: unknown): PopulationData {
   const data = value as PopulationData;
   if (data?.type !== "FeatureCollection" || !Array.isArray(data.features)

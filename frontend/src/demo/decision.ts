@@ -1,5 +1,5 @@
 import { SINGAPORE_BOUNDS } from "../lib/index.js";
-import type { BasemapKind, CircleStyle, LabelLayer, LightingPreset, MarkerStyle, PathLayer, SingaporeCanvas } from "../lib/index.js";
+import type { BasemapKind, CircleLayer, CircleStyle, LabelLayer, LightingPreset, MarkerLayer, MarkerStyle, PathLayer, SingaporeCanvas } from "../lib/index.js";
 import resultJson from "../../../data/results/demo-planning-result.json";
 import {
   advance, approachOrigin, categoryColour, categoryLabel, circleBounds, comparisonLines, descentSamples, DESCENT_S, detect,
@@ -32,6 +32,9 @@ const alpha = (hex: string, a: number): string => {
 const ignoreCancel = (err: unknown): void => {
   if (!(err instanceof Error && err.name === "FlightCancelled")) throw err;
 };
+
+/** A struck area once the threat is down: light, so it reads apart from anything still live. */
+const markStyle = (o: Option): CircleStyle => ({ fill: alpha(optionColour(o), 0.12), outline: "rgba(255, 255, 255, 0.55)", visible: true });
 
 const exposureText = (o: Option): string =>
   !o.exposure ? "Not evaluated"
@@ -67,14 +70,30 @@ export async function mountDecision(
   const footnote = el("p", "footnote");
   tray.append(head, message, cardsEl, summary, footnote);
 
-  // Temporary presenter controls — remove in the presentation polish pass.
+  // Presenter controls, bottom right: Play and Restart (temporary) above History.
   const presenter = el("div");
   presenter.id = "presenter";
   const playBtn = el("button", undefined, "Play");
   const restartBtn = el("button", undefined, "Restart");
-  playBtn.type = restartBtn.type = "button";
-  presenter.append(playBtn, restartBtn);
-  document.body.append(tray, presenter);
+  const historyBtn = el("button", undefined, "History");
+  playBtn.type = restartBtn.type = historyBtn.type = "button";
+  const presenterRow = el("div", "row");
+  presenterRow.append(playBtn, restartBtn);
+  presenter.append(presenterRow, historyBtn);
+  // Past threats, each with its mark on the map that can be switched off.
+  const historyPanel = el("aside");
+  historyPanel.id = "history";
+  historyPanel.hidden = true;
+  historyPanel.setAttribute("aria-label", "Past threats");
+  const historyEmpty = el("p", "empty", "No past threats yet.");
+  const historyList = el("ul");
+  historyPanel.append(el("h2", undefined, "History"), historyEmpty, historyList);
+  historyBtn.setAttribute("aria-expanded", "false");
+  historyBtn.onclick = () => {
+    historyPanel.hidden = !historyPanel.hidden;
+    historyBtn.setAttribute("aria-expanded", String(!historyPanel.hidden));
+  };
+  document.body.append(tray, presenter, historyPanel);
 
   // The result loads and validates here, in Standby, so nothing can fail mid-countdown.
   let parsed: ReturnType<typeof parseResult>;
@@ -84,7 +103,7 @@ export async function mountDecision(
     phaseEl.textContent = "UNAVAILABLE";
     message.textContent = `Can't use the planning result: ${error instanceof Error ? error.message : String(error)}`;
     playBtn.disabled = restartBtn.disabled = true;
-    return { setBasemap() {}, setLighting() {}, dispose() { tray.remove(); presenter.remove(); } };
+    return { setBasemap() {}, setLighting() {}, dispose() { tray.remove(); presenter.remove(); historyPanel.remove(); } };
   }
   const { result, options } = parsed;
   const words = wording(result.assumptions);
@@ -130,15 +149,8 @@ export async function mountDecision(
     // Hover opens the side window, click pins it. Neither selects nor fires.
     { hover(id) { hovered = id; showInspector(); }, click(id) { pinned = id; showInspector(); } },
   );
-  const setLayersVisible = (visible: boolean): void => {
-    path.setVisible(visible);
-    markers.setVisible(visible);
-    circles.setVisible(visible);
-    approach?.setVisible(visible);
-    approachLabel?.setVisible(visible);
-  };
-  setLayersVisible(false);
-
+  // The fall into the chosen area, drawn only once that option is fired.
+  let descent: PathLayer | undefined;
   const inspector = await mountInspector({
     keys: { ionToken: setup.ionToken, googleApiKey: setup.googleApiKey },
     basemap: canvas.scene.basemap,
@@ -148,6 +160,63 @@ export async function mountDecision(
     options,
     onUnpin() { pinned = null; showInspector(); },
   });
+  // Everything that belongs to this threat's flight. Once it is down, this goes
+  // and only the struck area stays, as a mark of where an intercept has been.
+  const setRouteVisible = (visible: boolean): void => {
+    path.setVisible(visible);
+    approach?.setVisible(visible);
+    approachLabel?.setVisible(visible);
+    descent?.setVisible(visible);
+    inspector.setRouteVisible(visible);
+  };
+  const setLayersVisible = (visible: boolean): void => {
+    setRouteVisible(visible);
+    markers.setVisible(visible);
+    circles.setVisible(visible);
+  };
+  setLayersVisible(false);
+
+  // --- history: one entry per run; a struck area's mark stays on the map across restarts ---
+  interface HistoryEntry { text: string; mark?: { circle: CircleLayer; marker: MarkerLayer }; shown: boolean }
+  const history: HistoryEntry[] = [];
+  let recorded = false; // this run already has its entry
+  let runMarkReady = false; // this run's history mark is built, so the run's own area can go
+  function renderHistory(): void {
+    historyEmpty.hidden = history.length > 0;
+    historyList.replaceChildren(...[...history].reverse().map(entry => {
+      const li = el("li");
+      const label = el("label");
+      const box = el("input");
+      box.type = "checkbox";
+      box.checked = !!entry.mark && entry.shown;
+      box.disabled = !entry.mark;
+      box.title = entry.mark ? "Show the struck area on the map" : "Nothing was fired, so there is no mark";
+      box.onchange = () => {
+        entry.shown = box.checked;
+        entry.mark?.circle.setVisible(entry.shown);
+        entry.mark?.marker.setVisible(entry.shown);
+      };
+      label.append(box, entry.text);
+      li.append(label);
+      return li;
+    }));
+  }
+  function record(text: string, chosen?: Option): void {
+    if (recorded) return;
+    recorded = true;
+    let mark: HistoryEntry["mark"];
+    if (chosen) {
+      const id = `mark-${history.length}`;
+      const circle = canvas.addGroundCircles([{ id, center: chosen.position, radiusM: chosen.footprint.radiusM }]);
+      circle.setStyles(new Map([[id, markStyle(chosen)]]));
+      const marker = canvas.addMarkers([{ id, position: chosen.position }]);
+      marker.setStyles(new Map([[id, { color: "#e8eaed", size: 7, visible: true, label: `Intercepted · ${formatT(chosen.timeFromStartS)}` }]]));
+      mark = { circle, marker };
+      void circle.ready.then(() => { runMarkReady = true; if (!disposed) render(); });
+    }
+    history.push({ text, mark, shown: true });
+    renderHistory();
+  }
 
   const framePoints = [...samples, ...options.flatMap(o => circleBounds(o.position, o.footprint.radiusM))];
   const frameCorridor = (): void => {
@@ -238,8 +307,6 @@ export async function mountDecision(
     canvas.addBurst({ lon: o.position.lon, lat: o.position.lat }, { color: "#ff7043", radiusM: o.footprint.radiusM, durationS: 2.2 }),
   ]));
 
-  // The fall into the chosen area, drawn only once that option is fired.
-  let descent: PathLayer | undefined;
   function beginImpact(chosen: Option): void {
     if (descent) return;
     path.setMarkerVisible(false); // the threat leaves its supplied route here
@@ -264,7 +331,10 @@ export async function mountDecision(
       const burst = bursts.get(firedOption.id);
       burst?.setVisible(true);
       burst?.play();
+      setRouteVisible(false); // the flight is over; the struck area stays as the mark
+      record(`Threat ${history.length + 1} · ${optionName(firedOption.id)} (${shortId(firedOption.id)}) · intercepted at ${formatT(firedOption.timeFromStartS)}`, firedOption);
     }
+    if (next.phase === "expired" && flow.phase !== "expired") record(`Threat ${history.length + 1} · expired · nothing fired`);
     // Nothing was fired, so the supplied route simply runs out.
     if (next.phase === "expired" && elapsed >= endS && canvas.time.playing) {
       canvas.time.pause();
@@ -321,8 +391,10 @@ export async function mountDecision(
       const faded = { fill: alpha(colour, 0.08), outline: alpha(colour, 0.4), visible: true };
       // Once it comes down, the area steps back so the burst over it is the thing you see.
       const struck = { fill: alpha(colour, 0.18), outline: "#ffffff", visible: true };
-      const chosenStyle = phase === "impact" || phase === "outcome" ? struck : strong;
-      const style = locked ? (flow.fired === o.id ? chosenStyle : faded) : phase === "expired" || !isOpen(o, elapsed) ? faded : flow.selected === o.id ? strong : normal;
+      const gone = { ...faded, visible: false };
+      // At the outcome the run's own area shows the mark only until the history copy has built.
+      const chosenStyle = phase === "outcome" ? (runMarkReady ? gone : markStyle(o)) : phase === "impact" ? struck : strong;
+      const style = locked ? (flow.fired === o.id ? chosenStyle : phase === "outcome" ? gone : faded) : phase === "expired" || !isOpen(o, elapsed) ? faded : flow.selected === o.id ? strong : normal;
       return [o.id, style];
     }));
     const circleKey = JSON.stringify([...circleStyles]);
@@ -334,6 +406,12 @@ export async function mountDecision(
 
     const markerStyles = new Map<string, MarkerStyle>();
     options.forEach((o, i) => {
+      if (phase === "outcome") {
+        // The history entry's own marker carries the "Intercepted" label.
+        markerStyles.set(o.id, { color: "#8b949e", size: 9, visible: false, label: String(i + 1) });
+        markerStyles.set(`${o.id}#closes`, { color: "#6e7681", size: 6, visible: false, label: "" });
+        return;
+      }
       const dim = phase === "expired" || (locked && flow.fired !== o.id);
       markerStyles.set(o.id, { color: dim ? "#8b949e" : optionColour(o), size: 9, visible: true, label: String(i + 1) });
       markerStyles.set(`${o.id}#closes`, {
@@ -361,6 +439,7 @@ export async function mountDecision(
   function reset(): void {
     flow = STANDBY;
     hovered = pinned = null;
+    recorded = runMarkReady = false; // the history keeps its entries and marks
     canvas.time.pause();
     canvas.time.seek(start);
     setLayersVisible(false);
@@ -403,6 +482,8 @@ export async function mountDecision(
       disposed = true;
       offTick();
       window.removeEventListener("keydown", onKey);
+      for (const entry of history) { entry.mark?.circle.destroy(); entry.mark?.marker.destroy(); }
+      historyPanel.remove();
       path.destroy();
       descent?.destroy();
       approach?.destroy();

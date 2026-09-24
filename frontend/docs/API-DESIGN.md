@@ -1001,3 +1001,44 @@ now sets both the craft's minimum on-screen length (2.5 × size px) and its true
 length (3.75 × size m). The demo uses 35 (88 px, 131 m): the user tried three
 times the original 16 and settled on 2.2 ×. Both the route craft and the fall
 craft pulse.
+
+### Hospitals — 2026-09-17
+
+Requested by the user: "repeat the same steps and highlight hospitals red".
+`scripts/fetch-ground-detail.mjs hospital` pulls `amenity=hospital` areas
+with names into `src/demo/hospitals.json`: 47 areas, 42 named. OSM uses the
+tag loosely, so the layer also carries the joint testing and vaccination
+centres, a dialysis centre, a polyclinic and nursing home, and the
+Communicable Disease Centre; prune the JSON if that is wrong for the demo. A
+hospital mapped only as a point has no ring and is not in the layer.
+
+`military.ts` became `osm-areas.ts`: one `mountOsmAreas(canvas, layer, ...)`
+takes an `OsmAreaLayer` config (`MILITARY` purple `#a970ff`, `HOSPITALS` red
+`#e5484d`) and does what the base layer did — tint, outline, labels below
+20 km, hidden on the population view. The panel legend lists both. The red is
+close to the "lowest exposure" option colour; the user chose red.
+
+### The struck area stays — 2026-09-17
+
+Requested by the user: once the missile is intercepted, the path disappears
+and the impact radius stays in a lighter shade, so it reads apart from any
+later threat and marks where an intercept has already happened. At `outcome`,
+`decision.ts` hides the route, the inbound track, the fall and the window
+marks on both canvases; the other option's area is hidden; the struck area
+drops to a 12 % fill with a soft white edge and its marker reads
+"Intercepted · T+…". Detection after a Restart brings the route back. The
+on-screen word is "intercepted", never "damage": the area is still the
+supplied 500 m footprint, not a calculated effect.
+
+### History — 2026-09-17
+
+Requested by the user: a History button bottom right that lists past threats,
+with each one's mark on the map switchable, and Play/Restart moved up above
+it. `decision.ts` records one entry per run: at the outcome, with its own
+ground circle and "Intercepted · T+…" marker (separate layers, so they outlive
+the run and a Restart); at expiry, an entry with no mark. The run's own area
+shows the mark only until the history circle has built (`CircleLayer.ready`),
+then hands over. The panel lists newest first, a checkbox per entry toggles
+its mark; disabled when nothing was fired. Marks are not mirrored into the
+side window, which shows live options only. History lives for the page: a
+reload clears it.

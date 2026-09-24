@@ -1,0 +1,10 @@
+field,allowed,description,public_default
+profile_id,opaque ID,Non-geographic identifier,null
+capability_share,0-1 band,Approved share of abstract capability,null
+loss_fraction,0-1 band,Scenario-specific functional loss,null
+duration_severity,0-1 band,Approved mapping from disruption duration,null
+replacement_fraction,0-1 band,Approved substitute capability available,null
+minimum_capability_breach,true/false/null,Non-compensatory authorised flag,null
+D_score,0-100,100 × share × loss × duration × (1-replacement),null
+evidence_version,string,Owning-system version only,null
+confidence,A-E,Authorised confidence grade,E

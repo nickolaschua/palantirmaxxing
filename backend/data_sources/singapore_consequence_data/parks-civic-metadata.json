@@ -1,0 +1,140 @@
+{
+  "title": "Singapore parks and civic venues consequence evidence starter dataset",
+  "retrieved": "2026-09-25",
+  "scope": "Civilian consequence data preparation only",
+  "site_count": 7207,
+  "scenario_row_count": 57656,
+  "scenarios": [
+    {
+      "id": "WD_AM",
+      "label": "Weekday morning",
+      "hours": "06:00-10:00",
+      "day": "weekday",
+      "state": "ordinary"
+    },
+    {
+      "id": "WD_DAY",
+      "label": "Weekday daytime",
+      "hours": "10:00-17:00",
+      "day": "weekday",
+      "state": "ordinary"
+    },
+    {
+      "id": "WD_PM",
+      "label": "Weekday evening",
+      "hours": "17:00-22:00",
+      "day": "weekday",
+      "state": "ordinary"
+    },
+    {
+      "id": "WD_NIGHT",
+      "label": "Weekday night",
+      "hours": "22:00-06:00",
+      "day": "weekday",
+      "state": "ordinary"
+    },
+    {
+      "id": "WE_DAY",
+      "label": "Weekend daytime",
+      "hours": "08:00-18:00",
+      "day": "weekend/public holiday",
+      "state": "ordinary"
+    },
+    {
+      "id": "WE_PM",
+      "label": "Weekend evening",
+      "hours": "18:00-22:00",
+      "day": "weekend/public holiday",
+      "state": "ordinary"
+    },
+    {
+      "id": "EVENT",
+      "label": "Scheduled major event",
+      "hours": "event-specific",
+      "day": "any",
+      "state": "event/surge"
+    },
+    {
+      "id": "CLOSED",
+      "label": "Closed or severe-weather state",
+      "hours": "any",
+      "day": "any",
+      "state": "closure/adverse weather"
+    }
+  ],
+  "weights": {
+    "occupancy": 0.4,
+    "vulnerability": 0.15,
+    "civicService": 0.15,
+    "recoveryHeritage": 0.15,
+    "concentration": 0.1,
+    "accessEgress": 0.05
+  },
+  "warning": "Composite index is a transparent research baseline, not an interception, targeting, or operational recommendation. Preserve factors and uncertainty bands when reweighting.",
+  "sources": [
+    {
+      "id": "d_77d7ec97be83d44f61b85454f844382f",
+      "title": "NParks Parks and Nature Reserves",
+      "agency": "NParks",
+      "url": "https://data.gov.sg/datasets/d_77d7ec97be83d44f61b85454f844382f/view",
+      "published": "Snapshot",
+      "confidence": "A"
+    },
+    {
+      "id": "d_14d807e20158338fd578c2913953516e",
+      "title": "Park Facilities",
+      "agency": "NParks",
+      "url": "https://data.gov.sg/datasets/d_14d807e20158338fd578c2913953516e/view",
+      "published": "Snapshot",
+      "confidence": "A"
+    },
+    {
+      "id": "d_2cfb0867cdeb2b7303068995699dc33b",
+      "title": "Sport Facilities National Census 2024",
+      "agency": "SportSG",
+      "url": "https://data.gov.sg/datasets/d_2cfb0867cdeb2b7303068995699dc33b/view",
+      "published": "2024 census",
+      "confidence": "A"
+    },
+    {
+      "id": "d_1f35a697b1a83fc771fa528cf76bcea4",
+      "title": "Community Use Sites",
+      "agency": "SLA",
+      "url": "https://data.gov.sg/collections/1589/datasets/d_1f35a697b1a83fc771fa528cf76bcea4/view",
+      "published": "Snapshot",
+      "confidence": "B"
+    },
+    {
+      "id": "d_f706de1427279e61fe41e89e24d440fa",
+      "title": "Community Clubs",
+      "agency": "People's Association",
+      "url": "https://data.gov.sg/datasets/d_f706de1427279e61fe41e89e24d440fa/view",
+      "published": "2024",
+      "confidence": "A"
+    },
+    {
+      "id": "d_27b8dae65d9ca1539e14d09578b17cbf",
+      "title": "Libraries",
+      "agency": "NLB",
+      "url": "https://data.gov.sg/collections/1463/datasets/d_27b8dae65d9ca1539e14d09578b17cbf/view",
+      "published": "2024",
+      "confidence": "A"
+    },
+    {
+      "id": "d_39620e0a12a31733842dcb6759b51a85",
+      "title": "Theatre",
+      "agency": "NAC",
+      "url": "https://data.gov.sg/datasets/d_39620e0a12a31733842dcb6759b51a85/view",
+      "published": "Historical 2018-Feb 2022; released 2025",
+      "confidence": "B"
+    },
+    {
+      "id": "d_b29c230ec6b609e29ed42f71ca9a8767",
+      "title": "National Monuments",
+      "agency": "NHB",
+      "url": "https://data.gov.sg/datasets/d_b29c230ec6b609e29ed42f71ca9a8767/view",
+      "published": "2026 release; source geography Mar 2021",
+      "confidence": "A"
+    }
+  ]
+}

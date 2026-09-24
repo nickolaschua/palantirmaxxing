@@ -1,0 +1,618 @@
+{
+	"type" : "FeatureCollection",
+	"name" : "THEATRE",
+	"features" : [
+		{
+			"type" : "Feature",
+			"geometry" : {
+				"type" : "Point",
+				"coordinates" : [ 103.81659926136513, 1.2839748408099305 ]
+			},
+			"properties" : {
+				"OBJECTID" : 1,
+				"VENUE_NAME" : "Gateway Theatre",
+				"BLK_NO" : "3615",
+				"STREETNAME" : "Jalan Bukit Merah Gateway Theatre",
+				"POSTALCODE" : "159461",
+				"WEBSITE" : "https://theatre.gateway.sg/spaces/theatre",
+				"INC_CRC" : "1F9E5ADD8399C705",
+				"FMEL_UPD_D" : "20231221171430"
+			}
+		},
+		{
+			"type" : "Feature",
+			"geometry" : {
+				"type" : "Point",
+				"coordinates" : [ 103.77157633388418, 1.3405343538797614 ]
+			},
+			"properties" : {
+				"OBJECTID" : 2,
+				"VENUE_NAME" : "Bukit Timah Community Club Mini-Theatre",
+				"BLK_NO" : "20",
+				"STREETNAME" : "Toh Yi Drive Bukit Timah Community Club",
+				"POSTALCODE" : "596569",
+				"WEBSITE" : null,
+				"INC_CRC" : "971F8DEF978B2785",
+				"FMEL_UPD_D" : "20231221171430"
+			}
+		},
+		{
+			"type" : "Feature",
+			"geometry" : {
+				"type" : "Point",
+				"coordinates" : [ 103.77200815740376, 1.3016750373853223 ]
+			},
+			"properties" : {
+				"OBJECTID" : 3,
+				"VENUE_NAME" : "UCC Theatre",
+				"BLK_NO" : "50",
+				"STREETNAME" : "Kent Ridge Crescent University Cultural Centre",
+				"POSTALCODE" : "119279",
+				"WEBSITE" : "https://cfa.nus.edu.sg/venues/ucc-theatre/",
+				"INC_CRC" : "369B0AB3C88FDBD0",
+				"FMEL_UPD_D" : "20231221171430"
+			}
+		},
+		{
+			"type" : "Feature",
+			"geometry" : {
+				"type" : "Point",
+				"coordinates" : [ 103.69232023191732, 1.3423640283979046 ]
+			},
+			"properties" : {
+				"OBJECTID" : 4,
+				"VENUE_NAME" : "Nanyang Community Club Mini Theatre",
+				"BLK_NO" : "60",
+				"STREETNAME" : "Jurong West Street 91 Nanyang Community Club",
+				"POSTALCODE" : "649040",
+				"WEBSITE" : null,
+				"INC_CRC" : "B6F5488A0900558B",
+				"FMEL_UPD_D" : "20231221171430"
+			}
+		},
+		{
+			"type" : "Feature",
+			"geometry" : {
+				"type" : "Point",
+				"coordinates" : [ 103.71138018647879, 1.3483232253267916 ]
+			},
+			"properties" : {
+				"OBJECTID" : 5,
+				"VENUE_NAME" : "Boon Lay Community Club Mini Theatre",
+				"BLK_NO" : "10",
+				"STREETNAME" : "Boon Lay Place Boon Lay Community Club",
+				"POSTALCODE" : "649882",
+				"WEBSITE" : null,
+				"INC_CRC" : "1CEA67E5C1605E1E",
+				"FMEL_UPD_D" : "20231221171430"
+			}
+		},
+		{
+			"type" : "Feature",
+			"geometry" : {
+				"type" : "Point",
+				"coordinates" : [ 103.87564297653313, 1.3018869732033205 ]
+			},
+			"properties" : {
+				"OBJECTID" : 6,
+				"VENUE_NAME" : "Kallang Theatre",
+				"BLK_NO" : "1A",
+				"STREETNAME" : "Stadium Walk",
+				"POSTALCODE" : "397688",
+				"WEBSITE" : "https://www.sportshub.com.sg/venue-hire",
+				"INC_CRC" : "B9E2CA94EB98D669",
+				"FMEL_UPD_D" : "20231221171430"
+			}
+		},
+		{
+			"type" : "Feature",
+			"geometry" : {
+				"type" : "Point",
+				"coordinates" : [ 103.85137384688184, 1.3130586484372833 ]
+			},
+			"properties" : {
+				"OBJECTID" : 7,
+				"VENUE_NAME" : "Pek Kio Community Centre Performing Theatre",
+				"BLK_NO" : "21",
+				"STREETNAME" : "Gloucester Road Pek Kio Community Centre",
+				"POSTALCODE" : "219458",
+				"WEBSITE" : null,
+				"INC_CRC" : "E185B3EFEDF530FD",
+				"FMEL_UPD_D" : "20231221171430"
+			}
+		},
+		{
+			"type" : "Feature",
+			"geometry" : {
+				"type" : "Point",
+				"coordinates" : [ 103.85641198664108, 1.3778920317329157 ]
+			},
+			"properties" : {
+				"OBJECTID" : 8,
+				"VENUE_NAME" : "Theatre@illuminITE College Central",
+				"BLK_NO" : "2",
+				"STREETNAME" : "Ang Mo Kio Drive Ite College Central",
+				"POSTALCODE" : "567720",
+				"WEBSITE" : null,
+				"INC_CRC" : "5D1864A6E5BFECB6",
+				"FMEL_UPD_D" : "20231221171430"
+			}
+		},
+		{
+			"type" : "Feature",
+			"geometry" : {
+				"type" : "Point",
+				"coordinates" : [ 103.84808333583823, 1.3803409066776187 ]
+			},
+			"properties" : {
+				"OBJECTID" : 9,
+				"VENUE_NAME" : "Nanyang Polytechnic Theatre for the Arts",
+				"BLK_NO" : "180",
+				"STREETNAME" : "Ang Mo Kio Avenue 8 Nanyang Polytechnic (Theatre For The Art)",
+				"POSTALCODE" : "569830",
+				"WEBSITE" : null,
+				"INC_CRC" : "4D75E50E376C8913",
+				"FMEL_UPD_D" : "20231221171430"
+			}
+		},
+		{
+			"type" : "Feature",
+			"geometry" : {
+				"type" : "Point",
+				"coordinates" : [ 103.79206355851174, 1.2951454455004399 ]
+			},
+			"properties" : {
+				"OBJECTID" : 10,
+				"VENUE_NAME" : "The Theatre at Mediacorp",
+				"BLK_NO" : "1",
+				"STREETNAME" : "Stars Avenue Mediacorp Campus",
+				"POSTALCODE" : "138507",
+				"WEBSITE" : "https://www.mediacorp.sg/business/production-venue/resources-event-venues/theatre",
+				"INC_CRC" : "B23AAD604DC3F8CD",
+				"FMEL_UPD_D" : "20231221171430"
+			}
+		},
+		{
+			"type" : "Feature",
+			"geometry" : {
+				"type" : "Point",
+				"coordinates" : [ 103.77200815740376, 1.3016750373853223 ]
+			},
+			"properties" : {
+				"OBJECTID" : 11,
+				"VENUE_NAME" : "UCC Hall",
+				"BLK_NO" : "50",
+				"STREETNAME" : "Kent Ridge Crescent University Cultural Centre",
+				"POSTALCODE" : "119279",
+				"WEBSITE" : "https://cfa.nus.edu.sg/venues/ucc-hall/",
+				"INC_CRC" : "369B0AB325277DD2",
+				"FMEL_UPD_D" : "20231221171430"
+			}
+		},
+		{
+			"type" : "Feature",
+			"geometry" : {
+				"type" : "Point",
+				"coordinates" : [ 103.85020454592244, 1.3349345170945592 ]
+			},
+			"properties" : {
+				"OBJECTID" : 12,
+				"VENUE_NAME" : "Toa Payoh Central Amphitheatre",
+				"BLK_NO" : "93",
+				"STREETNAME" : "Toa Payoh Central Toa Payoh Central Community Club",
+				"POSTALCODE" : "319194",
+				"WEBSITE" : null,
+				"INC_CRC" : "1829D332B824C1ED",
+				"FMEL_UPD_D" : "20231221171430"
+			}
+		},
+		{
+			"type" : "Feature",
+			"geometry" : {
+				"type" : "Point",
+				"coordinates" : [ 103.873927617452, 1.3700548624028297 ]
+			},
+			"properties" : {
+				"OBJECTID" : 13,
+				"VENUE_NAME" : "The Serangoon CC Mini Theatre",
+				"BLK_NO" : "10",
+				"STREETNAME" : "Serangoon North Avenue 2 The Serangoon Community Club",
+				"POSTALCODE" : "555877",
+				"WEBSITE" : null,
+				"INC_CRC" : "7D2FFBBB9CF0E780",
+				"FMEL_UPD_D" : "20231221171430"
+			}
+		},
+		{
+			"type" : "Feature",
+			"geometry" : {
+				"type" : "Point",
+				"coordinates" : [ 103.87036787570035, 1.3516122455273327 ]
+			},
+			"properties" : {
+				"OBJECTID" : 14,
+				"VENUE_NAME" : "Braddell Heights Community Club mini-theatre",
+				"BLK_NO" : "50",
+				"STREETNAME" : "Serangoon Avenue 2 Braddell Heights Community Club",
+				"POSTALCODE" : "556129",
+				"WEBSITE" : null,
+				"INC_CRC" : "3228BC28BE4C0F9F",
+				"FMEL_UPD_D" : "20231221171430"
+			}
+		},
+		{
+			"type" : "Feature",
+			"geometry" : {
+				"type" : "Point",
+				"coordinates" : [ 103.93968359444563, 1.3534961547181348 ]
+			},
+			"properties" : {
+				"OBJECTID" : 15,
+				"VENUE_NAME" : "Festive Arts Theatre @ Our Tampines Hub",
+				"BLK_NO" : "1",
+				"STREETNAME" : "Tampines Walk Our Tampines Hub",
+				"POSTALCODE" : "528523",
+				"WEBSITE" : "https://ourtampineshub2.wixsite.com/festiveartstheatre",
+				"INC_CRC" : "C57C470A24953090",
+				"FMEL_UPD_D" : "20231221171430"
+			}
+		},
+		{
+			"type" : "Feature",
+			"geometry" : {
+				"type" : "Point",
+				"coordinates" : [ 103.83569846670808, 1.3194506005238777 ]
+			},
+			"properties" : {
+				"OBJECTID" : 16,
+				"VENUE_NAME" : "Tan Cheng Siong Drama Theatre (ACSB)",
+				"BLK_NO" : "60",
+				"STREETNAME" : "Barker Road Anglo-Chinese School (Barker Road)",
+				"POSTALCODE" : "309919",
+				"WEBSITE" : null,
+				"INC_CRC" : "9FBE1E096FB20566",
+				"FMEL_UPD_D" : "20231221171430"
+			}
+		},
+		{
+			"type" : "Feature",
+			"geometry" : {
+				"type" : "Point",
+				"coordinates" : [ 103.8512619835568, 1.2930788401823503 ]
+			},
+			"properties" : {
+				"OBJECTID" : 17,
+				"VENUE_NAME" : "Capitol Theatre",
+				"BLK_NO" : "17",
+				"STREETNAME" : "Stamford Road",
+				"POSTALCODE" : "178905",
+				"WEBSITE" : "https://capitol-theatre.sg/venue-hire/",
+				"INC_CRC" : "270519DD601D6E3E",
+				"FMEL_UPD_D" : "20231221171430"
+			}
+		},
+		{
+			"type" : "Feature",
+			"geometry" : {
+				"type" : "Point",
+				"coordinates" : [ 103.85479773099986, 1.2903658646876077 ]
+			},
+			"properties" : {
+				"OBJECTID" : 18,
+				"VENUE_NAME" : "Esplanade Theatre",
+				"BLK_NO" : "1",
+				"STREETNAME" : "Esplanade Drive Esplanade Theatre",
+				"POSTALCODE" : "38981",
+				"WEBSITE" : "https://www.esplanade.com/venue-hire/concert-hall",
+				"INC_CRC" : "A69ADE52EA55C389",
+				"FMEL_UPD_D" : "20231221171430"
+			}
+		},
+		{
+			"type" : "Feature",
+			"geometry" : {
+				"type" : "Point",
+				"coordinates" : [ 103.85830838860707, 1.282333350982249 ]
+			},
+			"properties" : {
+				"OBJECTID" : 19,
+				"VENUE_NAME" : "Marina Bay Sands (MBS) Grand Theatre",
+				"BLK_NO" : "10",
+				"STREETNAME" : "Bayfront Avenue Sands Expo And Convention Centre",
+				"POSTALCODE" : "18956",
+				"WEBSITE" : null,
+				"INC_CRC" : "EE049C95CAB6B713",
+				"FMEL_UPD_D" : "20231221171430"
+			}
+		},
+		{
+			"type" : "Feature",
+			"geometry" : {
+				"type" : "Point",
+				"coordinates" : [ 103.86002284488995, 1.2852295004107968 ]
+			},
+			"properties" : {
+				"OBJECTID" : 20,
+				"VENUE_NAME" : "MBS Sands Theatre",
+				"BLK_NO" : "4",
+				"STREETNAME" : "Bayfront Avenue",
+				"POSTALCODE" : "18973",
+				"WEBSITE" : "https://www.marinabaysands.com/entertainment/theatre-rental.html",
+				"INC_CRC" : "EED14B0162E4DD73",
+				"FMEL_UPD_D" : "20231221171430"
+			}
+		},
+		{
+			"type" : "Feature",
+			"geometry" : {
+				"type" : "Point",
+				"coordinates" : [ 103.83693108382411, 1.314255014912673 ]
+			},
+			"properties" : {
+				"OBJECTID" : 21,
+				"VENUE_NAME" : "Alliance Francaise Theatre",
+				"BLK_NO" : "1",
+				"STREETNAME" : "Sarkies Road Alliance Francaise",
+				"POSTALCODE" : "258130",
+				"WEBSITE" : "https://alliancefrancaise.org.sg/rent-our-venues#/",
+				"INC_CRC" : "09E0EB6669A4907F",
+				"FMEL_UPD_D" : "20231221171430"
+			}
+		},
+		{
+			"type" : "Feature",
+			"geometry" : {
+				"type" : "Point",
+				"coordinates" : [ 103.84867452251056, 1.2993513876852743 ]
+			},
+			"properties" : {
+				"OBJECTID" : 22,
+				"VENUE_NAME" : "SOTA Drama Theatre",
+				"BLK_NO" : "1",
+				"STREETNAME" : "Zubir Said Drive School Of The Arts (Sota)",
+				"POSTALCODE" : "227968",
+				"WEBSITE" : "https://www.sota.edu.sg/venues-and-retail/venues/drama-theatre",
+				"INC_CRC" : "A8DA756B67C4890C",
+				"FMEL_UPD_D" : "20231221171430"
+			}
+		},
+		{
+			"type" : "Feature",
+			"geometry" : {
+				"type" : "Point",
+				"coordinates" : [ 103.84867452251056, 1.2993513876852743 ]
+			},
+			"properties" : {
+				"OBJECTID" : 23,
+				"VENUE_NAME" : "SOTA Studio Theatre",
+				"BLK_NO" : "1",
+				"STREETNAME" : "Zubir Said Drive School Of The Arts (Sota)",
+				"POSTALCODE" : "227968",
+				"WEBSITE" : "https://www.sota.edu.sg/venues-and-retail/venues/studio-theatre",
+				"INC_CRC" : "A8DA756B1AE04020",
+				"FMEL_UPD_D" : "20231221171430"
+			}
+		},
+		{
+			"type" : "Feature",
+			"geometry" : {
+				"type" : "Point",
+				"coordinates" : [ 103.84998479493493, 1.2912440003346848 ]
+			},
+			"properties" : {
+				"OBJECTID" : 24,
+				"VENUE_NAME" : "The Ngee Ann Kongsi Theatre (Wild Rice @ Funan)",
+				"BLK_NO" : "107",
+				"STREETNAME" : "North Bridge Road Funan",
+				"POSTALCODE" : "179105",
+				"WEBSITE" : "https://www.wildrice.com.sg/wr/wp-content/uploads/2019/09/NAKT-rate-card.pdf",
+				"INC_CRC" : "BD47134D0774EF8A",
+				"FMEL_UPD_D" : "20231221171430"
+			}
+		},
+		{
+			"type" : "Feature",
+			"geometry" : {
+				"type" : "Point",
+				"coordinates" : [ 103.85198588189442, 1.2981339302215074 ]
+			},
+			"properties" : {
+				"OBJECTID" : 25,
+				"VENUE_NAME" : "China Cultural Centre Theatre",
+				"BLK_NO" : "217",
+				"STREETNAME" : "Queen Street China Cultural Centre",
+				"POSTALCODE" : "188548",
+				"WEBSITE" : "https://singaporeccc.org.sg/venue-hire/",
+				"INC_CRC" : "B56B4085AFFA6991",
+				"FMEL_UPD_D" : "20231221171430"
+			}
+		},
+		{
+			"type" : "Feature",
+			"geometry" : {
+				"type" : "Point",
+				"coordinates" : [ 103.8394347435126, 1.300838907371637 ]
+			},
+			"properties" : {
+				"OBJECTID" : 26,
+				"VENUE_NAME" : "THE RICE COMPANY LIMITED Auditorium",
+				"BLK_NO" : "181",
+				"STREETNAME" : "Orchard Road Orchard Central",
+				"POSTALCODE" : "238896",
+				"WEBSITE" : "https://trcl.sg/spaces/10-square/",
+				"INC_CRC" : "DC4E5F19AF9F8524",
+				"FMEL_UPD_D" : "20231221171430"
+			}
+		},
+		{
+			"type" : "Feature",
+			"geometry" : {
+				"type" : "Point",
+				"coordinates" : [ 103.83570084839562, 1.3008654341745587 ]
+			},
+			"properties" : {
+				"OBJECTID" : 27,
+				"VENUE_NAME" : "SCAPE Ground Theatre",
+				"BLK_NO" : "2",
+				"STREETNAME" : "Orchard Link Scape",
+				"POSTALCODE" : "237978",
+				"WEBSITE" : "https://www.scape.sg/venues-hire/",
+				"INC_CRC" : "48966DE8117E474A",
+				"FMEL_UPD_D" : "20231221171430"
+			}
+		},
+		{
+			"type" : "Feature",
+			"geometry" : {
+				"type" : "Point",
+				"coordinates" : [ 103.84274804945198, 1.2813273348170773 ]
+			},
+			"properties" : {
+				"OBJECTID" : 28,
+				"VENUE_NAME" : "Kreta Ayer People's Theatre",
+				"BLK_NO" : "30A",
+				"STREETNAME" : "Kreta Ayer Road Kreta Ayer People's Theatre",
+				"POSTALCODE" : "88997",
+				"WEBSITE" : "https://www.peoplestheatre.com.sg/pricelist",
+				"INC_CRC" : "179D73CBC56EC144",
+				"FMEL_UPD_D" : "20231221171430"
+			}
+		},
+		{
+			"type" : "Feature",
+			"geometry" : {
+				"type" : "Point",
+				"coordinates" : [ 103.85118594418141, 1.2994633296308755 ]
+			},
+			"properties" : {
+				"OBJECTID" : 29,
+				"VENUE_NAME" : "NAFA Lee Foundation Theatre",
+				"BLK_NO" : "80",
+				"STREETNAME" : "Bencoolen Street Nanyang Academy Of Fine Arts",
+				"POSTALCODE" : "189655",
+				"WEBSITE" : "https://www.nafa.edu.sg/about-nafa/campus/facilities-for-rent",
+				"INC_CRC" : "111E6E9CA1397E11",
+				"FMEL_UPD_D" : "20231221171430"
+			}
+		},
+		{
+			"type" : "Feature",
+			"geometry" : {
+				"type" : "Point",
+				"coordinates" : [ 103.85195194627846, 1.3012840156030026 ]
+			},
+			"properties" : {
+				"OBJECTID" : 30,
+				"VENUE_NAME" : "NAFA Studio Theatre",
+				"BLK_NO" : "80",
+				"STREETNAME" : "Bencoolen Street Nanyang Academy Of Fine Arts",
+				"POSTALCODE" : "189656",
+				"WEBSITE" : "https://www.nafa.edu.sg/about-nafa/campus/facilities-for-rent",
+				"INC_CRC" : "8845D57362E7FA08",
+				"FMEL_UPD_D" : "20231221171430"
+			}
+		},
+		{
+			"type" : "Feature",
+			"geometry" : {
+				"type" : "Point",
+				"coordinates" : [ 103.851555432161, 1.302855132495158 ]
+			},
+			"properties" : {
+				"OBJECTID" : 31,
+				"VENUE_NAME" : "LASALLE Singapore Airlines Theatre",
+				"BLK_NO" : "1",
+				"STREETNAME" : "Mcnally Street Lasalle College Of The Arts (Mcnally Campus)",
+				"POSTALCODE" : "187940",
+				"WEBSITE" : "https://www.lasalle.edu.sg/venue-hire/singapore-airlines-theatre",
+				"INC_CRC" : "22381AAD2C925C49",
+				"FMEL_UPD_D" : "20231221171430"
+			}
+		},
+		{
+			"type" : "Feature",
+			"geometry" : {
+				"type" : "Point",
+				"coordinates" : [ 103.7832287289563, 1.4462722497455691 ]
+			},
+			"properties" : {
+				"OBJECTID" : 32,
+				"VENUE_NAME" : "Republic Polytechnic Theatre",
+				"BLK_NO" : "9",
+				"STREETNAME" : "Woodlands Avenue 9 Republic Polytechnic",
+				"POSTALCODE" : "738964",
+				"WEBSITE" : "https://www.rp.edu.sg/trcc/theatre",
+				"INC_CRC" : "1A5BC53B08594D3F",
+				"FMEL_UPD_D" : "20231221171430"
+			}
+		},
+		{
+			"type" : "Feature",
+			"geometry" : {
+				"type" : "Point",
+				"coordinates" : [ 103.85394230234668, 1.2974897531020007 ]
+			},
+			"properties" : {
+				"OBJECTID" : 33,
+				"VENUE_NAME" : "Drama Centre Theatre",
+				"BLK_NO" : "100",
+				"STREETNAME" : "Victoria Street National Library #03-01",
+				"POSTALCODE" : "188064",
+				"WEBSITE" : "https://artshouselimited.sg/dc-venue-details/dc-theatre",
+				"INC_CRC" : "90B2421289E8BB3E",
+				"FMEL_UPD_D" : "20231221171430"
+			}
+		},
+		{
+			"type" : "Feature",
+			"geometry" : {
+				"type" : "Point",
+				"coordinates" : [ 103.85153697827484, 1.2881881408642653 ]
+			},
+			"properties" : {
+				"OBJECTID" : 34,
+				"VENUE_NAME" : "Victoria Theatre",
+				"BLK_NO" : "9",
+				"STREETNAME" : "Empress Place",
+				"POSTALCODE" : "179556",
+				"WEBSITE" : "https://artshouselimited.sg/vtvch-venue-details/vtvch-victoria-theatre",
+				"INC_CRC" : "0612235956ED2311",
+				"FMEL_UPD_D" : "20231221171430"
+			}
+		},
+		{
+			"type" : "Feature",
+			"geometry" : {
+				"type" : "Point",
+				"coordinates" : [ 103.84167794090453, 1.2914165336536108 ]
+			},
+			"properties" : {
+				"OBJECTID" : 35,
+				"VENUE_NAME" : "KC Arts Centre (SRT)",
+				"BLK_NO" : "20",
+				"STREETNAME" : "Merbau Road",
+				"POSTALCODE" : "239035",
+				"WEBSITE" : "https://www.srt.com.sg/venue",
+				"INC_CRC" : "C15C39324832B0EF",
+				"FMEL_UPD_D" : "20231221171430"
+			}
+		},
+		{
+			"type" : "Feature",
+			"geometry" : {
+				"type" : "Point",
+				"coordinates" : [ 103.84013784431734, 1.2913699643862337 ]
+			},
+			"properties" : {
+				"OBJECTID" : 36,
+				"VENUE_NAME" : "72-13 Theatre",
+				"BLK_NO" : "72-13",
+				"STREETNAME" : "Mohamed Sultan Road",
+				"POSTALCODE" : "239007",
+				"WEBSITE" : "https://www.72-13.com/spaces",
+				"INC_CRC" : "9CD3E3FBFE820215",
+				"FMEL_UPD_D" : "20231221171430"
+			}
+		}
+	]
+}

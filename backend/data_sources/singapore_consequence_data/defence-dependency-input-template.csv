@@ -1,0 +1,15 @@
+field,type,required,example,rule
+record_id,string,yes,DEP-0001,Non-sensitive identifier
+source_function,controlled category,yes,shared_energy_support,"Use archetype, not site name"
+dependent_function,controlled category,yes,medical_support,Record direction explicitly
+dependency_type,physical/cyber/geographic/logical/workforce/supply,yes,physical,NIST dependency dimensions
+minimum_service_fraction,0-1 range,operator,,Null until approved
+backup_endurance_hours,low/central/high,operator,,Do not infer from equipment presence
+affected_beneficiaries,low/central/high,operator or public service data,,Prevent E/X double count
+loss_fraction,0-1 range,scenario,,Version with scenario
+outage_hours,hours range,scenario,,Distinguish disruption from restoration
+alternative_capacity_fraction,0-1 range,operator,,Distance alone is not capacity
+recovery_30h_60h_90h,three hour ranges,operator,,"Functional recovery, not repair completion"
+information_state,enum,yes,restricted_input,measured/derived/operator/restricted/assumption/unavailable
+confidence,A-E,yes,,Unavailable must be E with null values
+source_version,string,yes,,No sensitive narrative required

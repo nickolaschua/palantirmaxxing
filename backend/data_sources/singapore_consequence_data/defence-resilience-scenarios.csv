@@ -1,0 +1,9 @@
+id,name,duration,observe,dimensions
+S01,External power loss,2h / 24h / 72h,backup endurance; refuelling; load shedding; water/telecom effects,"E,D,X,R"
+S02,Communications degradation,2h / 24h,alternate links; public warning; emergency coordination; data availability,"D,X,R"
+S03,Water or sanitation interruption,12h / 72h,potable reserve; hygiene; cooling; healthcare; workforce sustainability,"H,E,D,X,R"
+S04,Fuel/logistics constraint,24h / 7d,generator endurance; vehicle/air/marine operations; repair access; medical supply,"E,D,X,R,A"
+S05,Transport/access interruption,6h / 48h,staff arrival; evacuation; deliveries; alternate routes; civilian congestion,"H,E,D,X,R"
+S06,Workforce availability loss,1 shift / 3d,minimum staffing; specialist roles; fatigue; contractor dependence,"D,X,R"
+S07,Multi-service cascade,24h / 7d,non-overlapping downstream effects; sequence and timing; common-cause failure,"H,E,D,X,R,A"
+S08,Recovery-access constraint,days / months,safe access; spares; specialist labour; testing; temporary service,"E,D,X,R"

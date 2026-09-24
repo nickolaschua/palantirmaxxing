@@ -1,0 +1,22 @@
+{
+  "title": "Abstract defence and sensitive-dependency consequence evidence",
+  "retrieved": "2026-09-25",
+  "scope": "Global public evidence and non-geographic templates only",
+  "vector": [
+    "H",
+    "E",
+    "D",
+    "X",
+    "R",
+    "A"
+  ],
+  "weights": {
+    "H": 0.35,
+    "E": 0.2,
+    "D": 0.2,
+    "X": 0.15,
+    "R": 0.05,
+    "A": 0.05
+  },
+  "warning": "Do not use this package to identify, map, rank or infer specific defence sites, readiness, vulnerabilities or single points of failure. D remains null until supplied through an authorised interface."
+}

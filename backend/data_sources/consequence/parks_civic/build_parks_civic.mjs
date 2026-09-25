@@ -1,10 +1,12 @@
 import fs from "fs";
 import path from "path";
+import { fileURLToPath } from "url";
 import { Workbook, SpreadsheetFile } from "@oai/artifact-tool";
 
-const root = "/Users/jiajun/Documents/Codex/2026-09-24/i";
-const rawDir = path.join(root, "work/parks-civic/raw");
-const outDir = path.join(root, "outputs");
+const root = path.dirname(fileURLToPath(import.meta.url));
+const rawDir = path.join(root, "..", "cache", "parks_civic");
+const outDir = root;
+fs.mkdirSync(path.join(root, "work/parks-civic"), { recursive: true });
 const retrieved = "2026-09-25";
 
 const sourceDefs = {

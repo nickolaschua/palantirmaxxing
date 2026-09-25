@@ -1,7 +1,8 @@
 import fs from "fs";
 import path from "path";
+import { fileURLToPath } from "url";
 import { Workbook, SpreadsheetFile } from "@oai/artifact-tool";
-const root="/Users/jiajun/Documents/Codex/2026-09-24/i", out=path.join(root,"outputs"), work=path.join(root,"work/defence-dependencies"), date="2026-09-25";
+const here=path.dirname(fileURLToPath(import.meta.url)), out=here, work=path.join(here,"work/defence-dependencies"), date="2026-09-25";fs.mkdirSync(work,{recursive:true});
 const weights={H:0.35,E:0.20,D:0.20,X:0.15,R:0.05,A:0.05};
 const evidence=[
  {id:"EV-001",country:"Ukraine",event:"Repeated attacks on electricity infrastructure",system:"energy",documented_consequences:"Electricity loss propagated to water, sewage, sanitation, heating, hot water, health, education, economy and displacement; vulnerable groups disproportionately affected",metrics_available:"attack period; affected services; qualitative recovery burden",vector_use:"X and R evidence; H/E context",confidence:"A",source:"UN OHCHR",url:"https://ukraine.ohchr.org/en/Attacks-on-Ukraines-Energy-Infrastructure-Harm-to-the-Civilian-Population"},

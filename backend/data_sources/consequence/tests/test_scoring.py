@@ -1,8 +1,9 @@
 import math
 import unittest
 
-from backend.data_sources.consequence import (Estimate, Profile, ProfileError, flags, occupancy_score,
-                                 recovery_score, score_profile, service_score, validate)
+from backend.data_sources.consequence import (POLICY_DEMO_V2, Estimate, Profile, ProfileError, expected_casualties,
+                                 flag_table, flags, occupancy_score, rank_sites, recovery_score, score_profile,
+                                 service_score, validate, veto)
 
 
 def est(low, central=None, high=None, unit='x', state='assumption', grade='D', **kw):
@@ -45,14 +46,21 @@ class SpecExamples(unittest.TestCase):
 
 
 class Scoring(unittest.TestCase):
-    def test_bounds_are_ordered_and_unknown_vulnerability_widens_h(self):
+    def test_bounds_are_ordered_and_unknown_vulnerability_widens_c(self):
         scored = score_profile(profile())
-        self.assertLessEqual(scored.H.low, scored.H.central)
-        self.assertLessEqual(scored.H.central, scored.H.high)
+        self.assertLessEqual(scored.C.low, scored.C.central)
+        self.assertLessEqual(scored.C.central, scored.C.high)
         # V unknown: low/central use V=0, high uses V=100.
-        o = occupancy_score(1000)
-        self.assertAlmostEqual(scored.H.central, o * 0.6, places=6)
-        self.assertGreater(scored.H.high, scored.H.central)
+        self.assertAlmostEqual(scored.C.central, 1000 * 0.01, places=6)
+        self.assertAlmostEqual(scored.C.high, 1100 * 0.01 * (1 + 3.0), places=6)
+        self.assertAlmostEqual(scored.O_display.central, occupancy_score(scored.C.central), places=6)
+
+    def test_casualties_are_linear_in_people_and_rise_with_vulnerability(self):
+        one = score_profile(profile(occupancy=est(1000))).C.central
+        two = score_profile(profile(occupancy=est(2000))).C.central
+        self.assertAlmostEqual(two, 2 * one, places=9)
+        self.assertAlmostEqual(expected_casualties(1000, 50, 0.01, 3.0), 25.0)
+        self.assertGreater(expected_casualties(1000, 100, 0.01, 3.0), expected_casualties(1000, 0, 0.01, 3.0))
 
     def test_alternative_capacity_reduces_service_loss(self):
         with_alt = score_profile(profile(alternative_capacity_fraction=est(0.9)))
@@ -64,20 +72,20 @@ class Scoring(unittest.TestCase):
     def test_unavailable_is_never_zero(self):
         p = profile(occupancy=Estimate.unavailable('no key', 'people'))
         scored = score_profile(p)
-        self.assertIsNone(scored.H)
-        self.assertIsNone(scored.total)
+        self.assertIsNone(scored.C)
+        self.assertIsNone(scored.O_display)
+        self.assertIsNone(scored.secondary)
         self.assertFalse(scored.rankable)
-        self.assertIn('H', scored.dimensions_missing)
+        self.assertIn('C', scored.dimensions_missing)
 
     def test_missing_D_and_X_renormalise_and_are_recorded(self):
         scored = score_profile(profile())
         self.assertIn('D', scored.dimensions_missing)
         self.assertIn('X', scored.dimensions_missing)
         self.assertTrue(scored.rankable)
-        h, e, r, a = scored.H.central, scored.E.central, scored.R.central, scored.A.central
-        weighted = (0.35 * h + 0.20 * e + 0.05 * r + 0.05 * a) / 0.65
-        expected = 0.70 * weighted + 0.30 * max(h, e)
-        self.assertAlmostEqual(scored.total.central, expected, places=6)
+        e, r, a = scored.E.central, scored.R.central, scored.A.central
+        expected = (0.30 * e + 0.10 * r + 0.05 * a) / 0.45
+        self.assertAlmostEqual(scored.secondary.central, expected, places=6)
 
     def test_hazard_unknown_components_widen_a(self):
         scored = score_profile(profile())
@@ -93,6 +101,12 @@ class Scoring(unittest.TestCase):
         got = flags(p, scored)
         self.assertIn('high_human_exposure', got)
         self.assertIn('single_point_of_failure', got)
+
+    def test_priority_asset_flag_is_declared_and_survives_a_low_score(self):
+        p = profile(priority_asset=True, role='military_airbase', categories=('defence_security', 'aviation'))
+        got = flags(p, score_profile(p))
+        self.assertIn('priority_asset', got)
+        self.assertNotIn('priority_asset', flags(profile(), score_profile(profile())))
 
     def test_flag_table_reports_all_eight_flags_with_unavailable_where_unjudgeable(self):
         from backend.data_sources.consequence import FLAG_NAMES, flag_table
@@ -114,6 +128,63 @@ class Scoring(unittest.TestCase):
         self.assertNotIn('data_stale', flags(p, score_profile(p)))
         self.assertIn('data_stale', flags(p, score_profile(p), as_of='2026-09-25'))
 
+
+
+class VetoThenRank(unittest.TestCase):
+    def test_high_casualties_veto_and_essential_sites_trip_at_a_lower_magnitude(self):
+        ordinary = profile(occupancy=est(700), categories=('residential',))
+        hospital = profile(occupancy=est(700), categories=('health_emergency',))
+        self.assertNotIn('high_human_exposure', flags(ordinary, score_profile(ordinary)))  # C = 7 < 10
+        self.assertIn('high_human_exposure', flags(hospital, score_profile(hospital)))  # C = 7 >= 5
+        small = profile(occupancy=est(10), categories=('health_emergency',))
+        self.assertNotIn('high_human_exposure', flags(small, score_profile(small)))  # category alone never trips
+
+    def test_veto_separates_civilian_and_capability_reasons_and_unavailable_is_unknown(self):
+        table = dict(high_human_exposure=True, essential_service_floor_breach=False,
+                     minimum_capability_breach=True)
+        self.assertEqual(veto(table), ('vetoed', ('high_human_exposure',), ('minimum_capability_breach',)))
+        table = dict(high_human_exposure=False, essential_service_floor_breach=False,
+                     minimum_capability_breach='unavailable')
+        self.assertEqual(veto(table), ('unknown', (), ()))
+        table['minimum_capability_breach'] = False
+        self.assertEqual(veto(table)[0], 'pass')
+        p = profile(occupancy=est(100))
+        self.assertEqual(veto(flag_table(p, score_profile(p)))[0], 'unknown')  # no D: never a silent pass
+
+    def test_unassessed_priority_asset_is_vetoed_until_an_authorised_d_arrives(self):
+        table = dict(high_human_exposure=False, essential_service_floor_breach=False,
+                     minimum_capability_breach='unavailable')
+        self.assertEqual(veto(table, priority_asset=True, capability_available=False),
+                         ('vetoed', (), ('priority_asset_capability_not_assessed',)))
+        table['minimum_capability_breach'] = False
+        self.assertEqual(veto(table, priority_asset=True, capability_available=True)[0], 'pass')
+
+    def test_lower_casualties_win_and_secondary_breaks_ties_inside_the_band(self):
+        rows = [dict(id='a', C_central=10.0, secondary_central=50, veto_status='pass'),
+                dict(id='b', C_central=10.5, secondary_central=20, veto_status='unknown'),
+                dict(id='c', C_central=30.0, secondary_central=1, veto_status='pass'),
+                dict(id='d', C_central=1.0, secondary_central=99, veto_status='vetoed'),
+                dict(id='e', C_central='', secondary_central='', veto_status='unknown')]
+        ranked = rank_sites(rows)
+        self.assertEqual([r['id'] for r in ranked], ['b', 'a', 'c', 'd', 'e'])
+        self.assertEqual([r['rank'] for r in ranked], [1, 2, 3, 4, 5])
+
+    def test_all_vetoed_still_returns_an_ordered_list(self):
+        rows = [dict(id=i, C_central=c, secondary_central=0, veto_status='vetoed') for i, c in (('x', 50), ('y', 20))]
+        self.assertEqual([r['id'] for r in rank_sites(rows)], ['y', 'x'])
+
+    def test_ranking_does_not_depend_on_p_base(self):
+        people = (100, 5000, 800, 2400, 60)
+
+        def order(p_base):
+            policy = dict(POLICY_DEMO_V2, p_base=p_base, tie_floor=0)
+            rows = []
+            for i, n in enumerate(people):
+                s = score_profile(profile(occupancy=est(n)), policy)
+                rows.append(dict(id=i, C_central=s.C.central, secondary_central=s.secondary.central,
+                                 veto_status='pass'))
+            return [r['id'] for r in rank_sites(rows, policy)]
+        self.assertEqual(order(0.01), order(0.2))
 
 class Contract(unittest.TestCase):
     def test_valid_profile_is_rankable(self):

@@ -10,9 +10,9 @@ time windows), scored into (H, E, R, A) plus flags. D and X are not produced; th
 
 The first run downloads the MOH workbooks and data.gov.sg tables and geocodes about 350 postal codes through OneMap
 (about 6 minutes, cached and resumable). No API key is needed. `--refresh` re-downloads the weekly MOH workbooks.
-Outputs are `healthcare_sites.geojson`, `healthcare_profiles.csv`, `education_sites.geojson`,
-`education_profiles.csv` (34 columns: ids, the H/E/D/X/R/A vector and total, ending at `total_status`; flags and
-raw inputs are not written) and `provenance.json` (checksums, reconciliations and every assumption constant).
+Outputs are `healthcare_output_sites.geojson`, `healthcare_output.csv`, `education_output_sites.geojson`,
+`education_output.csv` (34 columns: ids, the H/E/D/X/R/A vector and total, ending at `total_status`; flags and
+raw inputs are not written) and `healthcare_output_provenance.json` (checksums, reconciliations and every assumption constant).
 
 ## Sources (all public download or API)
 
@@ -31,7 +31,7 @@ raw inputs are not written) and `provenance.json` (checksums, reconciliations an
 
 Hospital bed counts are not in any download. They are a cited table in `hospitals.py` (`HOSPITALS`), each with a
 low/central/high band and source URL, and are reconciled against SingStat's national public acute total in
-`provenance.json`.
+`healthcare_output_provenance.json`.
 
 ## Hospital method
 

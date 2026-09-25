@@ -35,7 +35,7 @@ use the national rate for the group; these are *extra* estimates and are reporte
 Private housing: landed residents go to landed parcels and condominium + other residents to the remaining
 parcels, each by floor area (plot area x GPR; `LND` assumes 1.4 and non-numeric GPR such as `EVA`/`SDP` assumes 1.0,
 both flagged in `raw`). A pool with no parcels of its own kind falls back to the other kind, then to the remainder.
-`provenance.json` reconciles placed residents against the census total; the difference must be zero.
+`residential_output_provenance.json` reconciles placed residents against the census total; the difference must be zero.
 
 **Occupancy (H).** residents x share at home for the condition x non-resident uplift, low/central/high. Night
 windows hold more people than midday. The home fractions are the spec section 9 residential values mapped onto
@@ -49,7 +49,7 @@ instead of assuming zero.
 
 **Service loss (E): shelter displacement.** Beneficiaries are the residents; loss fraction, displacement duration,
 alternative accommodation, recovery time and hazard are uncalibrated assumptions (grade D). Every constant is
-defined near the top of the Profiles and allocation sections of `residential.py` and copied to `provenance.json`.
+defined near the top of the Profiles and allocation sections of `residential.py` and copied to `residential_output_provenance.json`.
 
 ## Limitations
 

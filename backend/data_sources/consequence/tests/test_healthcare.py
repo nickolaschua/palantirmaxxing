@@ -81,7 +81,7 @@ class HospitalProfiles(unittest.TestCase):
             scored = score_profile(p)
             self.assertTrue(scored.rankable)
             self.assertEqual(scored.dimensions_missing, ('D', 'X'))
-            for score in (scored.H, scored.E, scored.R, scored.A, scored.total):
+            for score in (scored.C, scored.O_display, scored.E, scored.R, scored.A, scored.secondary):
                 self.assertLessEqual(score.low, score.central)
                 self.assertLessEqual(score.central, score.high)
 
@@ -159,14 +159,14 @@ class SchoolProfiles(unittest.TestCase):
             self.assertTrue(validate(p))
             self.assertEqual((p.categories, p.role), (('commercial_civic',), 'education_primary'))
             scored = score_profile(p)
-            for score in (scored.H, scored.E, scored.R, scored.A, scored.total):
+            for score in (scored.C, scored.O_display, scored.E, scored.R, scored.A, scored.secondary):
                 self.assertLessEqual(score.low, score.central)
                 self.assertLessEqual(score.central, score.high)
 
     def test_school_is_nearly_empty_at_night(self):
         p = school_by_condition(schools.school_profiles(school_site()))
         self.assertLess(p['weekday_night'].occupancy.central, 0.05 * p['weekday_midday'].occupancy.central)
-        self.assertLess(score_profile(p['weekday_night']).H.central, score_profile(p['weekday_midday']).H.central)
+        self.assertLess(score_profile(p['weekday_night']).C.central, score_profile(p['weekday_midday']).C.central)
         self.assertEqual(p['weekday_night'].beneficiaries_per_hour, p['weekday_midday'].beneficiaries_per_hour)
 
     def test_primary_pupils_raise_vulnerability_over_secondary(self):
@@ -174,7 +174,7 @@ class SchoolProfiles(unittest.TestCase):
         secondary = schools.school_profiles(school_site(level='Secondary', primary_share=0.0))[1]
         self.assertAlmostEqual(primary.vulnerability['age_vulnerable'].central, 1240 / 1340)
         self.assertEqual(secondary.vulnerability['age_vulnerable'].central, 0.0)
-        self.assertGreater(score_profile(primary).H.central, score_profile(secondary).H.central)
+        self.assertGreater(score_profile(primary).C.central, score_profile(secondary).C.central)
         self.assertEqual(secondary.role, 'education_secondary')
 
     def test_unsourced_vulnerability_stays_unavailable(self):
@@ -184,9 +184,10 @@ class SchoolProfiles(unittest.TestCase):
 
 
 class TrimRow(unittest.TestCase):
-    def test_columns_after_total_status_are_dropped(self):
-        row = {'site_id': 'a', 'total_central': 1, 'total_status': 'available', 'D_reason': 'x', 'flags_raised': ''}
-        self.assertEqual(list(pipeline.trim_row(row)), ['site_id', 'total_central', 'total_status'])
+    def test_columns_after_last_column_are_dropped(self):
+        last = pipeline.LAST_COLUMN
+        row = {'site_id': 'a', 'C_central': 1, last: '', 'D_reason': 'x', 'flags_raised': ''}
+        self.assertEqual(list(pipeline.trim_row(row)), ['site_id', 'C_central', last])
 
 
 if __name__ == '__main__':

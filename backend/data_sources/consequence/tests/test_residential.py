@@ -177,7 +177,7 @@ class Contract(unittest.TestCase):
     def test_scores_are_ordered_and_missing_dimensions_are_recorded(self):
         for p in residential.residential_profiles(site()):
             scored = score_profile(p)
-            for score in (scored.H, scored.E, scored.R, scored.A, scored.total):
+            for score in (scored.C, scored.O_display, scored.E, scored.R, scored.A, scored.secondary):
                 self.assertLessEqual(score.low, score.central)
                 self.assertLessEqual(score.central, score.high)
             self.assertEqual(scored.dimensions_missing, ('D', 'X'))
@@ -207,7 +207,7 @@ class Vulnerability(unittest.TestCase):
         p = by_condition(residential.residential_profiles(site()))['weekday_night']
         self.assertFalse(p.vulnerability['medically_dependent'].available)
         scored = score_profile(p)
-        self.assertGreater(scored.H.high, scored.H.central)
+        self.assertGreater(scored.C.high, scored.C.central)
 
     def test_age_share_rises_by_day_and_missing_share_is_unavailable(self):
         day = by_condition(residential.residential_profiles(site()))['weekday_midday'].vulnerability['age_vulnerable']
@@ -236,13 +236,16 @@ class Service(unittest.TestCase):
             e = getattr(p, name)
             self.assertEqual((e.state, e.grade), ('assumption', 'D'))
 
-    def test_a_hard_flag_survives_and_h_is_capped_while_vulnerability_is_unknown(self):
-        huge = by_condition(residential.residential_profiles(site(residents=200000.0, role='subzone_remainder')))['weekday_night']
+    def test_hard_flags_survive_and_casualties_are_not_capped(self):
+        huge = by_condition(residential.residential_profiles(site(residents=200000.0, role='subzone_remainder',
+                                                                  geometry_wkt='POLYGON ((0 0, 1000 0, 1000 1000, 0 1000, 0 0))')))['weekday_night']
         scored = score_profile(huge)
-        self.assertIn('essential_service_floor_breach', flags(huge, scored, '2026-09-25'))
-        # With V unknown (counted as 0 at central) H cannot pass 0.6 x 100, so the 80 threshold is out of reach.
-        self.assertLess(scored.H.central, 80)
-        self.assertGreaterEqual(scored.H.high, scored.H.central)
+        raised = flags(huge, scored, '2026-09-25')
+        self.assertIn('essential_service_floor_breach', raised)
+        self.assertIn('high_human_exposure', raised)
+        # C is linear in people: no log cap hides a mass-casualty site.
+        self.assertAlmostEqual(scored.C.central, huge.occupancy.central * 0.01 * (1 + 3.0 * scored.V.central / 100), places=6)
+        self.assertGreaterEqual(scored.C.high, scored.C.central)
 
 
 ZONES = gpd.GeoDataFrame({'SUBZONE_C': ['AA01', 'AA02', 'BB01']},
@@ -300,20 +303,20 @@ class Pipeline(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             out = Path(tmp)
             pipeline.write_residential(sites, out, {'reconciliation': report})
-            with (out / 'residential_profiles.csv').open(encoding='utf-8') as stream:
+            with (out / 'residential_output.csv').open(encoding='utf-8') as stream:
                 rows = list(csv.DictReader(stream))
-            geo = json.loads((out / 'residential_sites.geojson').read_text(encoding='utf-8'))
-            prov = json.loads((out / 'provenance.json').read_text(encoding='utf-8'))
+            geo = json.loads((out / 'residential_output_sites.geojson').read_text(encoding='utf-8'))
+            prov = json.loads((out / 'residential_output_provenance.json').read_text(encoding='utf-8'))
         self.assertEqual(len(rows), len(sites) * 6)
-        self.assertEqual(list(rows[0])[-1], 'total_status')
+        self.assertEqual(list(rows[0])[-1], pipeline.LAST_COLUMN)
         self.assertEqual(len(geo['features']), len(sites))
         self.assertEqual(prov['profile_rows'], len(rows))
         self.assertTrue(all(r['rankable'] == 'True' for r in rows))
         block = {r['condition_id']: r for r in rows if r['site_id'] == 'hdb:1|A RD'}
-        self.assertGreater(float(block['weekday_night']['H_central']), float(block['weekday_midday']['H_central']))
+        self.assertGreater(float(block['weekday_night']['C_central']), float(block['weekday_midday']['C_central']))
         for r in rows:
-            self.assertLessEqual(float(r['total_low']), float(r['total_central']))
-            self.assertLessEqual(float(r['total_central']), float(r['total_high']))
+            self.assertLessEqual(float(r['secondary_low']), float(r['secondary_central']))
+            self.assertLessEqual(float(r['secondary_central']), float(r['secondary_high']))
 
 
 if __name__ == '__main__':

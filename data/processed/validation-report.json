@@ -587,7 +587,7 @@
     "unmatched_boundaries": 0,
     "unmatched_population": 0
   },
-  "dataset_version": "sg-residents-2020-mp2019-cbb1c395f60918c1",
+  "dataset_version": "sg-residents-2020-mp2019-c96bd025533f986c",
   "excluded": [
     {
       "reasons": [
@@ -654,8 +654,8 @@
     },
     {
       "reasons": [
-        "source: Ring Self-intersection[103.823615961275 1.2602588451659]",
-        "projected: Ring Self-intersection[26920.1690000358 26978.5440998196]"
+        "source: Ring Self-intersection[103.823637948297 1.26075433692188]",
+        "projected: Ring Self-intersection[26922.6162000358 27033.3329998214]"
       ],
       "zone_id": "BMSZ01"
     },
@@ -962,8 +962,8 @@
       },
       {
         "reasons": [
-          "source: Ring Self-intersection[103.823615961275 1.2602588451659]",
-          "projected: Ring Self-intersection[26920.1690000358 26978.5440998196]"
+          "source: Ring Self-intersection[103.823637948297 1.26075433692188]",
+          "projected: Ring Self-intersection[26922.6162000358 27033.3329998214]"
         ],
         "zone_id": "BMSZ01"
       },
@@ -995,7 +995,7 @@
     "overlap_scope": "Pairs of valid, positive-area source/projected zones; invalid zones excluded without repair",
     "overlaps": [
       {
-        "area_m2": 0.0006134482993012114,
+        "area_m2": 0.0006134483611255348,
         "zone_ids": [
           "HGSZ09",
           "PLSZ04"
@@ -1009,14 +1009,14 @@
         ]
       },
       {
-        "area_m2": 0.3192289764976613,
+        "area_m2": 0.3192289764635378,
         "zone_ids": [
           "YSSZ05",
           "SESZ07"
         ]
       },
       {
-        "area_m2": 0.0005457402967294911,
+        "area_m2": 0.0005457404832895918,
         "zone_ids": [
           "YSSZ05",
           "SLSZ01"
@@ -1030,7 +1030,7 @@
         ]
       },
       {
-        "area_m2": 0.0007818989852239611,
+        "area_m2": 0.0007818989256520581,
         "zone_ids": [
           "WCSZ03",
           "WCSZ01"
@@ -1048,7 +1048,7 @@
     "projected_crs": "EPSG:3414",
     "repairs": [],
     "source_coordinate_convention": "RFC 7946 WGS84 longitude, latitude; degrees (no crs member in inspected source)",
-    "transformation": "axis order change (2D) + Inverse of SVY21 to WGS 84 (1) + Singapore Transverse Mercator + axis order change (2D)"
+    "transformation": "Inverse of SVY21 to WGS 84 (1) + Singapore Transverse Mercator (with axis order normalized for visualization)"
   },
   "joins": {
     "ambiguous_boundaries": [],
@@ -1519,7 +1519,7 @@
   "totals": {
     "difference_from_national": 130,
     "eligible_population": 3982190,
-    "eligible_zone_area_m2": 502764650.00881994,
+    "eligible_zone_area_m2": 502764650.0088202,
     "known_display_population": 4044340,
     "known_planning_area_sum": 4044250,
     "published_national": 4044210

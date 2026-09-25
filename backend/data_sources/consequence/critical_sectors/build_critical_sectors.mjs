@@ -1,8 +1,9 @@
 import fs from "fs";
 import path from "path";
+import { fileURLToPath } from "url";
 import { Workbook, SpreadsheetFile } from "@oai/artifact-tool";
 
-const root="/Users/jiajun/Documents/Codex/2026-09-24/i", outDir=path.join(root,"outputs"), workDir=path.join(root,"work/critical-sectors");
+const here=path.dirname(fileURLToPath(import.meta.url)), outDir=here, workDir=path.join(here,"work/critical-sectors");fs.mkdirSync(workDir,{recursive:true});
 const retrieved="2026-09-25", population=6111200;
 const weights={H:0.35,E:0.20,D:0.20,X:0.15,R:0.05,A:0.05};
 

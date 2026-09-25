@@ -118,10 +118,10 @@ for(const s of sites){
 
 fs.mkdirSync(outDir,{recursive:true});
 const siteHeaders=Object.keys(sites[0]); const scenarioHeaders=Object.keys(scenarioRows[0]);
-fs.writeFileSync(path.join(outDir,"parks-civic-sites.csv"),toCsv(siteHeaders,sites));
-fs.writeFileSync(path.join(outDir,"parks-civic-scenarios.csv"),toCsv(scenarioHeaders,scenarioRows));
+fs.writeFileSync(path.join(outDir,"input_sites.csv"),toCsv(siteHeaders,sites));
+fs.writeFileSync(path.join(outDir,"input_conditions.csv"),toCsv(scenarioHeaders,scenarioRows));
 const metadata={title:"Singapore parks and civic venues consequence evidence starter dataset",retrieved,scope:"Civilian consequence data preparation only",site_count:sites.length,scenario_row_count:scenarioRows.length,scenarios,weights,warning:"Composite index is a transparent research baseline, not an interception, targeting, or operational recommendation. Preserve factors and uncertainty bands when reweighting.",sources:Object.values(sourceDefs)};
-fs.writeFileSync(path.join(outDir,"parks-civic-metadata.json"),JSON.stringify(metadata,null,2));
+fs.writeFileSync(path.join(outDir,"input_metadata.json"),JSON.stringify(metadata,null,2));
 
 const wb=Workbook.create();
 const scenarioSample=scenarioRows.slice(0,2000);
@@ -134,7 +134,7 @@ function base(sh){sh.showGridlines=false;}
 title(readme,"Parks and civic venues evidence dataset","Public site inventory, scenario-conditioned occupancy ranges, factor scores and transparent baseline weighting","J");
 readme.getRange("A6:B13").values=[["Metric","Value"],["Sites",sites.length],["Scenario rows",scenarioRows.length],["Scenarios per site",scenarios.length],["Public source layers",Object.keys(sourceDefs).length],["Retrieved",retrieved],["Observed site attendance rows",0],["Composite index range","0-100"]];
 readme.getRange("A6:B6").format={fill:"#183B56",font:{bold:true,color:"#FFFFFF"}};
-readme.getRange("A16:A20").values=[["How to use"],["1. Use Sites as the stable public inventory. Preserve source_id, source_native_id and source_updated."],["2. Join the full parks-civic-scenarios.csv on site_id. This workbook contains a 2,000-row preview."],["3. Replace priors when site capacity, attendance, schedules or operator data become available."],["4. Recalculate the composite only after agreeing policy weights; never convert missing data to zero."]];
+readme.getRange("A16:A20").values=[["How to use"],["1. Use Sites as the stable public inventory. Preserve source_id, source_native_id and source_updated."],["2. Join the full input_conditions.csv on site_id. This workbook contains a 2,000-row preview."],["3. Replace priors when site capacity, attendance, schedules or operator data become available."],["4. Recalculate the composite only after agreeing policy weights; never convert missing data to zero."]];
 readme.mergeCells("A16:J16");readme.getRange("A16:J16").format={fill:"#147D80",font:{bold:true,color:"#FFFFFF"}};
 readme.mergeCells("A17:J17");readme.mergeCells("A18:J18");readme.mergeCells("A19:J19");readme.mergeCells("A20:J20");
 readme.getRange("A23:A25").values=[["Boundary"],["This workbook supports civilian location categorisation and research estimates. It does not model weapon effects, select interception points, rank targets, or provide an operational recommendation."],["The final index is transparent and reversible: all component scores, ranges, assumptions, and weights are retained in the CSV files."]];readme.mergeCells("A23:J23");readme.mergeCells("A24:J24");readme.mergeCells("A25:J25");readme.getRange("A23:J23").format={fill:"#FFF0C7",font:{bold:true,color:"#725000"}};
@@ -144,7 +144,7 @@ title(siteSheet,"Site inventory","One normalized row per public park or civic/re
 table(siteSheet,6,siteHeaders,sites.map(x=>siteHeaders.map(h=>x[h])),"SiteInventory");
 const siteWidths=[15,34,20,22,12,12,13,13,13,34,20,20,18,18,48,54,15];siteWidths.forEach((w,i)=>siteSheet.getRange(`${col(i+1)}:${col(i+1)}`).format.columnWidth=w);siteSheet.getRange(`A7:${col(siteHeaders.length)}${6+sites.length}`).format.rowHeight=32;
 
-title(scenSheet,"Scenario sample","First 2,000 of 57,656 conditional rows; use parks-civic-scenarios.csv for the complete dataset",col(scenarioHeaders.length));
+title(scenSheet,"Scenario sample","First 2,000 of 57,656 conditional rows; use input_conditions.csv for the complete dataset",col(scenarioHeaders.length));
 table(scenSheet,6,scenarioHeaders,scenarioSample.map(x=>scenarioHeaders.map(h=>x[h])),"ScenarioSample");
 const sw=[15,13,24,16,20,22,14,16,14,15,18,18,20,23,21,19,17,55,18,52];sw.forEach((w,i)=>scenSheet.getRange(`${col(i+1)}:${col(i+1)}`).format.columnWidth=w);scenSheet.getRange(`A7:${col(scenarioHeaders.length)}${6+scenarioSample.length}`).format.rowHeight=34;
 
@@ -178,5 +178,5 @@ wb.recalculate();
 const errors=await wb.inspect({kind:"match",searchTerm:"#REF!|#DIV/0!|#VALUE!|#NAME\\?|#N/A|#NUM!|#NULL!",options:{useRegex:true,maxResults:100},summary:"formula error scan"});
 const previews={"Read Me":"A1:J26","Sites":"A1:Q24","Scenario Sample":"A1:T24","Scoring Model":"A1:G27","Source Log":"A1:I15","Assumptions":"A1:G17"};
 for(const [n,range] of Object.entries(previews)){const p=await wb.render({sheetName:n,range,scale:1,format:"png"});fs.writeFileSync(path.join(root,"work/parks-civic",`${n.replaceAll(" ","-").toLowerCase()}.png`),new Uint8Array(await p.arrayBuffer()));}
-const out=await SpreadsheetFile.exportXlsx(wb);await out.save(path.join(outDir,"singapore-parks-civic-evidence.xlsx"));
-console.log(JSON.stringify({sites:sites.length,scenarios:scenarioRows.length,subtypes:Object.fromEntries([...new Set(sites.map(x=>x.subtype))].map(k=>[k,sites.filter(x=>x.subtype===k).length])),errors:errors.ndjson,outputs:["singapore-parks-civic-evidence.xlsx","parks-civic-sites.csv","parks-civic-scenarios.csv","parks-civic-metadata.json"]},null,2));
+const out=await SpreadsheetFile.exportXlsx(wb);await out.save(path.join(outDir,"input_evidence.xlsx"));
+console.log(JSON.stringify({sites:sites.length,scenarios:scenarioRows.length,subtypes:Object.fromEntries([...new Set(sites.map(x=>x.subtype))].map(k=>[k,sites.filter(x=>x.subtype===k).length])),errors:errors.ndjson,outputs:["input_evidence.xlsx","input_sites.csv","input_conditions.csv","input_metadata.json"]},null,2));

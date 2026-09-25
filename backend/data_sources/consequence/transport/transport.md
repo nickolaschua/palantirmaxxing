@@ -12,7 +12,7 @@ Code: `roads.py`, `rail.py`, `datamall.py` (this folder); run with `../pipeline.
 
 ## Outputs (`output/transport/`)
 
-- `transport_profiles.csv` - one row per site and condition, **35 columns (A to AI)**, following the consequence
+- `transport_output.csv` - one row per site and condition, **35 columns (A to AI)**, following the consequence
   model's full vector:
   - **H, E, D, X, R, A and total**, each as `_low/_central/_high`. D and X have no source for transport, so
     they are blank (never zero) and listed in `dimensions_missing`; the total renormalises over the dimensions
@@ -20,13 +20,13 @@ Code: `roads.py`, `rail.py`, `datamall.py` (this folder); run with `../pipeline.
   - **All eight flags** as `flag_*` columns (`True`, `False` or `unavailable` where the input needed to judge
     it is absent: `mass_vulnerability_condition`, `minimum_capability_breach`).
   - `site_id`, `condition_id`, `role`, `rankable`, `dimensions_missing`, `policy_version`.
-- `transport_inputs.csv` - same rows, keyed by `site_id` + `condition_id`. Starts with the readable location:
+- `transport_output_inputs.csv` - same rows, keyed by `site_id` + `condition_id`. Starts with the readable location:
   `name`, station `codes` and `lat`/`lon` (WGS84; a representative point on the segment for roads). Then raw inputs with low/central/high,
   state and grade (occupancy, beneficiaries, loss, outage hours, alternative capacity, recovery, the five
   vulnerability and five hazard components), dimension statuses and reasons. Kept so raw values stay beside
   the derived scores; safe to ignore.
-- `transport_sites.geojson` - one feature per site with its raw evidence.
-- `provenance.json` - population dataset version, graph sizes, DataMall months and checksums, every assumption.
+- `transport_output_sites.geojson` - one feature per site with its raw evidence.
+- `transport_output_provenance.json` - population dataset version, graph sizes, DataMall months and checksums, every assumption.
 
 The format is deliberately plain so it can change when the consumer is decided.
 
@@ -71,7 +71,7 @@ Six, all in the normal operating state: weekday AM peak (07-09), midday (09-17),
 - Rail topology is inferred from codes, not track geometry; LRT layouts beyond the listed loops are simple chains.
 - Weekend counts include public holidays, which DataMall files under the weekend/holiday day type.
 - All coefficients (trips per person, vehicle density, hourly shares, dwell, recovery times, alternative
-  capacity) are uncalibrated assumptions, listed in `provenance.json`.
+  capacity) are uncalibrated assumptions, listed in `transport_output_provenance.json`.
 - Vulnerability is unknown for transport, so H bounds widen (V=0 at low/central, V=100 at high).
 - Dimensions D (capability) and X (cascades) are absent and reported in `dimensions_missing`.
 - Requires OSMnx 1.x and pandas < 3. The old code needed Python 3.10+; new modules use

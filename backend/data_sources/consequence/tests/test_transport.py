@@ -278,15 +278,15 @@ class Outputs(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             out = Path(tmp)
             pipeline.write_transport(profiles, out, {'test': True})
-            with (out / 'transport_profiles.csv').open(encoding='utf-8') as stream:
+            with (out / 'transport_output.csv').open(encoding='utf-8') as stream:
                 reader = csv.DictReader(stream)
                 header = reader.fieldnames
                 rows = list(reader)
-            with (out / 'transport_inputs.csv').open(encoding='utf-8') as stream:
+            with (out / 'transport_output_inputs.csv').open(encoding='utf-8') as stream:
                 input_rows = list(csv.DictReader(stream))
-            sites = json.loads((out / 'transport_sites.geojson').read_text(encoding='utf-8'))
-            provenance = json.loads((out / 'provenance.json').read_text(encoding='utf-8'))
-        self.assertEqual(len(header), 35)  # stops at spreadsheet column AI
+            sites = json.loads((out / 'transport_output_sites.geojson').read_text(encoding='utf-8'))
+            provenance = json.loads((out / 'transport_output_provenance.json').read_text(encoding='utf-8'))
+        self.assertEqual(len(header), 43)  # pipeline.MAIN_COLUMNS
         self.assertEqual(header[-1], 'policy_version')
         self.assertEqual(len(rows), len(profiles))
         self.assertEqual(len(input_rows), len(profiles))
@@ -300,7 +300,7 @@ class Outputs(unittest.TestCase):
                             for r in station_inputs))
         for r in rows:
             # the whole vector is present: D and X are explicit gaps, never zero and never dropped
-            for dim in ('H', 'E', 'R', 'A', 'total'):
+            for dim in ('C', 'O_display', 'E', 'R', 'A', 'secondary'):
                 self.assertNotEqual(r[f'{dim}_central'], '')
             for dim in ('D', 'X'):
                 self.assertEqual((r[f'{dim}_central'], r[f'{dim}_low'], r[f'{dim}_high']), ('', '', ''))
@@ -322,8 +322,8 @@ class Outputs(unittest.TestCase):
             self.assertNotEqual(r['hazard_toxic_high'], '')
         self.assertTrue(any(r['flag_single_point_of_failure'] == 'True' for r in road_rows))
         for r in road_rows:
-            self.assertLessEqual(float(r['total_low']), float(r['total_central']))
-            self.assertLessEqual(float(r['total_central']), float(r['total_high']))
+            self.assertLessEqual(float(r['secondary_low']), float(r['secondary_central']))
+            self.assertLessEqual(float(r['secondary_central']), float(r['secondary_high']))
 
 
 if __name__ == '__main__':

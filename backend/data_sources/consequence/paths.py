@@ -6,6 +6,7 @@ REPO = PACKAGE.parents[2]
 CACHE = PACKAGE / "cache"
 OUTPUT = PACKAGE / "output"
 POPULATION = REPO / "data" / "processed" / "population-projected.json"
+SCENARIO = REPO / "data" / "scenarios" / "demo-singapore.json"  # read-only: placeholder footprint radius
 
 SOURCES_CACHE = CACHE / "sources"  # data.gov.sg, MOH, census and OneMap downloads
 DATAMALL_CACHE = CACHE / "transport" / "datamall"

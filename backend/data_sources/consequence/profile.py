@@ -79,8 +79,11 @@ class Profile:
         'no authorised capability input', 'score_0_100'))
     dependencies: tuple = ()
     single_point_of_failure: bool = False
+    priority_asset: bool = False  # e.g. military airbase; declared, never derived from the score
     categories: tuple = ('transport',)
     raw: dict = field(default_factory=dict)
+    population_method: str = 'direct'  # direct | areal_density | building_level (population_disaggregation.py)
+    overlap_area_km2: Optional[float] = None  # footprint overlap used by areal_density
 
 
 def _check_estimate(name: str, e: Estimate, errors: list) -> None:
@@ -114,6 +117,8 @@ def validate(profile: Profile) -> bool:
     for name in ('site_id', 'condition_id', 'role', 'geometry_wkt'):
         if not isinstance(getattr(profile, name), str) or not getattr(profile, name).strip():
             errors.append(f'{name}: required nonempty string')
+    if profile.population_method not in ('direct', 'areal_density', 'building_level'):
+        errors.append(f'population_method: unknown {profile.population_method!r}')
     if not profile.categories:
         errors.append('categories: at least one category required')
     for name in ('occupancy', 'beneficiaries_per_hour', 'loss_fraction', 'outage_hours',

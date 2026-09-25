@@ -1,5 +1,9 @@
 """Consequence-vector formulas (singapore-consequence-model.md §6-7).
 
+Human harm is expected casualties C = N * p_base * (1 + k*V/100), linear in the
+people present. Sites are judged in two steps: a hard veto on magnitude flags,
+then a lexicographic rank on C with the secondary E/D/X/R/A score breaking ties.
+
 Each dimension is computed three times, from the low, central and high inputs,
 so results carry bounds. Every formula here is monotone in its inputs, so
 "low inputs give a low score" holds; alternative capacity is the one input that
@@ -14,16 +18,36 @@ from typing import NamedTuple, Optional
 
 from .profile import HAZARD_COMPONENTS, VULNERABILITY_COMPONENTS, Estimate, Profile
 
-# Versioned policy profile (spec §7): a demonstration blend, not objective truth.
+# Superseded demo-v1 blend (log occupancy H in a compensatory total), kept for reference only.
 POLICY_DEMO_V1 = {
     'version': 'demo-v1',
     'weights': {'H': 0.35, 'E': 0.20, 'D': 0.20, 'X': 0.15, 'R': 0.05, 'A': 0.05},
     'max_blend': 0.30,
 }
+# Versioned policy profile (spec §7). Every constant is an uncalibrated placeholder, not objective truth:
+# p_base is the baseline harm probability for an unshielded person in the debris footprint; k is how much
+# likelier a fully vulnerable person is to be harmed; tie_band/tie_floor bound the C values that count as tied.
+POLICY_DEMO_V2 = {
+    'version': 'demo-v2',
+    'p_base': 0.01,
+    'k': 3.0,
+    'secondary_weights': {'E': 0.30, 'D': 0.30, 'X': 0.25, 'R': 0.10, 'A': 0.05},
+    'tie_band': 0.10,
+    'tie_floor': 0.5,
+}
 VULNERABILITY_WEIGHTS = dict(zip(VULNERABILITY_COMPONENTS, (0.30, 0.25, 0.20, 0.15, 0.10)))
 HAZARD_WEIGHTS = dict(zip(HAZARD_COMPONENTS, (0.30, 0.25, 0.20, 0.15, 0.10)))
-HIGH_EXPOSURE_H = 80
+HIGH_EXPOSURE_C = 10  # expected casualties (placeholder)
 SERVICE_FLOOR_E = 80
+ESSENTIAL_THRESHOLD_FACTOR = 0.5  # essential sites trip high_human_exposure at half the casualties
+ESSENTIAL_SERVICE_FLOOR_E = 60
+MASS_VULNERABILITY_V = 50
+# Categories whose loss is essential: they lower trip thresholds, never trip a flag by themselves.
+ESSENTIAL_CATEGORIES = ('health_emergency', 'defence_security', 'aviation', 'energy', 'water', 'port')
+CIVILIAN_VETO_FLAGS = ('high_human_exposure', 'essential_service_floor_breach')
+CAPABILITY_VETO_FLAGS = ('minimum_capability_breach',)
+# Precautionary: a declared priority asset whose capability no authorised input has assessed is vetoed.
+UNASSESSED_PRIORITY = 'priority_asset_capability_not_assessed'
 HAZARD_HIGH_A = 60
 UNCERTAINTY_SPREAD = 40
 STALE_DAYS = 400
@@ -40,13 +64,15 @@ class Score(NamedTuple):
 
 @dataclass(frozen=True)
 class Scored:
-    H: Optional[Score]
+    C: Optional[Score]  # expected casualties; the primary ranking key
+    O_display: Optional[Score]  # min(100, 20*log10(C+1)): dashboard only, never used to rank
+    V: Score
     E: Optional[Score]
     D: Optional[Score]
     X: Optional[Score]
     R: Optional[Score]
     A: Optional[Score]
-    total: Optional[Score]
+    secondary: Optional[Score]  # tie-breaker over E/D/X/R/A
     rankable: bool
     dimensions_missing: tuple
     policy_version: str
@@ -54,6 +80,10 @@ class Scored:
 
 def occupancy_score(n: float) -> float:
     return min(100.0, 20.0 * math.log10(n + 1))
+
+
+def expected_casualties(n: float, v: float, p_base: float, k: float) -> float:
+    return n * p_base * (1 + k * v / 100)
 
 
 def service_score(effective_person_hours: float) -> int:
@@ -107,11 +137,13 @@ def _direct(e: Estimate) -> Optional[Score]:
     return Score(*e.bounds) if e.available else None
 
 
-def score_profile(profile: Profile, policy: dict = POLICY_DEMO_V1) -> Scored:
+def score_profile(profile: Profile, policy: dict = POLICY_DEMO_V2) -> Scored:
     v = _vulnerability(profile)
-    H = E = R = None
+    C = O_display = E = R = None
     if profile.occupancy.available:
-        H = _map3(lambda n, vv: occupancy_score(n) * (0.6 + 0.4 * vv / 100), _triple(profile.occupancy), v)
+        C = _map3(lambda n, vv: expected_casualties(n, vv, policy['p_base'], policy['k']),
+                  _triple(profile.occupancy), v)
+        O_display = _map3(occupancy_score, C)
     if all(getattr(profile, k).available for k in
            ('beneficiaries_per_hour', 'loss_fraction', 'outage_hours', 'alternative_capacity_fraction')):
         E = _map3(lambda b, lf, h, alt: service_score(b * lf * h * (1 - alt)),
@@ -123,38 +155,44 @@ def score_profile(profile: Profile, policy: dict = POLICY_DEMO_V1) -> Scored:
     A = _hazard(profile)
     X = None  # dependency cascade deferred: no dependency records supplied yet
 
-    dims = {'H': H, 'E': E, 'D': D, 'X': X, 'R': R, 'A': A}
+    dims = {'C': C, 'E': E, 'D': D, 'X': X, 'R': R, 'A': A}
     missing = tuple(k for k, s in dims.items() if s is None)
-    rankable = H is not None and E is not None
-    total = None
+    rankable = C is not None and E is not None
+    secondary = None
+    present = {k: s for k, s in dims.items() if k != 'C' and s is not None}
     if rankable:
-        present = {k: s for k, s in dims.items() if s is not None}
-        weights = policy['weights']
+        weights = policy['secondary_weights']
         norm = sum(weights[k] for k in present)
-        blend = policy['max_blend']
-        parts = []
-        for i in range(3):
-            weighted = sum(weights[k] * present[k][i] for k in present) / norm
-            peak = max(present[k][i] for k in ('H', 'E', 'D') if k in present)
-            parts.append((1 - blend) * weighted + blend * peak)
-        total = Score(*parts)
-    return Scored(H, E, D, X, R, A, total, rankable, missing, policy['version'])
+        secondary = Score(*(sum(weights[k] * present[k][i] for k in present) / norm for i in range(3)))
+    return Scored(C, O_display, Score(*v), E, D, X, R, A, secondary, rankable, missing, policy['version'])
+
+
+def _essential(profile: Profile) -> bool:
+    return profile.priority_asset or any(c in ESSENTIAL_CATEGORIES for c in profile.categories)
+
+
+def _casualty_threshold(profile: Profile) -> float:
+    return HIGH_EXPOSURE_C * (ESSENTIAL_THRESHOLD_FACTOR if _essential(profile) else 1)
 
 
 def flags(profile: Profile, scored: Scored, as_of: Optional[str] = None) -> tuple:
     """Non-compensatory flags (spec §7); never cleared by a low total."""
     out = []
-    if scored.H is not None and scored.H.central >= HIGH_EXPOSURE_H:
+    if scored.C is not None and scored.C.central >= _casualty_threshold(profile):
         out.append('high_human_exposure')
-    if scored.E is not None and scored.E.central >= SERVICE_FLOOR_E:
+    floor = ESSENTIAL_SERVICE_FLOOR_E if _essential(profile) else SERVICE_FLOOR_E
+    if scored.E is not None and scored.E.central >= floor:
         out.append('essential_service_floor_breach')
     if profile.single_point_of_failure:
         out.append('single_point_of_failure')
+    if profile.priority_asset:
+        out.append('priority_asset')
     if scored.A is not None and scored.A.central >= HAZARD_HIGH_A:
         out.append('hazard_inventory_high')
     if as_of is not None and _stale(profile, as_of):
         out.append('data_stale')
-    dims = [s for s in (scored.H, scored.E, scored.D, scored.X, scored.total) if s is not None]
+    # C is unbounded, so its spread is judged on the 0-100 display transform.
+    dims = [s for s in (scored.O_display, scored.E, scored.D, scored.X, scored.secondary) if s is not None]
     if any(s.high - s.low >= UNCERTAINTY_SPREAD for s in dims):
         out.append('uncertainty_high')
     return tuple(out)
@@ -189,10 +227,63 @@ def flag_table(profile: Profile, scored: Scored, as_of: Optional[str] = None) ->
     table = {name: name in raised for name in FLAG_NAMES}
     if not any(e.available for e in profile.vulnerability.values()):
         table['mass_vulnerability_condition'] = 'unavailable'
-    elif scored.H is not None and scored.H.central >= HIGH_EXPOSURE_H:
+    elif (scored.C is not None and scored.C.central >= _casualty_threshold(profile)
+          and scored.V.central >= MASS_VULNERABILITY_V):
         table['mass_vulnerability_condition'] = True
     if not profile.capability.available:
         table['minimum_capability_breach'] = 'unavailable'
     if as_of is None:
         table['data_stale'] = 'unavailable'
     return table
+
+
+def veto(table: dict, priority_asset: bool = False, capability_available: bool = True) -> tuple:
+    """Step A: (status, civilian_reasons, capability_reasons) from a flag_table.
+
+    status is 'vetoed' when any veto flag is True, 'unknown' when none is True but one could not be
+    judged ('unavailable'), else 'pass'. Capability reasons stay separate from civilian-harm reasons.
+    A priority asset without an authorised capability input is vetoed as a precaution; the veto is
+    never derived from the site's scores.
+    """
+    civilian = tuple(f for f in CIVILIAN_VETO_FLAGS if table.get(f) is True)
+    capability = tuple(f for f in CAPABILITY_VETO_FLAGS if table.get(f) is True)
+    if priority_asset and not capability_available:
+        capability += (UNASSESSED_PRIORITY,)
+    if civilian or capability:
+        status = 'vetoed'
+    elif any(table.get(f) == 'unavailable' for f in CIVILIAN_VETO_FLAGS + CAPABILITY_VETO_FLAGS):
+        status = 'unknown'
+    else:
+        status = 'pass'
+    return status, civilian, capability
+
+
+def rank_sites(rows: list, policy: dict = POLICY_DEMO_V2) -> list:
+    """Step B: order rows (dicts with C_central, secondary_central, veto_status) and add 'rank'.
+
+    Survivors ('pass' and 'unknown') come first, then vetoed rows, then rows with no C. Within a group,
+    the lowest remaining C opens a tie band (C <= max(C_min * (1 + tie_band), C_min + tie_floor));
+    rows in the band are ordered by secondary, lowest first, and the next band starts after them.
+    Never drops a row.
+    """
+    def number(v):
+        return None if v is None or v == '' else float(v)
+
+    def banded(group):
+        rest = sorted(group, key=lambda r: number(r['C_central']))
+        out = []
+        while rest:
+            c_min = number(rest[0]['C_central'])
+            limit = max(c_min * (1 + policy['tie_band']), c_min + policy['tie_floor'])
+            band = [r for r in rest if number(r['C_central']) <= limit]
+            rest = rest[len(band):]
+            out += sorted(band, key=lambda r: (number(r['secondary_central']) is None,
+                                               number(r['secondary_central']) or 0.0,
+                                               number(r['C_central'])))
+        return out
+
+    scored = [r for r in rows if number(r['C_central']) is not None]
+    ordered = (banded([r for r in scored if r['veto_status'] != 'vetoed'])
+               + banded([r for r in scored if r['veto_status'] == 'vetoed'])
+               + [r for r in rows if number(r['C_central']) is None])
+    return [dict(r, rank=i) for i, r in enumerate(ordered, 1)]

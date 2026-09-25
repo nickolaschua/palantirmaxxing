@@ -32,24 +32,24 @@
     "totals": {
       "difference_from_national": 130,
       "eligible_population": 3982190,
-      "eligible_zone_area_m2": 502764650.00881994,
+      "eligible_zone_area_m2": 502764650.0088202,
       "known_display_population": 4044340,
       "known_planning_area_sum": 4044250,
       "published_national": 4044210
     }
   },
-  "dataset_version": "sg-residents-2020-mp2019-cbb1c395f60918c1",
+  "dataset_version": "sg-residents-2020-mp2019-c96bd025533f986c",
   "libraries": {
-    "geos": "3.11.4",
-    "proj": "9.3.0",
-    "pyproj": "3.6.1",
-    "shapely": "2.0.7"
+    "geos": "3.13.1",
+    "proj": "9.8.1",
+    "pyproj": "3.8.0",
+    "shapely": "2.1.2"
   },
   "population_source_published": "2021-06-18",
   "population_year": 2020,
   "retrieval_meaning": "Official download time (UTC)",
-  "retrieved_at": "2026-09-14T12:09:43.531554+00:00",
-  "runtime_python": "3.9.6",
+  "retrieved_at": "2026-09-25T09:49:45.504431+00:00",
+  "runtime_python": "3.14.5",
   "settings": {
     "aliases": {},
     "always_xy": true,

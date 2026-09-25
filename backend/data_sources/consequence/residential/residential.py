@@ -21,6 +21,9 @@ import shapely
 
 from backend.data_sources.consequence import Estimate, Profile
 from backend.data_sources.consequence.conditions import CONDITIONS
+from backend.data_sources.consequence.population_disaggregation import (PLACEHOLDER_FOOTPRINT_RADIUS_M,
+                                                                        effective_occupancy_areal_density,
+                                                                        placeholder_overlap_km2)
 from backend.data_sources.consequence.profile import HAZARD_COMPONENTS
 from backend.data_sources.population import join_boundaries, parse_hierarchy, parse_value
 
@@ -235,6 +238,9 @@ RESIDENTS_BAND = {
     'floor_area_share': (0.60, 1.00, 1.50),  # private housing shared out by plot area x GPR
     'subzone_remainder': (0.90, 1.00, 1.10),
 }
+# Area sites (merged landed lots, subzone remainders) carry a whole area's residents; only the share inside the
+# placeholder footprint is scored (population_disaggregation.py, areal density). Blocks and parcels are direct.
+AREAL_ROLES = ('private_landed', 'subzone_remainder')
 RESIDENTS_GRADE = {'census_subzone_rate': 'C', 'mixed_rate': 'D', 'national_rate': 'D',
                    'floor_area_share': 'D', 'subzone_remainder': 'C'}
 # Shelter displacement service (E): residents who lose their home, for how long, and with what fallback.
@@ -275,10 +281,17 @@ def _times(*triples: Triple) -> Triple:
 
 def residential_profiles(site: Site) -> list:
     band = RESIDENTS_BAND[site.method]
-    residents = _times((site.residents,) * 3, band)
+    population_method, overlap, present, how = 'direct', None, site.residents, f'residents allocated by {site.method}'
+    if site.role in AREAL_ROLES:
+        geometry = shapely.from_wkt(site.geometry_wkt)
+        overlap = placeholder_overlap_km2(geometry)
+        present = effective_occupancy_areal_density(site.residents, geometry.area / 1e6, overlap)
+        population_method = 'areal_density'
+        how += (f', x share of site area inside a {PLACEHOLDER_FOOTPRINT_RADIUS_M:.0f} m placeholder footprint'
+                ' (uniform density, assumption)')
+    residents = _times((present,) * 3, band)
     grade = RESIDENTS_GRADE[site.method]
-    beneficiaries = _estimate(residents, 'people', 'derived', grade,
-                              f'residents allocated by {site.method}', CENSUS_SOURCE)
+    beneficiaries = _estimate(residents, 'people', 'derived', grade, how, CENSUS_SOURCE)
     loss = _estimate(LOSS_FRACTION, 'fraction', 'assumption', 'D', 'share of residents displaced')
     outage = _estimate(DISPLACEMENT_HOURS, 'hours', 'assumption', 'D', 'displacement duration')
     alternative = _estimate(ALTERNATIVE_ACCOMMODATION, 'fraction', 'assumption', 'D',
@@ -318,7 +331,8 @@ def residential_profiles(site: Site) -> list:
             site_id=site.site_id, condition_id=cid, role=site.role, geometry_wkt=site.geometry_wkt,
             occupancy=occupancy, beneficiaries_per_hour=beneficiaries, loss_fraction=loss, outage_hours=outage,
             alternative_capacity_fraction=alternative, recovery_t90_hours=recovery, vulnerability=vulnerability,
-            hazard=hazard, categories=('residential',), raw=site.raw))
+            hazard=hazard, categories=('residential',), raw=site.raw,
+            population_method=population_method, overlap_area_km2=overlap))
     return profiles
 
 

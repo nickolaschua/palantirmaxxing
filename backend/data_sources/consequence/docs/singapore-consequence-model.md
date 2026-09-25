@@ -119,15 +119,9 @@ Suggested recurring conditions:
 
 The stored evidence should remain a vector. The proposed 0-100 values are presentation and policy inputs derived from raw measurements.
 
-### 6.1 Human exposure `H`
+### 6.1 Human harm: expected casualties `C`
 
-For each sampled scenario, estimate people present, `N`, including residents, staff, visitors, patients, students, and people in transit. `N` is drawn from the condition-specific occupancy distribution rather than queried from a required live feed. Convert the sampled count to a bounded occupancy score:
-
-```text
-O = min(100, 20 * log10(N + 1))
-```
-
-This yields approximately 21 at 10 people, 40 at 100, 60 at 1,000, 80 at 10,000, and 100 at 100,000.
+For each sampled scenario, estimate people present, `N`, including residents, staff, visitors, patients, students, and people in transit. `N` is drawn from the condition-specific occupancy distribution rather than queried from a required live feed. For area sites, `N` is only the share inside the footprint (section 9.1).
 
 Estimate vulnerability from proportions in the current population:
 
@@ -140,10 +134,19 @@ V = 100 * (
   + 0.10 * age_vulnerable
 )
 
-H = O * (0.60 + 0.40 * V / 100)
+p_harm(V) = p_base * (1 + k * V / 100)
+C = N * p_harm(V)
 ```
 
-The vulnerability inputs remain configurable policy assumptions until calibrated. Raw proportions must be retained.
+`C` is linear in people, so a mass-casualty site is never compressed. `p_base` (baseline harm probability for an unshielded person in the debris footprint, placeholder 0.01) and `k` (how much likelier a fully vulnerable person is to be harmed, placeholder 3) are uncalibrated `demo-v2` policy constants. Ranking by `C` does not depend on `p_base`; the veto threshold does. A missing vulnerability component counts 0 at low/central and 1 at high, so unknown vulnerability widens `C` rather than lowering it.
+
+For dashboards only:
+
+```text
+O_display = min(100, 20 * log10(C + 1))
+```
+
+`O_display` is never used for veto flags, ranking or optimisation; only its low-high spread feeds `uncertainty_high`, because `C` itself is unbounded. The vulnerability inputs remain configurable policy assumptions until calibrated. Raw proportions must be retained. (Superseded `demo-v1`: `H = O * (0.60 + 0.40 * V / 100)` with `O = min(100, 20 * log10(N + 1))`; the log compression understated mass-casualty outcomes.)
 
 ### 6.2 Essential civilian-service loss `E`
 
@@ -218,16 +221,21 @@ A = 0.30 * flammable
 
 Each component is 0-100 and must state whether it is measured, operator-supplied, or assumed. This factor describes site potential only; it is not the probability that a hazard will be activated.
 
-## 7. Total score and non-compensatory flags
+## 7. Veto, then rank, and non-compensatory flags
 
-The preferred output is the full vector `(H, E, D, X, R, A)`. A demonstration total may be calculated as:
+The preferred output is the full vector `(C, E, D, X, R, A)`. The `demo-v2` policy profile (versioned, not objective truth) judges sites in two steps instead of a compensatory weighted total.
+
+**Step A, hard veto (evaluated first).** A site is `vetoed` when `high_human_exposure`, `essential_service_floor_breach` or `minimum_capability_breach` is true. Capability reasons (`minimum_capability_breach`) are reported separately from civilian-harm reasons. A site where no veto flag is true but one could not be judged (for example no authorised D input) is `unknown`, never a silent `pass`. Veto flags are magnitude-based: `high_human_exposure` trips at `C >= 10` expected casualties and `essential_service_floor_breach` at `E >= 80`. An essential site (priority asset, or category health_emergency, defence_security, aviation, energy or water) trips them at a lower magnitude (`C >= 5`, `E >= 60`), but a category never trips a flag by itself. All thresholds are placeholders.
+
+**Step B, lexicographic rank of survivors.** Survivors (`pass` and `unknown`) are ordered by `C`, lowest first. The lowest remaining `C` opens a tie band, `C <= max(1.10 * C_min, C_min + 0.5)`; inside it sites are ordered by
 
 ```text
-weighted = 0.35*H + 0.20*E + 0.20*D + 0.15*X + 0.05*R + 0.05*A
-total = 0.70*weighted + 0.30*max(H, E, D)
+secondary = 0.30*E + 0.30*D + 0.25*X + 0.10*R + 0.05*A   (renormalised over the dimensions present)
 ```
 
-This formula is a versioned policy profile, not an objective truth. It gives severe human, essential-service, or authorised-capability effects extra visibility.
+lowest first, and the next band starts after it. The fixed band keeps the rule transitive. Vetoed sites follow, ranked the same way, so an all-vetoed set still yields an ordering for the supervisor rather than an empty result.
+
+(Superseded `demo-v1`: `total = 0.70*(0.35*H + 0.20*E + 0.20*D + 0.15*X + 0.05*R + 0.05*A) + 0.30*max(H, E, D)`, which let a severe result in one dimension be averaged away.)
 
 Always report these flags separately:
 
@@ -312,6 +320,18 @@ weekday_day_occupancy = resident_population * day_home_fraction
 ```
 
 Allocate subzone residents to a development using dwelling units or residential floor area. Report ranges rather than false precision.
+
+### 9.1 Area sites: people inside the footprint
+
+Some residential sites are areas, not buildings: merged landed lots (`private_landed`, one per subzone) and `subzone_remainder`. Scored with every resident at one point, a neighbourhood would be compared with a single building, and linear `C` would magnify the mismatch. Tier 1 (`population_method = areal_density`) scales such a site's `N` by the share of its geometry inside the footprint:
+
+```text
+N_effective = N_site * overlap_area / site_area
+```
+
+This is assumption-grade: density is taken as uniform over the site geometry (roads, gardens and void decks included). Site-level scoring has no interception candidate, so the footprint is a placeholder circle on the site's representative point with the static scenario's supplied radius (`footprint_radius_m`, 500 m, in `data/scenarios/demo-singapore.json`). It is not debris physics, and it must be replaced by the candidate's own footprint once the candidate bridge exists. Buildings and parcels are `direct`.
+
+Tier 2 (`building_level`: weighting by residential floor area within the footprint) is the named follow-up. It is deferred because it needs a building layer with residential floor area that is not yet integrated.
 
 ## 10. Data confidence and uncertainty
 

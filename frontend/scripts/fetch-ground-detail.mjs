@@ -1,9 +1,10 @@
 /**
  * Fetches the grey canvas's vegetation and bridge/tunnel geometry from OSM
  * through Overpass and writes src/lib/greens.json and src/lib/structures.json,
- * plus the demo's military areas (with names) to src/demo/military.json.
+ * plus the demo's named areas: military bases to src/demo/military.json and
+ * hospitals to src/demo/hospitals.json.
  *
- *   node scripts/fetch-ground-detail.mjs [forest|park|road|rail|military ...]
+ *   node scripts/fetch-ground-detail.mjs [forest|park|road|rail|military|hospital ...]
  *
  * With no arguments it fetches everything; named layers refresh only those and
  * keep the rest of the file as it is.
@@ -52,10 +53,12 @@ const LAYERS = {
   // Bases only: ranges, danger areas and training areas are not installations.
   military: box => `way["landuse"="military"]${box};rel["landuse"="military"]${box};
     way["military"~"^(base|barracks|airfield|naval_base)$"]${box};rel["military"~"^(base|barracks|airfield|naval_base)$"]${box};`,
+  // Hospital grounds mapped as areas; a hospital mapped only as a point has no ring to draw.
+  hospital: box => `way["amenity"="hospital"]${box};rel["amenity"="hospital"]${box};`,
 };
-const AREAS = new Set(["forest", "park", "military"]);
+const AREAS = new Set(["forest", "park", "military", "hospital"]);
 /** Layers whose features keep their OSM name. */
-const NAMED = new Set(["military"]);
+const NAMED = new Set(["military", "hospital"]);
 
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -226,8 +229,9 @@ async function build(file, names, dir = "lib") {
 const greens = await build("greens.json", ["forest", "park"]);
 const structures = await build("structures.json", ["road", "rail"]);
 const military = await build("military.json", ["military"], "demo");
+const hospitals = await build("hospitals.json", ["hospital"], "demo");
 
-for (const [file, data] of [["greens.json", greens], ["structures.json", structures], ["military.json", military]]) {
+for (const [file, data] of [["greens.json", greens], ["structures.json", structures], ["military.json", military], ["hospitals.json", hospitals]]) {
   const points = Object.values(data).flat().reduce((sum, line) => sum + (line.ring ?? line).length / 2, 0);
   console.log(`${file}: ${points.toLocaleString("en-SG")} points`);
 }

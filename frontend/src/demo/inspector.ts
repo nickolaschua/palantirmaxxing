@@ -1,7 +1,7 @@
 import { createSingaporeCanvas } from "../lib/index.js";
 import type { BasemapKind, CircleStyle, LightingPreset, TimedSample } from "../lib/index.js";
 import { circleBounds, framePose } from "./decision-model.js";
-import { mountMilitary } from "./military.js";
+import { HOSPITALS, MILITARY, mountOsmAreas } from "./osm-areas.js";
 import type { Grade, Option } from "./decision-model.js";
 
 export interface InspectorContent {
@@ -23,6 +23,8 @@ export interface Inspector {
   setLighting(preset: LightingPreset): void;
   syncTime(t: Date): void;
   setCircleStyles(styles: ReadonlyMap<string, CircleStyle>): void;
+  /** The threat's route in the window; off once the threat is down. */
+  setRouteVisible(visible: boolean): void;
   dispose(): void;
 }
 
@@ -69,9 +71,9 @@ export async function mountInspector(setup: {
   const canvas = await createSingaporeCanvas(mapEl, { ...setup.keys, basemap: setup.basemap, ...detail })
     .catch(() => createSingaporeCanvas(mapEl, { basemap: "plain", ...detail }));
   canvas.time.setRange(setup.range[0], setup.range[1]);
-  canvas.addPath(setup.samples, { color: "#f5f7fa", width: 2 });
+  const route = canvas.addPath(setup.samples, { color: "#f5f7fa", width: 2 });
   const circles = canvas.addGroundCircles(setup.options.map(o => ({ id: o.id, center: o.position, radiusM: o.footprint.radiusM })));
-  mountMilitary(canvas, { labels: false }); // the same bases as the main map; released with the canvas
+  for (const layer of [MILITARY, HOSPITALS]) mountOsmAreas(canvas, layer, { labels: false }); // as on the main map; released with the canvas
   const aspect = (): number => mapEl.clientWidth / Math.max(1, mapEl.clientHeight);
   const frame = (o: Option, duration: number): void => {
     canvas.camera.flyTo(framePose(circleBounds(o.position, o.footprint.radiusM * 1.2), PITCH, aspect()), { duration }).catch(ignoreCancel);
@@ -122,6 +124,7 @@ export async function mountInspector(setup: {
     setLighting: preset => canvas.scene.setLighting(preset),
     syncTime: t => canvas.time.seek(t),
     setCircleStyles: styles => circles.setStyles(styles),
+    setRouteVisible: visible => route.setVisible(visible),
     dispose() {
       canvas.destroy(); // releases its layers too
       root.remove();

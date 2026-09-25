@@ -1,9 +1,24 @@
 import type { SingaporeCanvas } from "../lib/index.js";
 import militaryJson from "./military.json";
+import hospitalsJson from "./hospitals.json";
 
-/** The tint, the outline and the legend swatch. */
-export const MILITARY_COLOUR = "#a970ff";
-export const MILITARY_SOURCE = "OpenStreetMap landuse=military";
+/** One named-area layer from OSM: what to draw, in which colour, and how the legend names it. */
+export interface OsmAreaLayer {
+  id: string;
+  /** The tint, the outline and the legend swatch. */
+  colour: string;
+  legend: string;
+  areas: readonly { name: string | null; ring: number[] }[];
+}
+
+export const MILITARY: OsmAreaLayer = {
+  id: "military", colour: "#a970ff", legend: "Military bases · OpenStreetMap landuse=military",
+  areas: militaryJson.military as OsmAreaLayer["areas"],
+};
+export const HOSPITALS: OsmAreaLayer = {
+  id: "hospital", colour: "#e5484d", legend: "Hospitals · OpenStreetMap amenity=hospital",
+  areas: hospitalsJson.hospital as OsmAreaLayer["areas"],
+};
 
 /** Labels show below this camera height, so the island view is not a wall of names. */
 const LABEL_BELOW_M = 20_000;
@@ -39,20 +54,19 @@ function area(ring: readonly Point[]): number {
   return Math.abs(twice / 2);
 }
 
-export interface MilitaryLayer {
+export interface AreaLayer {
   setVisible(visible: boolean): void;
   destroy(): void;
 }
 
 /**
- * Military bases from OSM: buildings tinted purple, boundaries drawn and, on
- * the main map, each named base labelled once. Illustration from public map
- * data, not part of planning-result/1.
+ * Named areas from OSM: buildings tinted in the layer's colour, boundaries
+ * drawn and, on the main map, each name labelled once. Illustration from
+ * public map data, not part of planning-result/1.
  */
-export function mountMilitary(canvas: SingaporeCanvas, options: { labels: boolean }): MilitaryLayer {
-  const areas = (militaryJson.military as { name: string | null; ring: number[] }[])
-    .map((a, i) => ({ id: `military-${i}`, name: a.name, ring: decode(a.ring) }));
-  const tint = canvas.addBuildingTint(areas, { color: MILITARY_COLOUR, outlineColor: MILITARY_COLOUR, outlineWidth: 2 });
+export function mountOsmAreas(canvas: SingaporeCanvas, layer: OsmAreaLayer, options: { labels: boolean }): AreaLayer {
+  const areas = layer.areas.map((a, i) => ({ id: `${layer.id}-${i}`, name: a.name, ring: decode(a.ring) }));
+  const tint = canvas.addBuildingTint(areas, { color: layer.colour, outlineColor: layer.colour, outlineWidth: 2 });
 
   let visible = true;
   let labels: ReturnType<SingaporeCanvas["addLabels"]> | undefined;

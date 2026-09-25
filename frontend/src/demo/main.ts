@@ -1,6 +1,6 @@
 import { createSingaporeCanvas, FlightCancelled, PRESETS } from "../lib/index.js";
 import { mountPopulation } from "./population.js";
-import { MILITARY_COLOUR, MILITARY_SOURCE, mountMilitary } from "./military.js";
+import { HOSPITALS, MILITARY, mountOsmAreas } from "./osm-areas.js";
 import { mountDecision } from "./decision.js";
 import type { Decision } from "./decision.js";
 import type { BasemapKind, LightingPreset } from "../lib/index.js";
@@ -86,7 +86,7 @@ async function setView(next: (typeof VIEWS)[number]): Promise<void> {
   }
   view = next.id;
   population.setActive(view === "population");
-  military.setVisible(view !== "population"); // that view has its own labels and colours
+  for (const layer of osmLayers) layer.setVisible(view !== "population"); // that view has its own labels and colours
   decision?.setBasemap(canvas.scene.basemap);
   for (const [id, b] of viewButtons) b.setAttribute("aria-pressed", String(id === view));
 }
@@ -100,14 +100,17 @@ for (const v of VIEWS) {
 }
 const population = mountPopulation(canvas, panel);
 
-// Military bases from OSM: purple buildings and boundaries, named up close.
-const military = mountMilitary(canvas, { labels: true });
-const legend = document.createElement("p");
-legend.className = "legend";
-const swatch = document.createElement("i");
-swatch.style.background = MILITARY_COLOUR;
-legend.append(swatch, `Military bases · ${MILITARY_SOURCE}`);
-panel.append(group("Layers"), legend);
+// Named areas from OSM: tinted buildings and boundaries, labelled up close.
+panel.append(group("Layers"));
+const osmLayers = [MILITARY, HOSPITALS].map(layer => {
+  const legend = document.createElement("p");
+  legend.className = "legend";
+  const swatch = document.createElement("i");
+  swatch.style.background = layer.colour;
+  legend.append(swatch, layer.legend);
+  panel.append(legend);
+  return mountOsmAreas(canvas, layer, { labels: true });
+});
 
 // Lighting
 let lighting: LightingPreset = "midday";

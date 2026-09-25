@@ -227,8 +227,10 @@ export function createCamera(
       heading += rate * ((now - last) / 1000);
       last = now;
       cam.lookAt(target, new HeadingPitchRange(heading, pitch, opts.radius));
+      scene.requestRender(); // wall-clock motion: keep frames coming while orbiting
     };
     scene.preRender.addEventListener(orbitTick);
+    scene.requestRender();
   }
 
   function stop(): void {

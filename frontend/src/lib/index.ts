@@ -92,7 +92,14 @@ export async function createSingaporeCanvas(
     baseLayer: false,
     infoBox: false,
     selectionIndicator: false,
+    // Lighter on integrated GPUs: no 2D/Columbus vertex data, a frame only when
+    // something changes (the clock, the camera, a load, a layer), and FXAA in place
+    // of 4x MSAA, which quadruples the framebuffer.
+    scene3DOnly: true,
+    requestRenderMode: true,
+    msaaSamples: 1,
   });
+  viewer.scene.postProcessStages.fxaa.enabled = true;
 
   const emit = new Emitter<CanvasEvents>();
   viewer.scene.renderError.addEventListener((_scene: unknown, error: Error) => {

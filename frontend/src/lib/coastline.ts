@@ -1,25 +1,21 @@
 import {
   Cartesian3,
-  ClassificationType,
   ClippingPolygon,
   ClippingPolygonCollection,
   Color,
-  ColorGeometryInstanceAttribute,
-  GeometryInstance,
-  GroundPolylineGeometry,
-  GroundPolylinePrimitive,
-  GroundPrimitive,
-  PolygonGeometry,
-  PolygonHierarchy,
-  PolylineColorAppearance,
+  Event,
+  GeographicTilingScheme,
+  Math as CesiumMath,
+  Rectangle,
   Viewer,
 } from "cesium";
+import type { ImageryProvider } from "cesium";
 import landRings from "./coastline.json";
 import waterRings from "./water.json";
-import roadLines from "./roads.json";
-import pathLines from "./paths.json";
 import greenRings from "./greens.json";
 import structureLines from "./structures.json";
+import { packLines, query } from "./ground-model.js";
+import type { Lines } from "./ground-model.js";
 
 /**
  * The ground: Singapore's landmass, its coastline, and its inland water.
@@ -27,6 +23,11 @@ import structureLines from "./structures.json";
  * This lives with the scene, not with layers. It is part of what Singapore
  * looks like, not data a host application supplied, so a host never adds or
  * removes it and it does not belong in the id-addressed layer registry.
+ *
+ * It is drawn as an imagery layer on the globe: each map tile Cesium asks for
+ * is painted with Canvas 2D from the data below, so only what is on screen
+ * costs memory. Being part of the globe surface, it sits under every
+ * classification primitive (circles, outlines, tints) and drapes over terrain.
  *
  * Land geometry is OSM `place=island` relations 1769123 (Pulau Ujong) and
  * 9574725 (Sentosa), via Nominatim at a ~11 m simplification threshold. This is
@@ -101,69 +102,102 @@ export function dedupe(flat: readonly number[]): number[] {
 const landPositions = (landRings as number[][]).map((r) =>
   Cartesian3.fromDegreesArray(dedupe(r)),
 );
-const waterPositions = (waterRings as number[][]).map((r) =>
-  Cartesian3.fromDegreesArray(dedupe(r)),
-);
-/**
- * Roads ship delta-encoded: each coordinate is an integer of degrees * 1e5, and
- * every point after the first is stored as an offset from the previous one.
- * Small integers instead of repeated "103.84217" strings takes the full
- * drivable network from 2.87 MB to 1.85 MB.
+
+/*
+ * Roads, greens and structures ship delta-encoded: each coordinate is an
+ * integer of degrees * 1e5, and every point after the first is stored as an
+ * offset from the previous one. Small integers instead of repeated "103.84217"
+ * strings takes the full drivable network from 2.87 MB to 1.85 MB. Land and
+ * water are plain degrees. All are packed once per page and shared by every canvas.
  */
-function decodeLine(enc: readonly number[]): number[] {
-  const out: number[] = [];
-  let x = enc[0] as number;
-  let y = enc[1] as number;
-  out.push(x / 1e5, y / 1e5);
-  for (let i = 2; i < enc.length; i += 2) {
-    x += enc[i] as number;
-    y += enc[i + 1] as number;
-    out.push(x / 1e5, y / 1e5);
-  }
-  return out;
-}
+const land = packLines(landRings as number[][], false);
+const water = packLines(waterRings as number[][], false);
+const forest = packLines(greenRings.forest as number[][], true);
+const parks = packLines(greenRings.park as number[][], true);
+const roadStructures = packLines(structureLines.road as number[][], true);
+const railStructures = packLines(structureLines.rail as number[][], true);
 
-function toPositions(lines: number[][]): Cartesian3[][] {
-  return lines
-    .map((r) => dedupe(decodeLine(r)))
-    .filter((r) => r.length >= 4)
-    .map((r) => Cartesian3.fromDegreesArray(r));
-}
+/*
+ * Level of detail by tile level. A 256 px geographic tile at level L is about
+ * 78 km / 2^L per pixel, and Cesium picks a level whose pixels are near screen
+ * pixels: on a ~1400 px wide map level 12 (~19 m) is roughly a 20 km camera
+ * height, level 14 (~5 m) roughly 4 km. Above them, lines would be sub-pixel
+ * grey blur. Level 20 (~7 cm) is the finest; Cesium stretches it for anything closer.
+ */
+const ROADS_FROM_LEVEL = 12;
+const PATHS_FROM_LEVEL = 14;
+const MAX_LEVEL = 20;
+const TILE = 256;
 
-const roadPositions = toPositions(roadLines as number[][]);
-const pathPositions = toPositions(pathLines as number[][]);
-const forestPositions = toPositions(greenRings.forest as number[][]);
-const parkPositions = toPositions(greenRings.park as number[][]);
-const roadStructurePositions = toPositions(structureLines.road as number[][]);
-const railStructurePositions = toPositions(structureLines.rail as number[][]);
+/**
+ * Roads and pavements are 6 MB of JSON and 243k lines: loaded as their own
+ * chunks the first time a tile needs them. Once per page, shared by every canvas.
+ */
+let roads: Lines | null = null;
+let paths: Lines | null = null;
+let roadsLoad: Promise<void> | null = null;
+let pathsLoad: Promise<void> | null = null;
+const loadRoads = (): Promise<void> => roadsLoad ??= import("./roads.json")
+  .then(({ default: lines }) => { roads = packLines(lines as number[][], true); });
+const loadPaths = (): Promise<void> => pathsLoad ??= import("./paths.json")
+  .then(({ default: lines }) => { paths = packLines(lines as number[][], true); });
 
-function lineLayer(lines: Cartesian3[][], color: Color, width: number): GroundPolylinePrimitive {
-  return new GroundPolylinePrimitive({
-    classificationType: ClassificationType.TERRAIN,
-    appearance: new PolylineColorAppearance(),
-    geometryInstances: lines.map(
-      (line) =>
-        new GeometryInstance({
-          geometry: new GroundPolylineGeometry({ positions: line, width }),
-          attributes: { color: ColorGeometryInstanceAttribute.fromColor(color) },
-        }),
-    ),
-  });
-}
+const tilingScheme = new GeographicTilingScheme();
+// Tiles are requested only over the land's box, 0.02° (~2 km) wider for bridges and piers.
+const extent = Rectangle.fromDegrees(
+  Math.min(...land.box.filter((_, i) => i % 4 === 0)) / 1e5 - 0.02,
+  Math.min(...land.box.filter((_, i) => i % 4 === 1)) / 1e5 - 0.02,
+  Math.max(...land.box.filter((_, i) => i % 4 === 2)) / 1e5 + 0.02,
+  Math.max(...land.box.filter((_, i) => i % 4 === 3)) / 1e5 + 0.02,
+);
 
-function fill(rings: Cartesian3[][], color: Color): GroundPrimitive {
-  return new GroundPrimitive({
-    // TERRAIN only. BOTH would drape the fill over the buildings as well and
-    // flatten the city into a coloured slab.
-    classificationType: ClassificationType.TERRAIN,
-    geometryInstances: rings.map(
-      (ring) =>
-        new GeometryInstance({
-          geometry: new PolygonGeometry({ polygonHierarchy: new PolygonHierarchy(ring) }),
-          attributes: { color: ColorGeometryInstanceAttribute.fromColor(color) },
-        }),
-    ),
-  });
+/** Paints one tile; `lod` is the level used for the road and pavement cut-offs. */
+function drawTile(x: number, y: number, level: number, lod: number): HTMLCanvasElement {
+  const canvas = document.createElement("canvas");
+  canvas.width = canvas.height = TILE;
+  const ctx = canvas.getContext("2d")!;
+  ctx.lineJoin = ctx.lineCap = "round";
+  const r = tilingScheme.tileXYToRectangle(x, y, level);
+  const west = CesiumMath.toDegrees(r.west) * 1e5, east = CesiumMath.toDegrees(r.east) * 1e5;
+  const south = CesiumMath.toDegrees(r.south) * 1e5, north = CesiumMath.toDegrees(r.north) * 1e5;
+  const sx = TILE / (east - west), sy = TILE / (north - south);
+  // A line whose box is just outside the tile can still reach in by half its width.
+  const pad = 2 / sx;
+
+  const paint = (lines: Lines | null, color: Color, width: number, closed: boolean): void => {
+    if (!lines) return;
+    const { xy, start } = lines;
+    ctx.fillStyle = ctx.strokeStyle = color.toCssColorString();
+    ctx.lineWidth = width;
+    ctx.beginPath();
+    query(lines, west - pad, south - pad, east + pad, north + pad, (i) => {
+      for (let p = start[i]!; p < start[i + 1]!; p++) {
+        const px = (xy[p * 2]! - west) * sx, py = (north - xy[p * 2 + 1]!) * sy;
+        if (p === start[i]) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+      }
+      if (closed) ctx.closePath();
+      // Rings wind both ways, so one nonzero fill of them all would cancel where
+      // opposite rings overlap. Filled one by one, overlaps union.
+      if (width === 0) { ctx.fill(); ctx.beginPath(); }
+    });
+    if (width !== 0) ctx.stroke();
+  };
+
+  // Order matters: land, then vegetation, then water over both, then pavements
+  // under roads so junctions read correctly, bridges and tunnels over the
+  // carriageways they carry, and the coast edge on top. Widths are in tile
+  // pixels, which Cesium shows at 1–2 screen pixels, so they are about half the
+  // screen widths the lines used to have.
+  paint(land, LAND_GREY, 0, true);
+  paint(forest, FOREST_GREEN, 0, true);
+  paint(parks, PARK_GREEN, 0, true);
+  paint(water, WATER_BLUE, 0, true);
+  if (lod >= PATHS_FROM_LEVEL) paint(paths, PAVEMENT_GREY, 1, false);
+  if (lod >= ROADS_FROM_LEVEL) paint(roads, ROAD_GREY, 1.25, false);
+  paint(roadStructures, STRUCTURE_GREY, 1.25, false);
+  paint(railStructures, RAIL_GREY, 1.5, false);
+  paint(land, COAST_GREY, 1, true);
+  return canvas;
 }
 
 /**
@@ -180,41 +214,50 @@ export function singaporeClip(): ClippingPolygonCollection {
 
 export function addGround(viewer: Viewer): Ground {
   const scene = viewer.scene;
+  const layers = viewer.imageryLayers;
+  // The cut-offs assume a ~1400 px wide map; a narrower canvas (the side
+  // window) picks tiles ~log2(ratio) levels coarser at the same height.
+  const lod = (level: number): number =>
+    level + Math.max(0, Math.round(Math.log2(1400 / (viewer.canvas.clientWidth || 1400))));
 
-  const land = fill(landPositions, LAND_GREY);
-  const forest = fill(forestPositions, FOREST_GREEN);
-  const parks = fill(parkPositions, PARK_GREEN);
-  const water = fill(waterPositions, WATER_BLUE);
+  // Cesium's ImageryProvider is an interface in practice; its typings declare a class.
+  const provider = {
+    tilingScheme,
+    rectangle: extent,
+    tileWidth: TILE,
+    tileHeight: TILE,
+    minimumLevel: 0,
+    maximumLevel: MAX_LEVEL,
+    tileDiscardPolicy: undefined,
+    errorEvent: new Event(),
+    credit: undefined,
+    proxy: undefined,
+    // Unpainted pixels are clear, so the globe's sea-blue base colour shows.
+    hasAlphaChannel: true,
+    getTileCredits: () => [],
+    pickFeatures: () => undefined,
+    requestImage(x: number, y: number, level: number): Promise<HTMLCanvasElement> {
+      const detail = lod(level);
+      // A tile that shows roads or pavements waits for them, so none is drawn
+      // without; meanwhile Cesium stretches the coarser tile above it.
+      return Promise.all([
+        detail >= ROADS_FROM_LEVEL ? loadRoads() : undefined,
+        detail >= PATHS_FROM_LEVEL ? loadPaths() : undefined,
+      ]).catch(() => undefined) // chunk fetch failed: draw without
+        // Each tile in its own task, so a burst of tiles does not stall one frame.
+        .then(() => new Promise((resolve) => setTimeout(() => resolve(drawTile(x, y, level, detail)), 0)));
+    },
+  } as unknown as ImageryProvider;
 
-  const coast = new GroundPolylinePrimitive({
-    classificationType: ClassificationType.TERRAIN,
-    appearance: new PolylineColorAppearance(),
-    geometryInstances: landPositions.map(
-      (ring) =>
-        new GeometryInstance({
-          geometry: new GroundPolylineGeometry({ positions: ring, width: 2, loop: true }),
-          attributes: { color: ColorGeometryInstanceAttribute.fromColor(COAST_GREY) },
-        }),
-    ),
-  });
-
-  const roads = lineLayer(roadPositions, ROAD_GREY, 2.5);
-  const paths = lineLayer(pathPositions, PAVEMENT_GREY, 1);
-  const roadStructures = lineLayer(roadStructurePositions, STRUCTURE_GREY, 2.5);
-  const railStructures = lineLayer(railStructurePositions, RAIL_GREY, 3);
-
-  // Order matters: land, then vegetation, then water over both, then pavements
-  // under roads so junctions read correctly, bridges and tunnels over the
-  // carriageways they carry, and the coast edge on top.
-  const layers = [land, forest, parks, water, paths, roads, roadStructures, railStructures, coast];
-  for (const layer of layers) scene.primitives.add(layer);
+  const layer = layers.addImageryProvider(provider);
 
   return {
     setVisible(visible: boolean): void {
-      for (const layer of layers) layer.show = visible;
+      layer.show = visible;
+      scene.requestRender();
     },
     destroy(): void {
-      for (const layer of layers) scene.primitives.remove(layer);
+      layers.remove(layer);
     },
   };
 }

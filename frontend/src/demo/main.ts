@@ -11,6 +11,15 @@ const panel = document.getElementById("panel");
 const statusEl = document.getElementById("status");
 if (!container || !panel || !statusEl) throw new Error("demo markup missing");
 
+// The panel slides in from the left edge and back out again.
+const panelToggle = document.getElementById("panel-toggle");
+if (panelToggle) panelToggle.onclick = () => {
+  const open = panelToggle.getAttribute("aria-expanded") !== "true";
+  panelToggle.setAttribute("aria-expanded", String(open));
+  panelToggle.setAttribute("aria-label", open ? "Hide panel" : "Show panel");
+  panelToggle.textContent = open ? "‹" : "›";
+};
+
 const setStatus = (text: string): void => {
   statusEl.textContent = text;
 };

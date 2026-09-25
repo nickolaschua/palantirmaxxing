@@ -10,6 +10,7 @@ export interface LabelLayer {
 
 /** The one label look, shared with marker labels. */
 export const LABEL_LOOK = {
+  font: "600 12px 'Alliance No.2', 'Alliance No.1', Inter, sans-serif", // matches the UI font in style.css
   style: LabelStyle.FILL_AND_OUTLINE,
   fillColor: Color.WHITE,
   outlineColor: Color.fromCssColorString("#1b1f24"),
@@ -29,8 +30,8 @@ export function addLabels(
       position: Cartesian3.fromDegrees(p.lon, p.lat, p.height ?? 0),
       heightReference: p.height === undefined ? HeightReference.CLAMP_TO_GROUND : HeightReference.NONE,
       text,
-      font: style.font ?? "12px sans-serif",
       ...LABEL_LOOK,
+      ...(style.font && { font: style.font }),
       horizontalOrigin: HorizontalOrigin.CENTER,
       verticalOrigin: VerticalOrigin.CENTER,
     });
@@ -47,6 +48,7 @@ export function addLabels(
       destroyed = true;
       // remove() destroys the collection.
       viewer.scene.primitives.remove(collection);
+      viewer.scene.requestRender();
     },
   };
 }

@@ -1,8 +1,8 @@
 import { createSingaporeCanvas } from "../lib/index.js";
-import type { BasemapKind, CircleStyle, LightingPreset, TimedSample } from "../lib/index.js";
+import type { BasemapKind, CircleStyle, LightingPreset, SingaporeCanvas as SingaporeCanvasT, TimedSample } from "../lib/index.js";
 import { circleBounds, framePose } from "./decision-model.js";
 import { HOSPITALS, MILITARY, mountOsmAreas } from "./osm-areas.js";
-import type { Grade, Option } from "./decision-model.js";
+import type { ConsequenceRow, Grade, Option } from "./decision-model.js";
 
 export interface InspectorContent {
   eyebrow: string;
@@ -11,11 +11,11 @@ export interface InspectorContent {
   pinned: boolean;
   /** `grade` colours a figure; `urgency` (0–1) reddens a countdown as it runs out. */
   rows: readonly { label: string; value: string; grade?: Grade | null; urgency?: number }[];
+  /** Absent when the result carries no consequence for this area. */
+  consequence?: { scenario: string | null; illustrative: boolean; rows: readonly ConsequenceRow[] } | undefined;
 }
 
 export interface Inspector {
-  /** The window's own areas are built. */
-  readonly ready: Promise<void>;
   /** Shows the window framed on `option`, or just refreshes the stats if it is already shown. */
   open(option: Option, content: InspectorContent): void;
   close(): void;
@@ -36,10 +36,10 @@ const ignoreCancel = (err: unknown): void => {
 
 /**
  * The side window: a second, independent canvas zoomed onto one area, plus its
- * stats. Built once in Standby. While hidden its canvas has zero size, so Cesium
- * skips rendering it; Google tiles only load while it is open.
+ * stats. The canvas is built the first time the window opens; while hidden it has
+ * zero size, so Cesium skips rendering it.
  */
-export async function mountInspector(setup: {
+export function mountInspector(setup: {
   keys: { ionToken?: string; googleApiKey?: string };
   basemap: BasemapKind;
   lighting: LightingPreset;
@@ -47,15 +47,13 @@ export async function mountInspector(setup: {
   range: readonly [Date, Date];
   options: readonly Option[];
   onUnpin(): void;
-}): Promise<Inspector> {
+}): Inspector {
   const root = document.createElement("aside");
   root.id = "inspector";
   root.setAttribute("aria-label", "Area inspector");
   root.innerHTML = `<header><span class="eyebrow"></span><button type="button" class="unpin">Unpin</button></header>
-    <h2><i></i><span></span></h2><div class="inspector-map"></div><dl></dl>`;
-  // Laid out but invisible until its areas are built: a display:none canvas never
-  // renders, and a canvas that never renders never builds its primitives.
-  root.style.visibility = "hidden";
+    <h2><i></i><span></span></h2><div class="inspector-map"></div><dl></dl>
+    <section class="consequence" hidden><h3>Consequence <span class="tag">Illustrative values</span></h3><p class="scenario"></p><ol></ol></section>`;
   document.body.append(root);
   const eyebrow = root.querySelector<HTMLElement>(".eyebrow")!;
   const unpin = root.querySelector<HTMLButtonElement>(".unpin")!;
@@ -63,41 +61,104 @@ export async function mountInspector(setup: {
   const title = root.querySelector<HTMLElement>("h2 span")!;
   const mapEl = root.querySelector<HTMLElement>(".inspector-map")!;
   const dl = root.querySelector<HTMLElement>("dl")!;
+  const consequence = root.querySelector<HTMLElement>(".consequence")!;
+  const illustrativeTag = consequence.querySelector<HTMLElement>(".tag")!;
+  const scenario = consequence.querySelector<HTMLElement>(".scenario")!;
+  const consequenceList = consequence.querySelector<HTMLElement>("ol")!;
   unpin.onclick = () => setup.onUnpin();
 
-  // Tile detail scales with canvas height, so this small window would only load
-  // the coarse building tiles; 2 brings in every building the main map has.
-  const detail = { lighting: setup.lighting, maximumScreenSpaceError: 2 };
-  const canvas = await createSingaporeCanvas(mapEl, { ...setup.keys, basemap: setup.basemap, ...detail })
-    .catch(() => createSingaporeCanvas(mapEl, { basemap: "plain", ...detail }));
-  canvas.time.setRange(setup.range[0], setup.range[1]);
-  const route = canvas.addPath(setup.samples, { color: "#f5f7fa", width: 2 });
-  const circles = canvas.addGroundCircles(setup.options.map(o => ({ id: o.id, center: o.position, radiusM: o.footprint.radiusM })));
-  for (const layer of [MILITARY, HOSPITALS]) mountOsmAreas(canvas, layer, { labels: false }); // as on the main map; released with the canvas
+  // Built on first open, not at startup: a second full map is most of the page's memory.
+  // Everything set before then is remembered and applied once it exists.
+  let basemap = setup.basemap;
+  let lighting = setup.lighting;
+  let time: Date | undefined;
+  let styles: ReadonlyMap<string, CircleStyle> | undefined;
+  let routeVisible = true;
+  let disposed = false;
+  let map: {
+    canvas: Awaited<ReturnType<typeof createSingaporeCanvas>>;
+    route: ReturnType<SingaporeCanvasT["addPath"]>;
+    circles: ReturnType<SingaporeCanvasT["addGroundCircles"]>;
+  } | undefined;
+  let building: Promise<void> | undefined;
+
   const aspect = (): number => mapEl.clientWidth / Math.max(1, mapEl.clientHeight);
   const frame = (o: Option, duration: number): void => {
-    canvas.camera.flyTo(framePose(circleBounds(o.position, o.footprint.radiusM * 1.2), PITCH, aspect()), { duration }).catch(ignoreCancel);
+    map?.canvas.camera.flyTo(framePose(circleBounds(o.position, o.footprint.radiusM * 1.2), PITCH, aspect()), { duration }).catch(ignoreCancel);
   };
-  // Pre-aim at the first option so its tiles load while the window is still invisible.
-  if (setup.options[0]) frame(setup.options[0], 0);
+  const build = (): Promise<void> => building ??= (async () => {
+    // Tile detail scales with canvas height, so a small window loads coarse tiles;
+    // 4 (Cesium's default is 16) matches the main map's density at this height without the memory of 2.
+    const want = basemap;
+    const detail = { lighting, maximumScreenSpaceError: 4 };
+    mapEl.style.visibility = "hidden"; // no whole-Earth flash: shown once framed
+    const canvas = await createSingaporeCanvas(mapEl, { ...setup.keys, basemap, ...detail })
+      .catch(() => createSingaporeCanvas(mapEl, { basemap: "plain", ...detail }));
+    if (disposed) { canvas.destroy(); return; }
+    canvas.time.setRange(setup.range[0], setup.range[1]);
+    const route = canvas.addPath(setup.samples, { color: "#f5f7fa", width: 2 });
+    const circles = canvas.addGroundCircles(setup.options.map(o => ({ id: o.id, center: o.position, radiusM: o.footprint.radiusM })));
+    for (const layer of [MILITARY, HOSPITALS]) mountOsmAreas(canvas, layer, { labels: false }); // as on the main map; released with the canvas
+    map = { canvas, route, circles };
+    // Switched while building. Against `want`, so a Google failure that fell back to plain is not retried.
+    if (basemap !== want) canvas.scene.setBasemap(basemap).catch(() => undefined);
+    if (lighting !== detail.lighting) canvas.scene.setLighting(lighting);
+    // A framed view only: the camera stays on the selected area.
+    mapEl.querySelector("canvas")!.style.pointerEvents = "none";
+    if (time) canvas.time.seek(time);
+    if (styles) circles.setStyles(styles);
+    route.setVisible(routeVisible);
+    const target = setup.options.find(o => o.id === shown);
+    if (target) frame(target, 0);
+    await circles.ready;
+    built = true;
+    root.hidden = shown === null; // closed while building: stop rendering now
+    root.style.visibility = "";
+    mapEl.style.visibility = "";
+  })();
+
+  const pct = (n: number): string => `${(n * 100).toFixed(1)}%`;
+  function renderConsequence(c: InspectorContent["consequence"]): void {
+    consequence.hidden = !c;
+    if (!c) return;
+    illustrativeTag.hidden = !c.illustrative;
+    scenario.textContent = c.scenario ? `Scenario: ${c.scenario}` : "";
+    consequenceList.replaceChildren(...c.rows.map(r => {
+      const li = document.createElement("li");
+      li.title = r.detail;
+      if (r.id === "total") li.className = "total";
+      if (!r.bar) li.dataset.unavailable = "";
+      const name = document.createElement("span"); name.className = "name"; name.textContent = r.label;
+      const weight = document.createElement("span"); weight.className = "weight"; weight.textContent = r.weight;
+      const bar = document.createElement("span"); bar.className = "bar";
+      if (r.bar) {
+        const band = document.createElement("i");
+        band.style.left = pct(r.bar.low); band.style.width = pct(r.bar.high - r.bar.low);
+        const point = document.createElement("b");
+        point.style.left = pct(r.bar.central);
+        bar.append(band, point);
+      }
+      const value = document.createElement("span"); value.className = "value"; value.textContent = r.value;
+      li.append(name, weight, bar, value);
+      return li;
+    }));
+  }
 
   let shown: string | null = null;
   let built = false;
   let lastRows = "";
-  const ready = circles.ready.then(() => {
-    built = true;
-    root.hidden = shown === null; // stop rendering until first opened
-    root.style.visibility = "";
-  });
+  root.hidden = true;
+  root.style.visibility = "";
   return {
-    ready,
     open(option, content) {
       root.hidden = false;
+      root.style.visibility = "";
+      build().catch(() => { if (!map) building = undefined; }); // retry on the next open
       eyebrow.textContent = content.eyebrow;
       title.textContent = content.title;
       swatch.style.background = content.colour;
       unpin.hidden = !content.pinned;
-      const rows = JSON.stringify(content.rows);
+      const rows = JSON.stringify([content.rows, content.consequence]);
       if (rows !== lastRows) {
         lastRows = rows;
         dl.replaceChildren(...content.rows.flatMap(r => {
@@ -107,6 +168,7 @@ export async function mountInspector(setup: {
           if (r.urgency !== undefined) { dd.className = "countdown"; dd.style.setProperty("--urgency", String(r.urgency)); }
           return [dt, dd];
         }));
+        renderConsequence(content.consequence);
       }
       if (shown === option.id) return;
       const first = shown === null;
@@ -115,18 +177,22 @@ export async function mountInspector(setup: {
     },
     close() {
       shown = null;
-      if (built) root.hidden = true; // before that, hiding would stop the build
+      // While building, stay laid out but invisible: a display:none canvas never renders, so never builds.
+      if (built || !building) root.hidden = true;
+      else root.style.visibility = "hidden";
     },
     setBasemap(kind) {
+      basemap = kind;
       // A failed load keeps the window's current map; the main view reports failures.
-      canvas.scene.setBasemap(kind).catch(() => undefined);
+      map?.canvas.scene.setBasemap(kind).catch(() => undefined);
     },
-    setLighting: preset => canvas.scene.setLighting(preset),
-    syncTime: t => canvas.time.seek(t),
-    setCircleStyles: styles => circles.setStyles(styles),
-    setRouteVisible: visible => route.setVisible(visible),
+    setLighting(preset) { lighting = preset; map?.canvas.scene.setLighting(preset); },
+    syncTime(t) { time = t; map?.canvas.time.seek(t); },
+    setCircleStyles(next) { styles = next; map?.circles.setStyles(next); },
+    setRouteVisible(visible) { routeVisible = visible; map?.route.setVisible(visible); },
     dispose() {
-      canvas.destroy(); // releases its layers too
+      disposed = true;
+      map?.canvas.destroy(); // releases its layers too
       root.remove();
     },
   };

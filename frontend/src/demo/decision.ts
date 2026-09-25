@@ -1,13 +1,13 @@
 import { SINGAPORE_BOUNDS } from "../lib/index.js";
 import type { BasemapKind, CircleLayer, CircleStyle, LabelLayer, LightingPreset, MarkerLayer, MarkerStyle, PathLayer, SingaporeCanvas } from "../lib/index.js";
-import resultJson from "../../../data/results/demo-planning-result.json";
 import {
-  advance, approachOrigin, categoryColour, categoryLabel, circleBounds, comparisonLines, descentSamples, DESCENT_S, detect,
+  advance, approachOrigin, categoryColour, categoryLabel, circleBounds, comparisonLines, consequenceRows, descentSamples, DESCENT_S, detect,
   elapsedS, exposureGrade, fire, formatNumber, formatPercent, formatT, framePose, isOpen, optionColour, parseResult,
   remainingS, select, shortId, STANDBY, successGrade, threatPositionAt, urgency, wording,
 } from "./decision-model.js";
 import type { Flow, Grade, Option } from "./decision-model.js";
 import { mountInspector } from "./inspector.js";
+import { loadPlanningResult } from "./source.js";
 
 export interface Decision {
   setBasemap(kind: BasemapKind): void;
@@ -16,6 +16,7 @@ export interface Decision {
 }
 
 const STANDBY_PITCH = -70;
+const BURST_S = 2.2;
 
 function el<K extends keyof HTMLElementTagNameMap>(tag: K, className?: string, text?: string): HTMLElementTagNameMap[K] {
   const e = document.createElement(tag);
@@ -67,8 +68,8 @@ export async function mountDecision(
   message.setAttribute("role", "status");
   const cardsEl = el("div", "cards");
   const summary = el("ul", "summary");
-  const footnote = el("p", "footnote");
-  tray.append(head, message, cardsEl, summary, footnote);
+  tray.className = "decision-tray";
+  tray.append(head, message, cardsEl, summary);
 
   // Presenter controls, bottom right: Play and Restart (temporary) above History.
   const presenter = el("div");
@@ -83,22 +84,26 @@ export async function mountDecision(
   // Past threats, each with its mark on the map that can be switched off.
   const historyPanel = el("aside");
   historyPanel.id = "history";
-  historyPanel.hidden = true;
   historyPanel.setAttribute("aria-label", "Past threats");
   const historyEmpty = el("p", "empty", "No past threats yet.");
   const historyList = el("ul");
   historyPanel.append(el("h2", undefined, "History"), historyEmpty, historyList);
   historyBtn.setAttribute("aria-expanded", "false");
   historyBtn.onclick = () => {
-    historyPanel.hidden = !historyPanel.hidden;
-    historyBtn.setAttribute("aria-expanded", String(!historyPanel.hidden));
+    const open = !historyPanel.classList.contains("open");
+    // Grow from, and shrink back into, the History button.
+    const b = historyBtn.getBoundingClientRect();
+    // offsetLeft/Top ignore the panel's own scale, which the origin is measured against.
+    historyPanel.style.transformOrigin = `${b.left + b.width / 2 - historyPanel.offsetLeft}px ${b.top + b.height / 2 - historyPanel.offsetTop}px`;
+    historyPanel.classList.toggle("open", open);
+    historyBtn.setAttribute("aria-expanded", String(open));
   };
   document.body.append(tray, presenter, historyPanel);
 
   // The result loads and validates here, in Standby, so nothing can fail mid-countdown.
   let parsed: ReturnType<typeof parseResult>;
   try {
-    parsed = parseResult(resultJson);
+    parsed = parseResult(await loadPlanningResult());
   } catch (error) {
     phaseEl.textContent = "UNAVAILABLE";
     message.textContent = `Can't use the planning result: ${error instanceof Error ? error.message : String(error)}`;
@@ -114,7 +119,6 @@ export async function mountDecision(
   const exposureGradeOf = (o: Option): Grade | null =>
     typeof o.exposure?.peoplePotentiallyExposed === "number" ? exposureGrade(o.exposure.peoplePotentiallyExposed, exposures) : null;
   const successGradeOf = (o: Option): Grade | null => (o.suppliedSuccessProbability === undefined ? null : successGrade(o.suppliedSuccessProbability));
-  footnote.textContent = `${words.exposure} is an estimate from supplied population data, not a count of identified people. ${words.success} is a supplied probability, not a result. Colours grade the figures: ${words.success} against fixed marks (80% good, 50% fair); ${words.exposure} only relative to the other options in this result. The dashed inbound track before T+0 is extrapolated from the first supplied samples; the planner supplies no launch origin. The descent and burst after an intercept are illustration: the planner supplies no impact model or debris physics.`;
 
   // --- map layers, hidden until Live ---
   // The clock runs past the supplied end so a fall after the latest intercept has room.
@@ -135,7 +139,6 @@ export async function mountDecision(
     );
     approachLabel = canvas.addLabels(
       [{ position: origin, text: `Illustrative inbound track · not supplied · ${Math.round(-origin.timeFromStartS)} s earlier` }],
-      { font: "600 11px sans-serif" },
     );
   }
   const markers = canvas.addMarkers(options.flatMap(o => [
@@ -151,7 +154,7 @@ export async function mountDecision(
   );
   // The fall into the chosen area, drawn only once that option is fired.
   let descent: PathLayer | undefined;
-  const inspector = await mountInspector({
+  const inspector = mountInspector({
     keys: { ionToken: setup.ionToken, googleApiKey: setup.googleApiKey },
     basemap: canvas.scene.basemap,
     lighting: setup.lighting,
@@ -177,10 +180,28 @@ export async function mountDecision(
   setLayersVisible(false);
 
   // --- history: one entry per run; a struck area's mark stays on the map across restarts ---
-  interface HistoryEntry { text: string; mark?: { circle: CircleLayer; marker: MarkerLayer }; shown: boolean }
+  // snapshot: a copy of the tray as it closed, reopened from the history entry.
+  interface HistoryEntry { text: string; mark?: { circle: CircleLayer; marker: MarkerLayer }; shown: boolean; snapshot?: HTMLElement }
   const history: HistoryEntry[] = [];
   let recorded = false; // this run already has its entry
   let runMarkReady = false; // this run's history mark is built, so the run's own area can go
+  let openSnapshot: HTMLElement | null = null;
+  function closeSnapshot(): void {
+    if (!openSnapshot) return;
+    openSnapshot.remove();
+    openSnapshot = null;
+    tray.hidden = flow.phase === "outcome"; // the live tray only comes back if it had not closed
+    renderHistory();
+  }
+  function toggleSnapshot(entry: HistoryEntry): void {
+    const same = openSnapshot === entry.snapshot;
+    closeSnapshot();
+    if (same || !entry.snapshot) return;
+    openSnapshot = entry.snapshot;
+    tray.hidden = true;
+    document.body.append(openSnapshot);
+    renderHistory();
+  }
   function renderHistory(): void {
     historyEmpty.hidden = history.length > 0;
     historyList.replaceChildren(...[...history].reverse().map(entry => {
@@ -196,8 +217,19 @@ export async function mountDecision(
         entry.mark?.circle.setVisible(entry.shown);
         entry.mark?.marker.setVisible(entry.shown);
       };
-      label.append(box, entry.text);
-      li.append(label);
+      box.setAttribute("aria-label", "Show the struck area on the map");
+      label.append(box);
+      let text: HTMLElement;
+      if (entry.snapshot) {
+        text = el("button", "entry", entry.text);
+        (text as HTMLButtonElement).type = "button";
+        text.title = "Show this engagement's details";
+        text.setAttribute("aria-pressed", String(openSnapshot === entry.snapshot));
+        text.onclick = () => toggleSnapshot(entry);
+      } else {
+        text = el("span", entry.mark ? undefined : "muted", entry.text);
+      }
+      li.append(label, text);
       return li;
     }));
   }
@@ -218,10 +250,26 @@ export async function mountDecision(
     renderHistory();
   }
 
+  /**
+   * What the panels cover, so framing uses only the open map. The side window is
+   * reserved even while closed (it opens on hover); the tray is reserved at its
+   * Live height, since framing happens in Standby while it is still short.
+   */
+  const coveredInsets = () => {
+    const w = innerWidth, h = innerHeight;
+    const panel = document.getElementById("panel")?.getBoundingClientRect();
+    const trayTop = Math.min(tray.getBoundingClientRect().top, h - 270);
+    return {
+      left: panel ? panel.right / w : 0,
+      right: w > 1100 ? 432 / w : 0, // matches the side window's 16 + 400 + 16 in style.css
+      top: 0,
+      bottom: Math.max(0, (h - trayTop) / h),
+    };
+  };
   const framePoints = [...samples, ...options.flatMap(o => circleBounds(o.position, o.footprint.radiusM))];
   const frameCorridor = (): void => {
     // Generous margin: the route flies 1,000 m nearer the camera than the ground, so it looks wider.
-    canvas.camera.flyTo(framePose(framePoints, STANDBY_PITCH, innerWidth / innerHeight, 1.7), { duration: 1.2 }).catch(ignoreCancel);
+    canvas.camera.flyTo(framePose(framePoints, STANDBY_PITCH, innerWidth / innerHeight, 1.3, coveredInsets()), { duration: 1.2 }).catch(ignoreCancel);
   };
 
   // --- state ---
@@ -230,7 +278,7 @@ export async function mountDecision(
   // take seconds, longer than an option's whole window.
   let layersReady = false;
   let disposed = false;
-  void Promise.all([circles.ready, inspector.ready]).then(() => {
+  void circles.ready.then(() => {
     layersReady = true;
     if (!disposed) render();
   });
@@ -298,13 +346,18 @@ export async function mountDecision(
         },
         { label: "Coverage", value: coverageText(o) },
       ],
+      consequence: o.consequence && {
+        scenario: o.consequence.scenario ?? null,
+        illustrative: o.consequence.illustrative === true,
+        rows: consequenceRows(o.consequence),
+      },
     });
   }
 
   // One burst per option, built now so its ground geometry is ready when it plays.
   const bursts = new Map(options.map(o => [
     o.id,
-    canvas.addBurst({ lon: o.position.lon, lat: o.position.lat }, { color: "#ff7043", radiusM: o.footprint.radiusM, durationS: 2.2 }),
+    canvas.addBurst({ lon: o.position.lon, lat: o.position.lat }, { color: "#ff7043", radiusM: o.footprint.radiusM, durationS: BURST_S }),
   ]));
 
   function beginImpact(chosen: Option): void {
@@ -315,6 +368,7 @@ export async function mountDecision(
     });
   }
 
+  let closeTray: ReturnType<typeof setTimeout> | undefined;
   let lastCircles = "";
   let lastMarkers = "";
   function render(): void {
@@ -331,6 +385,22 @@ export async function mountDecision(
       const burst = bursts.get(firedOption.id);
       burst?.setVisible(true);
       burst?.play();
+      // Close the tray once the burst has played out; Restart brings it back.
+      const runIndex = history.length; // record() below adds this run's entry here
+      closeTray = setTimeout(() => {
+        const snapshot = tray.cloneNode(true) as HTMLElement;
+        snapshot.removeAttribute("id");
+        snapshot.classList.add("snapshot");
+        snapshot.querySelectorAll("button").forEach(b => { b.disabled = true; });
+        const close = el("button", "close", "Close");
+        close.type = "button";
+        close.onclick = closeSnapshot;
+        snapshot.querySelector("header")?.append(close);
+        const past = history[runIndex];
+        if (past) past.snapshot = snapshot;
+        tray.hidden = true;
+        renderHistory();
+      }, BURST_S * 1000);
       setRouteVisible(false); // the flight is over; the struck area stays as the mark
       record(`Threat ${history.length + 1} · ${optionName(firedOption.id)} (${shortId(firedOption.id)}) · intercepted at ${formatT(firedOption.timeFromStartS)}`, firedOption);
     }
@@ -429,6 +499,7 @@ export async function mountDecision(
 
   function detectNow(): void {
     if (flow.phase !== "standby" || !layersReady) return;
+    closeSnapshot();
     flow = detect(flow);
     setLayersVisible(true);
     canvas.time.seek(start);
@@ -438,6 +509,9 @@ export async function mountDecision(
 
   function reset(): void {
     flow = STANDBY;
+    clearTimeout(closeTray);
+    closeSnapshot();
+    tray.hidden = false;
     hovered = pinned = null;
     recorded = runMarkReady = false; // the history keeps its entries and marks
     canvas.time.pause();
@@ -480,10 +554,12 @@ export async function mountDecision(
     setLighting: preset => inspector.setLighting(preset),
     dispose() {
       disposed = true;
+      clearTimeout(closeTray);
       offTick();
       window.removeEventListener("keydown", onKey);
       for (const entry of history) { entry.mark?.circle.destroy(); entry.mark?.marker.destroy(); }
       historyPanel.remove();
+      openSnapshot?.remove();
       path.destroy();
       descent?.destroy();
       approach?.destroy();

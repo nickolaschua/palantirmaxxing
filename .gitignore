@@ -24,6 +24,7 @@ Thumbs.db
 # AI assistant instructions — kept local, not shared
 CLAUDE.md
 claude-code-prompt.md
+/docs/superpowers/
 
 # Generated assessment outputs; keep directories and Markdown documentation trackable
 /data/results/**
@@ -38,9 +39,12 @@ claude-code-prompt.md
 !/data/results/demo-planning-result.json
 !/data/results/demo-planning-result-benchmark.json
 !/data/results/mvp-sensitivity.json
+!/data/results/demo-simulation-result.json
+!/data/results/singapore-simulation-benchmark.json
 
 # Local Python environment and interpreter caches
 /.venv/
+/.venv-rl/
 __pycache__/
 *.pyc
 
@@ -53,3 +57,8 @@ __pycache__/
 /data/processed/population-display.geojson
 /data/processed/population-projected.json
 /frontend/public/population.geojson
+
+# Local integrated MVP runtime and verification evidence
+/outputs/integration-mvp/
+/frontend/test-results/
+/frontend/playwright-report/

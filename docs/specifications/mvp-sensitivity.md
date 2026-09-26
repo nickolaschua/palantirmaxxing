@@ -8,21 +8,21 @@ Sensitivity within the tested synthetic parameter grid on one deliberately selec
 
 The fixed demo corridor uses the unchanged prepared Census 2020 resident population dataset `sg-residents-2020-mp2019-cbb1c395f60918c1`. Source CRS is EPSG:3414. Dataset identity and normalized checksum are pinned in the scenario and checked by the runner.
 
-Full factorial grid: radii 250/500/750/1000 m × success decays 0.002/0.004/0.008 per second × turn rates 10/15/20 deg/s: 36 configurations. Initial success 0.97, minimum 0.70, maximum 1.00, trajectory, speeds, origins, 20-second horizon and 50 samples stay fixed. The 36 rows include the baseline; baseline evidence is also evaluated separately for the pitch table.
+Full factorial grid: radii 100/250/500/750/1000 m × success decays 0.002/0.004/0.008 per second × turn rates 10/15/20 deg/s: 45 configurations. Initial success 0.97, minimum 0.70, maximum 1.00, trajectory, speeds, origins, 20-second horizon and 50 samples stay fixed. The 45 rows include the baseline; baseline evidence is also evaluated separately for the pitch table.
 
 Meaningful contrast is a reporting criterion: distinct representatives, a later lower-exposure alternative, at least 20% and 100 fewer people potentially exposed relative to the earliest representative. It does not change planner eligibility, categories or human controls.
 
 ## Stable findings within the tested grid
 
-The qualitative trade-off persisted in 36/36 tested synthetic configurations (at least two distinct representatives). 36/36 met the stated exposure-contrast reporting threshold.
+The qualitative trade-off persisted in 45/45 tested synthetic configurations (at least two distinct representatives). 45/45 met the stated exposure-contrast reporting threshold.
 
-Complete early-to-low comparisons were available in 36/36 configurations. Statistics include zero differences when the same candidate holds both categories; they do not silently exclude collapsed trade-spaces. Relative reductions exclude zero reference exposure and report their own denominator.
+Complete early-to-low comparisons were available in 45/45 configurations. Statistics include zero differences when the same candidate holds both categories; they do not silently exclude collapsed trade-spaces. Relative reductions exclude zero reference exposure and report their own denominator.
 
 | Metric | Valid count | Minimum | Median | Maximum |
 |---|---:|---:|---:|---:|
-| Exposure reduction (people) | 36 | 4,195.4099 | 16,993.1126 | 34,456.2153 |
-| Exposure reduction (%) | 36 | 47.9555 | 77.9854 | 99.9498 |
-| Supplied-success penalty (percentage points) | 36 | 2.1600 | 5.5200 | 12.1600 |
+| Exposure reduction (people) | 45 | 678.4927 | 13,608.7394 | 34,456.2153 |
+| Exposure reduction (%) | 45 | 47.9555 | 89.2269 | 99.9498 |
+| Supplied-success penalty (percentage points) | 45 | 2.0000 | 5.2800 | 12.1600 |
 
 ## Outcome and coverage reasons
 
@@ -30,7 +30,7 @@ Primary outcomes are mutually exclusive. Reason flags can overlap: partial popul
 
 | Primary outcome | Count |
 |---|---:|
-| distinct_representatives | 36 |
+| distinct_representatives | 45 |
 | single_representative | 0 |
 | no_reachable_candidates | 0 |
 | no_eligible_candidates | 0 |
@@ -40,7 +40,7 @@ Primary outcomes are mutually exclusive. Reason flags can overlap: partial popul
 
 | Reason flag | Count |
 |---|---:|
-| distinct_representatives | 36 |
+| distinct_representatives | 45 |
 | single_representative | 0 |
 | no_reachable_candidates | 0 |
 | no_eligible_candidates | 0 |
@@ -55,16 +55,17 @@ Each group below varies the other two parameters over their tested values. These
 
 | Parameter | Value | Distinct / runs | Contrast / runs | Configurations with partial coverage | Median exposure reduction (%) | Median success penalty (pp) |
 |---|---:|---:|---:|---:|---:|---:|
+| footprintRadiusM | 100 | 9/9 | 9/9 | 0 | 99.9498 | 4.9600 |
 | footprintRadiusM | 250 | 9/9 | 9/9 | 0 | 99.9498 | 5.2800 |
 | footprintRadiusM | 500 | 9/9 | 9/9 | 0 | 89.2269 | 5.6000 |
 | footprintRadiusM | 750 | 9/9 | 9/9 | 0 | 61.8680 | 5.9200 |
 | footprintRadiusM | 1000 | 9/9 | 9/9 | 6 | 47.9555 | 5.7600 |
-| decreasePerSecond | 0.002 | 12/12 | 12/12 | 2 | 77.9854 | 2.7600 |
-| decreasePerSecond | 0.004 | 12/12 | 12/12 | 2 | 77.9854 | 5.5200 |
-| decreasePerSecond | 0.008 | 12/12 | 12/12 | 2 | 77.9854 | 11.0400 |
-| turnRateDegS | 10 | 12/12 | 12/12 | 0 | 79.0334 | 4.8000 |
-| turnRateDegS | 15 | 12/12 | 12/12 | 3 | 75.5474 | 5.6800 |
-| turnRateDegS | 20 | 12/12 | 12/12 | 3 | 73.8899 | 5.7600 |
+| decreasePerSecond | 0.002 | 15/15 | 15/15 | 2 | 89.2269 | 2.6400 |
+| decreasePerSecond | 0.004 | 15/15 | 15/15 | 2 | 89.2269 | 5.2800 |
+| decreasePerSecond | 0.008 | 15/15 | 15/15 | 2 | 89.2269 | 10.5600 |
+| turnRateDegS | 10 | 15/15 | 15/15 | 0 | 90.4859 | 4.6400 |
+| turnRateDegS | 15 | 15/15 | 15/15 | 3 | 89.2269 | 5.6000 |
+| turnRateDegS | 20 | 15/15 | 15/15 | 3 | 88.3898 | 5.7600 |
 
 Radius changes both the geographic exposure integral and whether footprints cross coverage gaps. Success decay changes the supplied-success price of delay; it does not change exposure or reachability. Turn rate changes bounded-curvature reachability, potentially changing which early opportunities are available. The per-configuration rows retain these separate counts and outcomes.
 
@@ -72,11 +73,11 @@ Radius changes both the geographic exposure integral and whether footprints cros
 
 | Candidate/category | Time (s) | Supplied success | People potentially exposed | Exposure change vs early |
 |---|---:|---:|---:|---:|
-| Early / highest supplied success (`k11`) | 4.4000 | 0.9524 | 15,251.8400 | 0.0000% |
-| Middle / dominated high exposure (`k32`) | 12.8000 | 0.9188 | 19,465.8221 | 27.6293% |
-| Lowest exposure (`k46`) | 18.4000 | 0.8964 | 1,643.1006 | -89.2269% |
+| Early / highest supplied success (`k11`) | 4.4000 | 0.9524 | 678.8335 | 0.0000% |
+| Middle / dominated high exposure (`k28`) | 11.2000 | 0.9252 | 922.3413 | 35.8715% |
+| Lowest exposure (`k42`) | 16.8000 | 0.9028 | 0.3408 | -99.9498% |
 
-The middle example is an eligible, complete-coverage candidate strictly between the early and low-exposure representatives. It has higher exposure than both and 21 recorded backend dominators, including `demo-fictional-threat__demo-synthetic-interceptor__k11` (full list in JSON). The highest qualifying exposure is selected deterministically. This demonstrates that exposure does not simply decrease with time; geography changes the comparison.
+The middle example is an eligible, complete-coverage candidate strictly between the early and low-exposure representatives. It has higher exposure than both and 17 recorded backend dominators, including `demo-fictional-threat__demo-synthetic-interceptor__k11` (full list in JSON). The highest qualifying exposure is selected deterministically. This demonstrates that exposure does not simply decrease with time; geography changes the comparison.
 
 ## Known limitations
 

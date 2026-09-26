@@ -30,4 +30,8 @@ export class Emitter<Events extends Record<string, unknown>> {
   clear(): void {
     this.#handlers.clear();
   }
+
+  listenerCount(): number {
+    return [...this.#handlers.values()].reduce((total, handlers) => total + handlers.size, 0);
+  }
 }

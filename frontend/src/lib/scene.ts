@@ -90,7 +90,10 @@ export async function createScene(
       // module-level ResourceCache shares between scenes. With two canvases
       // loading the same tile, the second sees already-rewritten indices and
       // draws stretched triangles over its whole view (CesiumGS/cesium#11484).
-      next = await Cesium3DTileset.fromIonAssetId(OSM_BUILDINGS_ASSET, { enableShowOutline: false });
+      // Tile cache capped at 256 + 128 MB (Cesium's default is 512 + 512).
+      next = await Cesium3DTileset.fromIonAssetId(OSM_BUILDINGS_ASSET, {
+        enableShowOutline: false, cacheBytes: 256 * 1024 * 1024, maximumCacheOverflowBytes: 128 * 1024 * 1024,
+      });
     } else {
       terrain = new EllipsoidTerrainProvider();
     }
@@ -108,11 +111,11 @@ export async function createScene(
     if (next) viewer.scene.primitives.add(next);
     for (const listener of tilesetListeners) listener(tileset);
     viewer.terrainProvider = terrain;
-    viewer.imageryLayers.removeAll();
     viewer.scene.globe.baseColor = SEA_BLUE;
     current = kind;
     viewer.scene.globe.show = kind !== "photorealistic" || globeRequired;
     ground?.setVisible(kind !== "photorealistic" && !globeRequired);
+    viewer.scene.requestRender();
   }
 
   /**
@@ -178,6 +181,7 @@ export async function createScene(
       grade.uniforms.brightness = 0.52;
       grade.enabled = true;
     }
+    scene.requestRender();
   }
 
   ground = addGround(viewer);
@@ -202,6 +206,7 @@ export async function createScene(
       globeRequired = required;
       ground?.setVisible(current !== "photorealistic" && !required);
       viewer.scene.globe.show = current !== "photorealistic" || required;
+      viewer.scene.requestRender();
     },
     destroy(): void {
       clearTileset();

@@ -128,8 +128,8 @@ export function mountPopulation(canvas: SingaporeCanvas, legendHost: HTMLElement
       subzoneLabels = canvas.addLabels(dataset.features.flatMap(zone => {
         const { lon, lat } = labelPoint(zone);
         return Number.isFinite(lon) && Number.isFinite(lat) ? [{ position: { lon, lat }, text: label(zone.properties.subzone) }] : [];
-      }), { font: "600 12px sans-serif" });
-      areaLabels = canvas.addLabels(planningAreaLabelPoints(dataset.features).map(a => ({ position: { lon: a.lon, lat: a.lat }, text: a.name })), { font: "700 14px sans-serif" });
+      }));
+      areaLabels = canvas.addLabels(planningAreaLabelPoints(dataset.features).map(a => ({ position: { lon: a.lon, lat: a.lat }, text: a.name })), { font: "600 16px 'Alliance No.2', 'Alliance No.1', Inter, sans-serif" });
       showLabels();
       detail.hidden = !active;
       state.hidden = true;

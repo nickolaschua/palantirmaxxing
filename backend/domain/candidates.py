@@ -21,21 +21,31 @@ def _positive_index(value, field='sample_index'):
 
 @dataclass(frozen=True)
 class ThreatState:
-    """Current state for a deterministic, constant-velocity 2D threat."""
+    """Current state for a deterministic horizontal and optional vertical path.
+
+    The three vertical fields are deliberately appended.  Existing positional
+    construction therefore keeps its exact two-dimensional behaviour.
+    """
     threat_id: str
     position_x_m: float
     position_y_m: float
     velocity_x_mps: float
     velocity_y_mps: float
     maximum_time_to_go_s: float
+    position_z_m: float = 0.0
+    velocity_z_mps: float = 0.0
+    acceleration_z_mps2: float = 0.0
 
     def __post_init__(self):
         _identifier(self.threat_id, 'threat_id')
         for field in ('position_x_m', 'position_y_m', 'velocity_x_mps',
-                      'velocity_y_mps', 'maximum_time_to_go_s'):
+                      'velocity_y_mps', 'maximum_time_to_go_s', 'position_z_m',
+                      'velocity_z_mps', 'acceleration_z_mps2'):
             _finite_number(getattr(self, field), field)
         if self.maximum_time_to_go_s < 0:
             raise ValueError('maximum_time_to_go_s must be nonnegative')
+        if self.position_z_m < 0:
+            raise ValueError('position_z_m must be nonnegative')
 
 
 @dataclass(frozen=True)
@@ -75,13 +85,18 @@ class TrajectorySample:
     time_from_start_s: float
     position_x_m: float
     position_y_m: float
+    position_z_m: float = 0.0
+    velocity_z_mps: float = 0.0
 
     def __post_init__(self):
         _positive_index(self.sample_index)
-        for field in ('time_from_start_s', 'position_x_m', 'position_y_m'):
+        for field in ('time_from_start_s', 'position_x_m', 'position_y_m',
+                      'position_z_m', 'velocity_z_mps'):
             _finite_number(getattr(self, field), field)
         if self.time_from_start_s <= 0:
             raise ValueError('time_from_start_s must be positive for a future sample')
+        if self.position_z_m < 0:
+            raise ValueError('position_z_m must be nonnegative')
 
 
 @dataclass(frozen=True)
@@ -98,15 +113,20 @@ class CandidateOpportunity:
     minimum_path_length_m: Optional[float]
     required_travel_time_s: Optional[float]
     time_margin_s: Optional[float]
+    position_z_m: float = 0.0
+    velocity_z_mps: float = 0.0
 
     def __post_init__(self):
         for field in ('opportunity_id', 'threat_id', 'interceptor_id'):
             _identifier(getattr(self, field), field)
         _positive_index(self.sample_index)
-        for field in ('time_from_start_s', 'position_x_m', 'position_y_m'):
+        for field in ('time_from_start_s', 'position_x_m', 'position_y_m',
+                      'position_z_m', 'velocity_z_mps'):
             _finite_number(getattr(self, field), field)
         if self.time_from_start_s <= 0:
             raise ValueError('time_from_start_s must be positive for a candidate opportunity')
+        if self.position_z_m < 0:
+            raise ValueError('position_z_m must be nonnegative')
         if type(self.reachable) is not bool:
             raise ValueError('reachable must be a boolean')
         metrics = (self.minimum_path_length_m, self.required_travel_time_s, self.time_margin_s)

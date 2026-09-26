@@ -1,8 +1,8 @@
 import { createSingaporeCanvas, FlightCancelled, PRESETS } from "../lib/index.js";
 import { mountPopulation } from "./population.js";
-import { MILITARY_COLOUR, MILITARY_SOURCE, mountMilitary } from "./military.js";
+import { HOSPITALS, MILITARY, mountOsmAreas } from "./osm-areas.js";
 import { mountDecision } from "./decision.js";
-import type { Decision } from "./decision.js";
+import { mountSimulationResult } from "./simulation.js";
 import type { BasemapKind, LightingPreset } from "../lib/index.js";
 import "./style.css";
 
@@ -10,6 +10,15 @@ const container = document.getElementById("scene");
 const panel = document.getElementById("panel");
 const statusEl = document.getElementById("status");
 if (!container || !panel || !statusEl) throw new Error("demo markup missing");
+
+// The panel slides in from the left edge and back out again.
+const panelToggle = document.getElementById("panel-toggle");
+if (panelToggle) panelToggle.onclick = () => {
+  const open = panelToggle.getAttribute("aria-expanded") !== "true";
+  panelToggle.setAttribute("aria-expanded", String(open));
+  panelToggle.setAttribute("aria-label", open ? "Hide panel" : "Show panel");
+  panelToggle.textContent = open ? "‹" : "›";
+};
 
 const setStatus = (text: string): void => {
   statusEl.textContent = text;
@@ -23,8 +32,10 @@ const keys = {
 };
 
 // Grey canvas is the default view. `plain` is only ever the fallback.
-const canvas = await createSingaporeCanvas(container, { ...keys, basemap: "extruded" })
-  .catch(() => createSingaporeCanvas(container, { basemap: "plain" }));
+const plainStartup = new URLSearchParams(location.search).get("basemap") === "plain";
+const acceptance = new URLSearchParams(location.search).get("acceptance") === "1";
+const canvas = await createSingaporeCanvas(container, { ...keys, acceptance, basemap: plainStartup ? "plain" : "extruded" })
+  .catch(() => createSingaporeCanvas(container, { basemap: "plain", acceptance }));
 
 /**
  * Clicking a second preset cancels the first; that rejection is expected.
@@ -64,7 +75,7 @@ const VIEWS: readonly { id: View; label: string; basemap: BasemapKind }[] = [
 ];
 let view: View = "grey";
 // Mounted last; the panel can be used before it is ready.
-let decision: Decision | undefined;
+let decision: ReturnType<typeof mountDecision> | undefined;
 const viewButtons = new Map<View, HTMLButtonElement>();
 
 async function setView(next: (typeof VIEWS)[number]): Promise<void> {
@@ -86,7 +97,7 @@ async function setView(next: (typeof VIEWS)[number]): Promise<void> {
   }
   view = next.id;
   population.setActive(view === "population");
-  military.setVisible(view !== "population"); // that view has its own labels and colours
+  for (const layer of osmLayers) layer.setVisible(view !== "population"); // that view has its own labels and colours
   decision?.setBasemap(canvas.scene.basemap);
   for (const [id, b] of viewButtons) b.setAttribute("aria-pressed", String(id === view));
 }
@@ -100,14 +111,18 @@ for (const v of VIEWS) {
 }
 const population = mountPopulation(canvas, panel);
 
-// Military bases from OSM: purple buildings and boundaries, named up close.
-const military = mountMilitary(canvas, { labels: true });
-const legend = document.createElement("p");
-legend.className = "legend";
-const swatch = document.createElement("i");
-swatch.style.background = MILITARY_COLOUR;
-legend.append(swatch, `Military bases · ${MILITARY_SOURCE}`);
-panel.append(group("Layers"), legend);
+// Named areas from OSM: tinted buildings and boundaries, labelled up close.
+panel.append(group("Layers"));
+const osmLayers = [MILITARY, HOSPITALS].map(layer => {
+  const legend = document.createElement("p");
+  legend.className = "legend";
+  const swatch = document.createElement("i");
+  swatch.style.background = layer.colour;
+  legend.append(swatch, layer.legend);
+  panel.append(legend);
+  return mountOsmAreas(canvas, layer, { labels: true });
+});
+const simulation = mountSimulationResult(canvas, panel);
 
 // Lighting
 let lighting: LightingPreset = "midday";
@@ -148,13 +163,17 @@ canvas.on("boundsHit", ({ edge }) => {
 canvas.on("renderError", ({ message }) => setStatus(`Map rendering failed: ${message}`));
 
 // The promise resolving IS the ready signal — there is no "ready" event.
-setStatus(canvas.scene.basemap === "plain" ? FALLBACK_STATUS : "Singapore");
+setStatus(plainStartup ? "Singapore · plain basemap" : canvas.scene.basemap === "plain" ? FALLBACK_STATUS : "Singapore");
 decision = await mountDecision(canvas, { ...keys, lighting });
 if (import.meta.hot) import.meta.hot.dispose(() => {
   window.clearTimeout(edgeTimer);
   decision?.dispose();
   population.dispose();
+  simulation.dispose();
   canvas.destroy();
 });
 
 Object.assign(window, { __canvas: canvas });
+if (acceptance) Object.defineProperty(window, "__mvpAcceptance", { configurable: true, value: Object.freeze({
+  inspect: () => ({ canvas: canvas.inspect?.(), planning: decision?.snapshot(), simulation: simulation.snapshot() }),
+}) });

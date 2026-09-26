@@ -1,5 +1,16 @@
 # Scenarios
 
+The `rl/suites.json` manifest pins non-overlapping synthetic seeds for the
+centralized RL plumbing validation, held-out comparison, full-capacity stress
+and bounded-oracle suites. These scenarios are synthetic and do not establish
+operational or real-world performance.
+
+The `rl-scenario-suites/3` manifest reserves scenario seeds at or above
+1,000,000,000 for training. Generated training episodes add this offset to a
+nonnegative explicit reset seed or to the base seed plus automatic episode
+counter. Validation, held-out, stress and oracle ranges stay below that boundary.
+Explicit `EpisodeSpec` inputs bypass the offset for reproducible evaluation.
+
 Supplied PEC episodes follow [pec-episode/1](../../contracts/pec.md). `pec-example.json` is a runnable two-event synthetic example using `tests/fixtures/pec-population.json`; it has complete known-population coverage. Coordinates/radii are supplied illustrative inputs, not predictions or real Singapore hazard locations.
 
 For the prepared real dataset, use logical dataset ID `sg-residents-2020-mp2019`, copy `metadata.dataset_version` from `data/processed/population-projected.json`, and declare EPSG:3414 easting/northing metres. Small shareable inputs are versionable. This folder does not generate footprints; population data belong in `data/processed/`, outputs in `data/results/`.

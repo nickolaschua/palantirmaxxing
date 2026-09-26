@@ -90,13 +90,16 @@ export function addCraftMarker(
   const pulseBody = new Color();
   const pulseTrim = new Color();
   const pulseValue = new Uint8Array(4);
-  const fit = (): void => {
-    if (!posed) return;
+  const place = (): void => {
     // ponytail: assumes the craft is seen side-on; nose-on it looks shorter than minimumPixelLength.
     const metresPerPixel = scene.camera.getPixelSize(sphere, scene.drawingBufferWidth, scene.drawingBufferHeight);
     const scale = Math.max(1, (minimumPixelLength * metresPerPixel) / lengthM);
     Matrix4.multiplyByUniformScale(pose, scale, primitive.modelMatrix);
     Matrix4.multiplyByTranslation(primitive.modelMatrix, UNANCHOR, primitive.modelMatrix);
+  };
+  const fit = (): void => {
+    if (!posed) return;
+    place(); // again for camera moves; setPose places it too, as it may run after this in the same frame
     if (options.pulse && primitive.ready) {
       const t = (1 + Math.sin((performance.now() / PULSE_MS) * 2 * Math.PI)) / 2;
       Color.lerp(dimBody, Color.WHITE, t, pulseBody);
@@ -105,6 +108,7 @@ export function addCraftMarker(
         // The setter copies the bytes into the vertex buffer, so one scratch array serves every part.
         primitive.getGeometryInstanceAttributes(id).color = ColorGeometryInstanceAttribute.toValue(id === "body" ? pulseBody : pulseTrim, pulseValue);
       }
+      if (shown && posed) scene.requestRender(); // the pulse runs on the wall clock, so it asks for its next frame
     }
   };
   scene.preRender.addEventListener(fit);
@@ -127,11 +131,13 @@ export function addCraftMarker(
       Cartesian3.clone(position, sphere.center);
       Matrix4.fromRotationTranslation(rotation, position, pose);
       posed = true;
-      applyShow();
+      place();
+      applyShow(); // no requestRender: this runs inside a frame (the path's move), and asking for another would never idle
     },
     setVisible(visible) {
       shown = visible;
       applyShow();
+      scene.requestRender();
     },
     destroy() {
       if (destroyed) return;

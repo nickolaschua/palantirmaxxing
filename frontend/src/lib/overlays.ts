@@ -1,5 +1,5 @@
 import {
-  Cartesian2, Cartesian3, ClassificationType, Color, ColorGeometryInstanceAttribute, EllipseGeometry, Ellipsoid,
+  Cartesian2, Cartesian3, Cartographic, Math as CesiumMath, ClassificationType, Color, ColorGeometryInstanceAttribute, EllipseGeometry, Ellipsoid,
   ExtrapolationType, GeometryInstance, GroundPolylineGeometry, GroundPolylinePrimitive, GroundPrimitive, JulianDate,
   LabelCollection, Material, Matrix4, PointPrimitiveCollection, PolylineColorAppearance, PolylineCollection,
   SampledPositionProperty, ScreenSpaceEventHandler, ScreenSpaceEventType, ShowGeometryInstanceAttribute, Transforms,
@@ -11,6 +11,7 @@ import { LABEL_LOOK } from "./labels.js";
 import type { GeoPoint, TimedSample } from "./types.js";
 
 export interface PathLayer {
+  inspect?(): unknown;
   setVisible(visible: boolean): void;
   /** Hides the moving marker while the route stays drawn. */
   setMarkerVisible(visible: boolean): void;
@@ -41,6 +42,7 @@ export interface MarkerLayer {
 export interface CircleStyle { fill: string; outline: string; visible: boolean }
 export interface CircleCallbacks { hover(id: string | null): void; click(id: string | null): void }
 export interface CircleLayer {
+  inspect?(): unknown;
   /**
    * Resolves once the circles are built and can draw and be picked. Building
    * runs on Cesium's shared web workers, so it can take seconds while other
@@ -149,6 +151,7 @@ export function addPath(
     lines.show = layerVisible;
     if (points) points.show = layerVisible && markerVisible;
     craft?.setVisible(layerVisible && markerVisible);
+    scene.requestRender();
   };
   return {
     setVisible(visible) {
@@ -159,6 +162,10 @@ export function addPath(
       markerVisible = visible;
       applyVisibility();
     },
+    inspect: () => ({ kind: "path", visible: lines.show, positions: lines.get(0).positions.map((p: Cartesian3) => {
+      const c = Cartographic.fromCartesian(p);
+      return { lon: CesiumMath.toDegrees(c.longitude), lat: CesiumMath.toDegrees(c.latitude), heightM: c.height };
+    }) }),
     destroy() {
       if (destroyed) return;
       destroyed = true;
@@ -166,6 +173,7 @@ export function addPath(
       scene.primitives.remove(lines);
       if (points) scene.primitives.remove(points);
       craft?.destroy();
+      scene.requestRender();
     },
   };
 }
@@ -182,7 +190,7 @@ export function addMarkers(viewer: Viewer, markers: readonly { id: string; posit
     byId.set(id, {
       point: points.add({ position, pixelSize: 8, color: Color.WHITE, disableDepthTestDistance: Number.POSITIVE_INFINITY }),
       label: labels.add({
-        position, show: false, font: "12px sans-serif", ...LABEL_LOOK,
+        position, show: false, ...LABEL_LOOK,
         verticalOrigin: VerticalOrigin.BOTTOM, pixelOffset: new Cartesian2(0, -10),
       }),
     });
@@ -201,16 +209,19 @@ export function addMarkers(viewer: Viewer, markers: readonly { id: string; posit
         label.pixelOffset = new Cartesian2(0, -(style.size / 2 + 4));
         if (style.label) label.text = style.label;
       }
+      scene.requestRender();
     },
     setVisible(visible) {
       points.show = visible;
       labels.show = visible;
+      scene.requestRender();
     },
     destroy() {
       if (destroyed) return;
       destroyed = true;
       scene.primitives.remove(points);
       scene.primitives.remove(labels);
+      scene.requestRender();
     },
   };
 }
@@ -268,7 +279,9 @@ export function addGroundCircles(
   let markReady: () => void;
   const ready = new Promise<void>(resolve => { markReady = resolve; }); // never settles if destroyed first
   const applyPending = (): void => {
-    if (!fills.ready || !outlines.ready) return;
+    // Readiness lands in an afterRender that asks for no frame, so keep frames coming until it does.
+    // With no circles Cesium never builds them, so they never become ready: don't ask then.
+    if (!fills.ready || !outlines.ready) { if (circles.length) scene.requestRender(); return; }
     markReady();
     if (!pending) return;
     for (const { id } of circles) {
@@ -311,15 +324,27 @@ export function addGroundCircles(
   let destroyed = false;
   return {
     ready,
+    inspect: () => ({ kind: "circles", ready: fills.ready && outlines.ready, visible: fills.show && outlines.show,
+      circles: fillInstances.map(instance => {
+        // Inspect the EllipseGeometry objects actually submitted to Cesium.
+        const geometry = instance.geometry as unknown as { _center: Cartesian3; _semiMajorAxis: number; _semiMinorAxis: number };
+        const c = Cartographic.fromCartesian(geometry._center);
+        return { id: instance.id, lon: CesiumMath.toDegrees(c.longitude), lat: CesiumMath.toDegrees(c.latitude),
+          radiusM: geometry._semiMajorAxis, minorRadiusM: geometry._semiMinorAxis,
+          visible: fills.show && (!fills.ready || !!fills.getGeometryInstanceAttributes(instance.id).show[0]) };
+      }),
+    }),
     setStyles(styles) {
       pending = styles;
       applyPending();
+      scene.requestRender(); // applies on the next frame if the geometry is still building
     },
     setVisible(value) {
       visible = value;
       fills.show = value;
       outlines.show = value;
       if (!value) leave();
+      scene.requestRender();
     },
     destroy() {
       if (destroyed) return;
@@ -329,6 +354,7 @@ export function addGroundCircles(
       scene.preRender.removeEventListener(applyPending);
       scene.primitives.remove(fills);
       scene.primitives.remove(outlines);
+      scene.requestRender();
     },
   };
 }

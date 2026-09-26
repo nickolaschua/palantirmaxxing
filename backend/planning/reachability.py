@@ -203,4 +203,6 @@ def evaluate_candidate_reachability(threat_id, interceptor, sample):
         minimum_path_length_m=path_length,
         required_travel_time_s=required_time,
         time_margin_s=time_margin,
+        position_z_m=sample.position_z_m,
+        velocity_z_mps=sample.velocity_z_mps,
     )

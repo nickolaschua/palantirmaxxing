@@ -5,7 +5,7 @@
  */
 import type { CameraPose, GeoPoint } from "../lib/index.js";
 
-// --- planning-result/1 wire types (frontend/docs/API-DESIGN.md is the source of truth) ---
+// --- planning-result/1 wire types (contracts/planning-result.md is the canonical payload contract) ---
 
 export interface PlanningTimedSample { time: string; lon: number; lat: number; height: number }
 export interface PlanningCandidate {
@@ -25,6 +25,8 @@ export interface PlanningCandidate {
     coveredAreaFraction: number | null;
   };
   footprint?: { id: string; radiusM: number };
+  /** Optional: the backend's consequence assessment of this area. Absent → the panel omits it. */
+  consequence?: Consequence;
   paretoEfficient: boolean;
   /** The contract lists three values; unknown future ones still render. */
   categories: readonly string[];
@@ -65,6 +67,20 @@ export interface PlanningResult {
   populationProvenance: Record<string, string>;
 }
 
+/** A score on the backend's 0–100 scale with its uncertainty band. */
+export interface Figure { low: number | null; central: number; high: number | null; confidence?: string; source?: string }
+export type DimensionId = "H" | "E" | "D" | "X" | "R" | "A";
+export interface Consequence {
+  /** Weighted total; null while the backend's vector is incomplete. */
+  total: Figure | null;
+  /** The condition assessed, e.g. "Weekday evening". Display only. */
+  scenario?: string;
+  /** Set by the frontend's stand-in (source.ts), never by the backend. */
+  illustrative?: boolean;
+  /** `value: null` = unavailable, never zero. */
+  dimensions: readonly { id: DimensionId; weight: number; value: Figure | null }[];
+}
+
 /** A representative option, ready to draw: footprint guaranteed. */
 export type Option = PlanningCandidate & { footprint: { id: string; radiusM: number } };
 
@@ -79,11 +95,21 @@ export function parseResult(value: unknown): { result: PlanningResult; options: 
   const r = value as PlanningResult;
   function fail(why: string): never { throw new Error(why); }
   if (r?.schemaVersion !== "planning-result/1") fail(`Unsupported schema "${String(r?.schemaVersion)}" — expected planning-result/1`);
+  const checkNumbers = (v: unknown): void => {
+    if (typeof v === "number" && !Number.isFinite(v)) fail("Result contains a non-finite number");
+    if (v && typeof v === "object") Object.values(v).forEach(checkNumbers);
+  };
+  checkNumbers(r);
+  const position = (p: { lon: number; lat: number; height: number }): void => {
+    if (!p || ![p.lon, p.lat, p.height].every(finite)
+        || Math.abs(p.lon) > 180 || Math.abs(p.lat) > 90) fail("Position is outside coordinate bounds");
+  };
   if (!Number.isFinite(time(r.start)) || !Number.isFinite(time(r.end))) fail("start/end are not valid timestamps");
   const samples = r.threat?.samples;
   if (!Array.isArray(samples) || samples.length < 2) fail("The threat needs at least two samples");
   let previous = -Infinity;
   samples.forEach((s, i) => {
+    position(s);
     if (!(time(s.time) > previous) || ![s.lon, s.lat, s.height].every(finite)) fail(`Threat sample ${i} has an invalid time or position`);
     previous = time(s.time);
   });
@@ -91,6 +117,11 @@ export function parseResult(value: unknown): { result: PlanningResult; options: 
   const byId = new Map(r.candidates.map(c => [c.id, c]));
   if (byId.size !== r.candidates.length) fail("Candidate IDs are not unique");
   if (!finite(r.assumptions?.footprintRadiusM) || r.assumptions.footprintRadiusM <= 0) fail("assumptions.footprintRadiusM is not a positive number");
+  for (const c of r.candidates) {
+    position(c.position);
+    if (c.footprint && c.footprint.radiusM !== r.assumptions.footprintRadiusM) fail("Candidate footprint radius disagrees with assumptions");
+  }
+  if (!Array.isArray(r.paretoCandidateIds) || r.paretoCandidateIds.some(id => !byId.has(id))) fail("Unknown Pareto candidate");
   for (const [key, id] of Object.entries(r.categoryAssignments ?? {})) {
     if (id !== null && !byId.has(id)) fail(`categoryAssignments.${key} names an unknown candidate`);
   }
@@ -101,6 +132,7 @@ export function parseResult(value: unknown): { result: PlanningResult; options: 
     if (c.suppliedSuccessProbability !== undefined && !finite(c.suppliedSuccessProbability)) fail(`Option "${id}" has a non-finite success value`);
     if (c.exposure && (!finiteOrNull(c.exposure.peoplePotentiallyExposed) || !finiteOrNull(c.exposure.coveredAreaFraction))) fail(`Option "${id}" has non-finite exposure`);
     if (!Array.isArray(c.categories)) fail(`Option "${id}" has no categories list`);
+    if (c.consequence) checkConsequence(c.consequence, fail, `Option "${id}" consequence`);
     return c as Option;
   });
   for (const cmp of r.comparisons) {
@@ -109,6 +141,58 @@ export function parseResult(value: unknown): { result: PlanningResult; options: 
   }
   return { result: r, options };
 }
+
+function checkConsequence(c: Consequence, fail: (why: string) => never, where: string): void {
+  const figure = (f: Figure | null, what: string): void => {
+    if (f === null) return;
+    if (!finite(f?.central) || !finiteOrNull(f.low) || !finiteOrNull(f.high)) fail(`${where}: ${what} is not a number`);
+    if ((f.low ?? f.central) > f.central || f.central > (f.high ?? f.central)) fail(`${where}: ${what} breaks low ≤ central ≤ high`);
+  };
+  if (!Array.isArray(c.dimensions)) fail(`${where}: no dimensions list`);
+  figure(c.total, "total");
+  for (const d of c.dimensions) {
+    if (!(d?.id in DIMENSION_LABELS)) fail(`${where}: unknown dimension "${String(d?.id)}"`);
+    if (!finite(d.weight)) fail(`${where}: ${d.id} weight is not a number`);
+    if (d.value === undefined) fail(`${where}: ${d.id} value is missing (use null for unavailable)`);
+    figure(d.value, d.id);
+  }
+}
+
+// --- consequence panel ---
+
+export const DIMENSION_LABELS: Record<DimensionId, string> = {
+  H: "Human exposure", E: "Essential-service disruption", D: "Authorised capability disruption",
+  X: "Cascading consequences", R: "Recovery difficulty", A: "Additional hazards",
+};
+
+export interface ConsequenceRow {
+  id: string;
+  label: string;
+  /** "35%" */
+  weight: string;
+  /** "42" or "42 (30–55)", or "Unavailable". */
+  value: string;
+  /** Band and point as 0–1 fractions of the 0–100 scale, for the range bar; null when unavailable. */
+  bar: { low: number; central: number; high: number } | null;
+  /** Hover text: confidence and source, when supplied. */
+  detail: string;
+}
+
+const clamp01 = (n: number): number => Math.max(0, Math.min(1, n / 100));
+const figureRow = (id: string, label: string, weight: string, f: Figure | null): ConsequenceRow => ({
+  id, label, weight,
+  value: f === null ? "Unavailable"
+    : f.low === null || f.high === null || (f.low === f.central && f.high === f.central) ? formatNumber(f.central, 1)
+    : `${formatNumber(f.central, 1)} (${formatNumber(f.low, 1)}–${formatNumber(f.high, 1)})`,
+  bar: f === null ? null : { low: clamp01(f.low ?? f.central), central: clamp01(f.central), high: clamp01(f.high ?? f.central) },
+  detail: f === null ? "No defensible value supplied" : [f.confidence && `Confidence ${f.confidence}`, f.source && `Source: ${f.source}`].filter(Boolean).join(" · "),
+});
+
+/** Total first, then each dimension in the order supplied. */
+export const consequenceRows = (c: Consequence): ConsequenceRow[] => [
+  figureRow("total", "Weighted total", "", c.total),
+  ...c.dimensions.map(d => figureRow(d.id, `${d.id} · ${DIMENSION_LABELS[d.id]}`, `${Math.round(d.weight * 100)}%`, d.value)),
+];
 
 // --- wording, colours, formatting ---
 
@@ -297,11 +381,17 @@ export function advance(flow: Flow, options: readonly Option[], elapsed: number)
 
 // --- camera ---
 
+/** Fractions of the screen covered by panels on each side, 0–1. */
+export interface Insets { left: number; right: number; top: number; bottom: number }
+const NO_INSETS: Insets = { left: 0, right: 0, top: 0, bottom: 0 };
+
 /**
  * A camera pose, heading north at `pitchDeg`, that fits `points` (already padded
- * by the caller) on screen. Cesium's 60° field of view spans the wider screen side.
+ * by the caller) into the part of the screen that `insets` leaves uncovered.
+ * Cesium's 60° field of view spans the wider screen side. Offsets are a flat-ground
+ * approximation, good enough for framing.
  */
-export function framePose(points: readonly GeoPoint[], pitchDeg: number, aspect: number, margin = 1.2): CameraPose {
+export function framePose(points: readonly GeoPoint[], pitchDeg: number, aspect: number, margin = 1.2, insets: Insets = NO_INSETS): CameraPose {
   const lons = points.map(p => p.lon), lats = points.map(p => p.lat);
   const lon = (Math.min(...lons) + Math.max(...lons)) / 2;
   const lat = (Math.min(...lats) + Math.max(...lats)) / 2;
@@ -311,10 +401,16 @@ export function framePose(points: readonly GeoPoint[], pitchDeg: number, aspect:
   const half = Math.PI / 6; // 60° / 2
   const [hHalf, vHalf] = aspect >= 1 ? [half, Math.atan(Math.tan(half) / aspect)] : [Math.atan(Math.tan(half) * aspect), half];
   const tilt = (Math.abs(pitchDeg) * Math.PI) / 180;
-  const distance = margin * Math.max(halfW / Math.tan(hHalf), (halfH * Math.sin(tilt)) / Math.tan(vHalf));
+  const freeX = Math.max(0.2, 1 - insets.left - insets.right);
+  const freeY = Math.max(0.2, 1 - insets.top - insets.bottom);
+  const distance = margin * Math.max(halfW / (Math.tan(hHalf) * freeX), (halfH * Math.sin(tilt)) / (Math.tan(vHalf) * freeY));
+  // Shift so the points sit at the centre of the free area: panels on the left push the
+  // view's centre west (points appear right); a tray at the bottom pulls it south (points appear higher).
+  const eastM = (insets.right - insets.left) * distance * Math.tan(hHalf);
+  const northM = ((insets.top - insets.bottom) * distance * Math.tan(vHalf)) / Math.sin(tilt);
   return {
-    lon,
-    lat: lat - (distance * Math.cos(tilt)) / mPerDegLat, // stand back to the south
+    lon: lon + eastM / mPerDegLon,
+    lat: lat + northM / mPerDegLat - (distance * Math.cos(tilt)) / mPerDegLat, // stand back to the south
     height: distance * Math.sin(tilt),
     heading: 0,
     pitch: -Math.abs(pitchDeg),

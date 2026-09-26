@@ -26,62 +26,62 @@
   "runs": [
     {
       "run": 1,
-      "planningMs": 82.775042,
-      "presentationMs": 0.503167,
-      "totalMs": 83.278209
+      "planningMs": 72.38925,
+      "presentationMs": 0.503083,
+      "totalMs": 72.892333
     },
     {
       "run": 2,
-      "planningMs": 79.66075,
-      "presentationMs": 0.522208,
-      "totalMs": 80.182958
+      "planningMs": 70.111375,
+      "presentationMs": 0.46975,
+      "totalMs": 70.581125
     },
     {
       "run": 3,
-      "planningMs": 80.884125,
-      "presentationMs": 0.489875,
-      "totalMs": 81.374
+      "planningMs": 70.488291,
+      "presentationMs": 0.498417,
+      "totalMs": 70.986708
     },
     {
       "run": 4,
-      "planningMs": 78.964042,
-      "presentationMs": 0.510917,
-      "totalMs": 79.474959
+      "planningMs": 68.279041,
+      "presentationMs": 0.479042,
+      "totalMs": 68.758083
     },
     {
       "run": 5,
-      "planningMs": 81.987625,
-      "presentationMs": 0.527292,
-      "totalMs": 82.514917
+      "planningMs": 66.621292,
+      "presentationMs": 0.467875,
+      "totalMs": 67.089167
     },
     {
       "run": 6,
-      "planningMs": 83.160625,
-      "presentationMs": 0.502917,
-      "totalMs": 83.663542
+      "planningMs": 66.855292,
+      "presentationMs": 0.470541,
+      "totalMs": 67.325833
     },
     {
       "run": 7,
-      "planningMs": 81.078833,
-      "presentationMs": 0.568209,
-      "totalMs": 81.647042
+      "planningMs": 65.519291,
+      "presentationMs": 0.47,
+      "totalMs": 65.989291
     }
   ],
   "summary": {
     "planningMs": {
-      "median": 81.078833,
-      "minimum": 78.964042,
-      "maximum": 83.160625
+      "median": 68.279041,
+      "minimum": 65.519291,
+      "maximum": 72.38925
     },
     "presentationMs": {
-      "median": 0.510917,
-      "minimum": 0.489875,
-      "maximum": 0.568209
+      "median": 0.470541,
+      "minimum": 0.467875,
+      "maximum": 0.503083
     },
     "totalMs": {
-      "median": 81.647042,
-      "minimum": 79.474959,
-      "maximum": 83.663542
+      "median": 68.758083,
+      "minimum": 65.989291,
+      "maximum": 72.892333
     }
   },
   "targetMs": 100,

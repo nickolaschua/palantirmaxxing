@@ -1,0 +1,39 @@
+{
+  "baseline": {
+    "raw_score": 1.8674314815619164,
+    "terminated": true,
+    "truncated": false
+  },
+  "candidate_count_first_detection": 160,
+  "environment": {
+    "steps": 72,
+    "terminated": true,
+    "termination_reason": "all_threats_resolved",
+    "truncated": false
+  },
+  "episode_candidate_count": 1280,
+  "generator_version": "singapore-scenario/1",
+  "inference": {
+    "model_dir": "data/results/rl/singapore-smoke",
+    "p50_ms": 0.1351664999997837,
+    "p95_ms": 0.19423475000013274,
+    "predicted_action": 1288,
+    "predicted_action_valid": true,
+    "samples": 30,
+    "status": "artifact reload and masked prediction passed"
+  },
+  "memory_peak_bytes": 70460713,
+  "provider_version": "singapore-demo-v2/1",
+  "schema_version": "singapore-simulation-benchmark/1",
+  "seed": 7,
+  "timings_ms": {
+    "catalog_and_provider_cold_start": 2041.6978329999997,
+    "complete_episode_generation": 510.2466249999997,
+    "environment_reset_fixed_episode": 0.14862499999956924,
+    "environment_step_p50": 7.77935449999978,
+    "environment_step_p95": 28.10697689999975,
+    "first_complete_candidate_set_cold": 15.607957999999922,
+    "immediate_baseline_full_episode": 168.75633400000024,
+    "same_candidate_set_warm_cache": 1.1121670000000528
+  }
+}

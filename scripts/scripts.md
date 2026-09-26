@@ -1,5 +1,34 @@
 # Scripts
 
+`benchmark_singapore_simulation.py` measures Singapore catalog cold start,
+generation, cold/warm candidate consequence scoring, a complete immediate-
+interception rollout, environment steps, memory, and (when the smoke artifact
+exists) artifact reload plus masked inference. It writes
+`data/results/singapore-simulation-benchmark.json`.
+
+`export_simulation_result.py` deterministically generates a Singapore episode,
+runs the feasible full-episode matching baseline, and writes the independent
+`simulation-result/1` frontend artifact. The output deliberately uses supplied-
+area and assumption-grade language.
+
+`train_rl.py` and `evaluate_rl.py` accept explicit
+`--provider toy|singapore-demo-v2` and `--generator synthetic|singapore-v1`
+choices. The Singapore smoke command and evidence are documented in
+`docs/singapore-simulation-integration.md`.
+
+`train_rl.py` runs the MaskablePPO toy-provider smoke training in the separate
+`.venv-rl` environment. `evaluate_rl.py` reloads the saved model and frozen
+normalization statistics for deterministic comparison with the immediate-
+interception baseline on a fixed suite. Generated artifacts are written below
+the ignored `data/results/rl/` path.
+
+Wall-clock training uses disposable PPO throughput calibration for a best-effort
+60% training allocation, with calibration/setup overhead additional. It is not
+a deadline. `--calibration-steps` sets the calibration length; environment p95
+is diagnostic only. `evaluate_rl.py --suite bounded-oracle` emits version-2
+evaluation reports with exactness, enumeration counts and eligible regret in
+addition to separate inference and full decision-path latency samples.
+
 `population_data.py` remains the thin source-acquisition/offline-preparation command. Its existing behavior is unchanged.
 
 `population_exposure.py` loads population and episode JSON, invokes standalone PEC, writes strict structured JSON atomically and prints status/output location. Required arguments: `--population`, `--episode`, `--output`; optional `--circle-edges` is 128 (default) or 256. Valid partial coverage exits 0; invalid inputs exit 2; file errors exit 1. No network access occurs.

@@ -1,0 +1,992 @@
+{
+  "base_scenario_application": {
+    "instruction": "Apply overlays across the existing base scenario families; do not change their geometry, consequence inputs, or split identity.",
+    "join_keys": [
+      "base_episode_id",
+      "base_profile",
+      "condition_scenario_id"
+    ],
+    "mode": "overlay",
+    "split_rule": "All overlays of one base family remain in the same dataset split."
+  },
+  "feature_schema_checksum": "sha256:b06e1b2b3d8243b59e7005ee6819e69db49631ff003c67149f7a3655de3f30f2",
+  "purpose": "simulation-only condition overlays for imitation-learning demonstration generation",
+  "rows": [
+    {
+      "active_condition_count": 0,
+      "active_conditions": [],
+      "candidate_setup": {
+        "building_path_intersection": false,
+        "rule": "all candidate actions are marked clear"
+      },
+      "expected_observation_effects": [
+        "nominal observations and no mapped building intersection"
+      ],
+      "expert_label_status": "unlabelled",
+      "group": "control",
+      "required_expert_fields": [
+        "acceptable_action_indices",
+        "selected_action_index",
+        "explanation_codes",
+        "replanning_margin_delta_s_when_claimed",
+        "simulated_outcome"
+      ],
+      "sampling_weight": 6,
+      "scenario_id": "IC-CONTROL",
+      "state_flags": {
+        "communication_delay": false,
+        "heavy_rain": false,
+        "mist": false,
+        "sensor_outage": false,
+        "strong_wind": false
+      }
+    },
+    {
+      "active_condition_count": 1,
+      "active_conditions": [
+        "heavy_rain"
+      ],
+      "candidate_setup": {
+        "building_path_intersection": false,
+        "rule": "all candidate actions are marked clear"
+      },
+      "expected_observation_effects": [
+        "wider track-observation uncertainty"
+      ],
+      "expert_label_status": "unlabelled",
+      "group": "single",
+      "required_expert_fields": [
+        "acceptable_action_indices",
+        "selected_action_index",
+        "explanation_codes",
+        "replanning_margin_delta_s_when_claimed",
+        "simulated_outcome"
+      ],
+      "sampling_weight": 1,
+      "scenario_id": "IC-SINGLE-01",
+      "state_flags": {
+        "communication_delay": false,
+        "heavy_rain": true,
+        "mist": false,
+        "sensor_outage": false,
+        "strong_wind": false
+      }
+    },
+    {
+      "active_condition_count": 1,
+      "active_conditions": [
+        "mist"
+      ],
+      "candidate_setup": {
+        "building_path_intersection": false,
+        "rule": "all candidate actions are marked clear"
+      },
+      "expected_observation_effects": [
+        "reduced visibility and wider observation uncertainty"
+      ],
+      "expert_label_status": "unlabelled",
+      "group": "single",
+      "required_expert_fields": [
+        "acceptable_action_indices",
+        "selected_action_index",
+        "explanation_codes",
+        "replanning_margin_delta_s_when_claimed",
+        "simulated_outcome"
+      ],
+      "sampling_weight": 1,
+      "scenario_id": "IC-SINGLE-02",
+      "state_flags": {
+        "communication_delay": false,
+        "heavy_rain": false,
+        "mist": true,
+        "sensor_outage": false,
+        "strong_wind": false
+      }
+    },
+    {
+      "active_condition_count": 1,
+      "active_conditions": [
+        "strong_wind"
+      ],
+      "candidate_setup": {
+        "building_path_intersection": false,
+        "rule": "all candidate actions are marked clear"
+      },
+      "expected_observation_effects": [
+        "wider simulated path variation"
+      ],
+      "expert_label_status": "unlabelled",
+      "group": "single",
+      "required_expert_fields": [
+        "acceptable_action_indices",
+        "selected_action_index",
+        "explanation_codes",
+        "replanning_margin_delta_s_when_claimed",
+        "simulated_outcome"
+      ],
+      "sampling_weight": 1,
+      "scenario_id": "IC-SINGLE-03",
+      "state_flags": {
+        "communication_delay": false,
+        "heavy_rain": false,
+        "mist": false,
+        "sensor_outage": false,
+        "strong_wind": true
+      }
+    },
+    {
+      "active_condition_count": 1,
+      "active_conditions": [
+        "building_path_intersection"
+      ],
+      "candidate_setup": {
+        "building_path_intersection": true,
+        "rule": "at least one candidate action must be marked intersecting"
+      },
+      "expected_observation_effects": [
+        "hard exclusion for each intersecting candidate action"
+      ],
+      "expert_label_status": "unlabelled",
+      "group": "single",
+      "required_expert_fields": [
+        "acceptable_action_indices",
+        "selected_action_index",
+        "explanation_codes",
+        "replanning_margin_delta_s_when_claimed",
+        "simulated_outcome"
+      ],
+      "sampling_weight": 1,
+      "scenario_id": "IC-SINGLE-04",
+      "state_flags": {
+        "communication_delay": false,
+        "heavy_rain": false,
+        "mist": false,
+        "sensor_outage": false,
+        "strong_wind": false
+      }
+    },
+    {
+      "active_condition_count": 1,
+      "active_conditions": [
+        "sensor_outage"
+      ],
+      "candidate_setup": {
+        "building_path_intersection": false,
+        "rule": "all candidate actions are marked clear"
+      },
+      "expected_observation_effects": [
+        "reduced independent sensor coverage"
+      ],
+      "expert_label_status": "unlabelled",
+      "group": "single",
+      "required_expert_fields": [
+        "acceptable_action_indices",
+        "selected_action_index",
+        "explanation_codes",
+        "replanning_margin_delta_s_when_claimed",
+        "simulated_outcome"
+      ],
+      "sampling_weight": 1,
+      "scenario_id": "IC-SINGLE-05",
+      "state_flags": {
+        "communication_delay": false,
+        "heavy_rain": false,
+        "mist": false,
+        "sensor_outage": true,
+        "strong_wind": false
+      }
+    },
+    {
+      "active_condition_count": 1,
+      "active_conditions": [
+        "communication_delay"
+      ],
+      "candidate_setup": {
+        "building_path_intersection": false,
+        "rule": "all candidate actions are marked clear"
+      },
+      "expected_observation_effects": [
+        "older information at the decision point"
+      ],
+      "expert_label_status": "unlabelled",
+      "group": "single",
+      "required_expert_fields": [
+        "acceptable_action_indices",
+        "selected_action_index",
+        "explanation_codes",
+        "replanning_margin_delta_s_when_claimed",
+        "simulated_outcome"
+      ],
+      "sampling_weight": 1,
+      "scenario_id": "IC-SINGLE-06",
+      "state_flags": {
+        "communication_delay": true,
+        "heavy_rain": false,
+        "mist": false,
+        "sensor_outage": false,
+        "strong_wind": false
+      }
+    },
+    {
+      "active_condition_count": 2,
+      "active_conditions": [
+        "heavy_rain",
+        "mist"
+      ],
+      "candidate_setup": {
+        "building_path_intersection": false,
+        "rule": "all candidate actions are marked clear"
+      },
+      "expected_observation_effects": [
+        "wider track-observation uncertainty",
+        "reduced visibility and wider observation uncertainty"
+      ],
+      "expert_label_status": "unlabelled",
+      "group": "pair",
+      "required_expert_fields": [
+        "acceptable_action_indices",
+        "selected_action_index",
+        "explanation_codes",
+        "replanning_margin_delta_s_when_claimed",
+        "simulated_outcome"
+      ],
+      "sampling_weight": 1,
+      "scenario_id": "IC-PAIR-01",
+      "state_flags": {
+        "communication_delay": false,
+        "heavy_rain": true,
+        "mist": true,
+        "sensor_outage": false,
+        "strong_wind": false
+      }
+    },
+    {
+      "active_condition_count": 2,
+      "active_conditions": [
+        "heavy_rain",
+        "strong_wind"
+      ],
+      "candidate_setup": {
+        "building_path_intersection": false,
+        "rule": "all candidate actions are marked clear"
+      },
+      "expected_observation_effects": [
+        "wider track-observation uncertainty",
+        "wider simulated path variation"
+      ],
+      "expert_label_status": "unlabelled",
+      "group": "pair",
+      "required_expert_fields": [
+        "acceptable_action_indices",
+        "selected_action_index",
+        "explanation_codes",
+        "replanning_margin_delta_s_when_claimed",
+        "simulated_outcome"
+      ],
+      "sampling_weight": 1,
+      "scenario_id": "IC-PAIR-02",
+      "state_flags": {
+        "communication_delay": false,
+        "heavy_rain": true,
+        "mist": false,
+        "sensor_outage": false,
+        "strong_wind": true
+      }
+    },
+    {
+      "active_condition_count": 2,
+      "active_conditions": [
+        "heavy_rain",
+        "building_path_intersection"
+      ],
+      "candidate_setup": {
+        "building_path_intersection": true,
+        "rule": "at least one candidate action must be marked intersecting"
+      },
+      "expected_observation_effects": [
+        "wider track-observation uncertainty",
+        "hard exclusion for each intersecting candidate action"
+      ],
+      "expert_label_status": "unlabelled",
+      "group": "pair",
+      "required_expert_fields": [
+        "acceptable_action_indices",
+        "selected_action_index",
+        "explanation_codes",
+        "replanning_margin_delta_s_when_claimed",
+        "simulated_outcome"
+      ],
+      "sampling_weight": 1,
+      "scenario_id": "IC-PAIR-03",
+      "state_flags": {
+        "communication_delay": false,
+        "heavy_rain": true,
+        "mist": false,
+        "sensor_outage": false,
+        "strong_wind": false
+      }
+    },
+    {
+      "active_condition_count": 2,
+      "active_conditions": [
+        "heavy_rain",
+        "sensor_outage"
+      ],
+      "candidate_setup": {
+        "building_path_intersection": false,
+        "rule": "all candidate actions are marked clear"
+      },
+      "expected_observation_effects": [
+        "wider track-observation uncertainty",
+        "reduced independent sensor coverage"
+      ],
+      "expert_label_status": "unlabelled",
+      "group": "pair",
+      "required_expert_fields": [
+        "acceptable_action_indices",
+        "selected_action_index",
+        "explanation_codes",
+        "replanning_margin_delta_s_when_claimed",
+        "simulated_outcome"
+      ],
+      "sampling_weight": 1,
+      "scenario_id": "IC-PAIR-04",
+      "state_flags": {
+        "communication_delay": false,
+        "heavy_rain": true,
+        "mist": false,
+        "sensor_outage": true,
+        "strong_wind": false
+      }
+    },
+    {
+      "active_condition_count": 2,
+      "active_conditions": [
+        "heavy_rain",
+        "communication_delay"
+      ],
+      "candidate_setup": {
+        "building_path_intersection": false,
+        "rule": "all candidate actions are marked clear"
+      },
+      "expected_observation_effects": [
+        "wider track-observation uncertainty",
+        "older information at the decision point"
+      ],
+      "expert_label_status": "unlabelled",
+      "group": "pair",
+      "required_expert_fields": [
+        "acceptable_action_indices",
+        "selected_action_index",
+        "explanation_codes",
+        "replanning_margin_delta_s_when_claimed",
+        "simulated_outcome"
+      ],
+      "sampling_weight": 1,
+      "scenario_id": "IC-PAIR-05",
+      "state_flags": {
+        "communication_delay": true,
+        "heavy_rain": true,
+        "mist": false,
+        "sensor_outage": false,
+        "strong_wind": false
+      }
+    },
+    {
+      "active_condition_count": 2,
+      "active_conditions": [
+        "mist",
+        "strong_wind"
+      ],
+      "candidate_setup": {
+        "building_path_intersection": false,
+        "rule": "all candidate actions are marked clear"
+      },
+      "expected_observation_effects": [
+        "reduced visibility and wider observation uncertainty",
+        "wider simulated path variation"
+      ],
+      "expert_label_status": "unlabelled",
+      "group": "pair",
+      "required_expert_fields": [
+        "acceptable_action_indices",
+        "selected_action_index",
+        "explanation_codes",
+        "replanning_margin_delta_s_when_claimed",
+        "simulated_outcome"
+      ],
+      "sampling_weight": 1,
+      "scenario_id": "IC-PAIR-06",
+      "state_flags": {
+        "communication_delay": false,
+        "heavy_rain": false,
+        "mist": true,
+        "sensor_outage": false,
+        "strong_wind": true
+      }
+    },
+    {
+      "active_condition_count": 2,
+      "active_conditions": [
+        "mist",
+        "building_path_intersection"
+      ],
+      "candidate_setup": {
+        "building_path_intersection": true,
+        "rule": "at least one candidate action must be marked intersecting"
+      },
+      "expected_observation_effects": [
+        "reduced visibility and wider observation uncertainty",
+        "hard exclusion for each intersecting candidate action"
+      ],
+      "expert_label_status": "unlabelled",
+      "group": "pair",
+      "required_expert_fields": [
+        "acceptable_action_indices",
+        "selected_action_index",
+        "explanation_codes",
+        "replanning_margin_delta_s_when_claimed",
+        "simulated_outcome"
+      ],
+      "sampling_weight": 1,
+      "scenario_id": "IC-PAIR-07",
+      "state_flags": {
+        "communication_delay": false,
+        "heavy_rain": false,
+        "mist": true,
+        "sensor_outage": false,
+        "strong_wind": false
+      }
+    },
+    {
+      "active_condition_count": 2,
+      "active_conditions": [
+        "mist",
+        "sensor_outage"
+      ],
+      "candidate_setup": {
+        "building_path_intersection": false,
+        "rule": "all candidate actions are marked clear"
+      },
+      "expected_observation_effects": [
+        "reduced visibility and wider observation uncertainty",
+        "reduced independent sensor coverage"
+      ],
+      "expert_label_status": "unlabelled",
+      "group": "pair",
+      "required_expert_fields": [
+        "acceptable_action_indices",
+        "selected_action_index",
+        "explanation_codes",
+        "replanning_margin_delta_s_when_claimed",
+        "simulated_outcome"
+      ],
+      "sampling_weight": 1,
+      "scenario_id": "IC-PAIR-08",
+      "state_flags": {
+        "communication_delay": false,
+        "heavy_rain": false,
+        "mist": true,
+        "sensor_outage": true,
+        "strong_wind": false
+      }
+    },
+    {
+      "active_condition_count": 2,
+      "active_conditions": [
+        "mist",
+        "communication_delay"
+      ],
+      "candidate_setup": {
+        "building_path_intersection": false,
+        "rule": "all candidate actions are marked clear"
+      },
+      "expected_observation_effects": [
+        "reduced visibility and wider observation uncertainty",
+        "older information at the decision point"
+      ],
+      "expert_label_status": "unlabelled",
+      "group": "pair",
+      "required_expert_fields": [
+        "acceptable_action_indices",
+        "selected_action_index",
+        "explanation_codes",
+        "replanning_margin_delta_s_when_claimed",
+        "simulated_outcome"
+      ],
+      "sampling_weight": 1,
+      "scenario_id": "IC-PAIR-09",
+      "state_flags": {
+        "communication_delay": true,
+        "heavy_rain": false,
+        "mist": true,
+        "sensor_outage": false,
+        "strong_wind": false
+      }
+    },
+    {
+      "active_condition_count": 2,
+      "active_conditions": [
+        "strong_wind",
+        "building_path_intersection"
+      ],
+      "candidate_setup": {
+        "building_path_intersection": true,
+        "rule": "at least one candidate action must be marked intersecting"
+      },
+      "expected_observation_effects": [
+        "wider simulated path variation",
+        "hard exclusion for each intersecting candidate action"
+      ],
+      "expert_label_status": "unlabelled",
+      "group": "pair",
+      "required_expert_fields": [
+        "acceptable_action_indices",
+        "selected_action_index",
+        "explanation_codes",
+        "replanning_margin_delta_s_when_claimed",
+        "simulated_outcome"
+      ],
+      "sampling_weight": 1,
+      "scenario_id": "IC-PAIR-10",
+      "state_flags": {
+        "communication_delay": false,
+        "heavy_rain": false,
+        "mist": false,
+        "sensor_outage": false,
+        "strong_wind": true
+      }
+    },
+    {
+      "active_condition_count": 2,
+      "active_conditions": [
+        "strong_wind",
+        "sensor_outage"
+      ],
+      "candidate_setup": {
+        "building_path_intersection": false,
+        "rule": "all candidate actions are marked clear"
+      },
+      "expected_observation_effects": [
+        "wider simulated path variation",
+        "reduced independent sensor coverage"
+      ],
+      "expert_label_status": "unlabelled",
+      "group": "pair",
+      "required_expert_fields": [
+        "acceptable_action_indices",
+        "selected_action_index",
+        "explanation_codes",
+        "replanning_margin_delta_s_when_claimed",
+        "simulated_outcome"
+      ],
+      "sampling_weight": 1,
+      "scenario_id": "IC-PAIR-11",
+      "state_flags": {
+        "communication_delay": false,
+        "heavy_rain": false,
+        "mist": false,
+        "sensor_outage": true,
+        "strong_wind": true
+      }
+    },
+    {
+      "active_condition_count": 2,
+      "active_conditions": [
+        "strong_wind",
+        "communication_delay"
+      ],
+      "candidate_setup": {
+        "building_path_intersection": false,
+        "rule": "all candidate actions are marked clear"
+      },
+      "expected_observation_effects": [
+        "wider simulated path variation",
+        "older information at the decision point"
+      ],
+      "expert_label_status": "unlabelled",
+      "group": "pair",
+      "required_expert_fields": [
+        "acceptable_action_indices",
+        "selected_action_index",
+        "explanation_codes",
+        "replanning_margin_delta_s_when_claimed",
+        "simulated_outcome"
+      ],
+      "sampling_weight": 1,
+      "scenario_id": "IC-PAIR-12",
+      "state_flags": {
+        "communication_delay": true,
+        "heavy_rain": false,
+        "mist": false,
+        "sensor_outage": false,
+        "strong_wind": true
+      }
+    },
+    {
+      "active_condition_count": 2,
+      "active_conditions": [
+        "building_path_intersection",
+        "sensor_outage"
+      ],
+      "candidate_setup": {
+        "building_path_intersection": true,
+        "rule": "at least one candidate action must be marked intersecting"
+      },
+      "expected_observation_effects": [
+        "hard exclusion for each intersecting candidate action",
+        "reduced independent sensor coverage"
+      ],
+      "expert_label_status": "unlabelled",
+      "group": "pair",
+      "required_expert_fields": [
+        "acceptable_action_indices",
+        "selected_action_index",
+        "explanation_codes",
+        "replanning_margin_delta_s_when_claimed",
+        "simulated_outcome"
+      ],
+      "sampling_weight": 1,
+      "scenario_id": "IC-PAIR-13",
+      "state_flags": {
+        "communication_delay": false,
+        "heavy_rain": false,
+        "mist": false,
+        "sensor_outage": true,
+        "strong_wind": false
+      }
+    },
+    {
+      "active_condition_count": 2,
+      "active_conditions": [
+        "building_path_intersection",
+        "communication_delay"
+      ],
+      "candidate_setup": {
+        "building_path_intersection": true,
+        "rule": "at least one candidate action must be marked intersecting"
+      },
+      "expected_observation_effects": [
+        "hard exclusion for each intersecting candidate action",
+        "older information at the decision point"
+      ],
+      "expert_label_status": "unlabelled",
+      "group": "pair",
+      "required_expert_fields": [
+        "acceptable_action_indices",
+        "selected_action_index",
+        "explanation_codes",
+        "replanning_margin_delta_s_when_claimed",
+        "simulated_outcome"
+      ],
+      "sampling_weight": 1,
+      "scenario_id": "IC-PAIR-14",
+      "state_flags": {
+        "communication_delay": true,
+        "heavy_rain": false,
+        "mist": false,
+        "sensor_outage": false,
+        "strong_wind": false
+      }
+    },
+    {
+      "active_condition_count": 2,
+      "active_conditions": [
+        "sensor_outage",
+        "communication_delay"
+      ],
+      "candidate_setup": {
+        "building_path_intersection": false,
+        "rule": "all candidate actions are marked clear"
+      },
+      "expected_observation_effects": [
+        "reduced independent sensor coverage",
+        "older information at the decision point"
+      ],
+      "expert_label_status": "unlabelled",
+      "group": "pair",
+      "required_expert_fields": [
+        "acceptable_action_indices",
+        "selected_action_index",
+        "explanation_codes",
+        "replanning_margin_delta_s_when_claimed",
+        "simulated_outcome"
+      ],
+      "sampling_weight": 1,
+      "scenario_id": "IC-PAIR-15",
+      "state_flags": {
+        "communication_delay": true,
+        "heavy_rain": false,
+        "mist": false,
+        "sensor_outage": true,
+        "strong_wind": false
+      }
+    },
+    {
+      "active_condition_count": 3,
+      "active_conditions": [
+        "heavy_rain",
+        "mist",
+        "strong_wind"
+      ],
+      "candidate_setup": {
+        "building_path_intersection": false,
+        "rule": "all candidate actions are marked clear"
+      },
+      "expected_observation_effects": [
+        "wider track-observation uncertainty",
+        "reduced visibility and wider observation uncertainty",
+        "wider simulated path variation"
+      ],
+      "expert_label_status": "unlabelled",
+      "group": "combined-severe",
+      "required_expert_fields": [
+        "acceptable_action_indices",
+        "selected_action_index",
+        "explanation_codes",
+        "replanning_margin_delta_s_when_claimed",
+        "simulated_outcome"
+      ],
+      "sampling_weight": 1,
+      "scenario_id": "IC-SEVERE-01",
+      "state_flags": {
+        "communication_delay": false,
+        "heavy_rain": true,
+        "mist": true,
+        "sensor_outage": false,
+        "strong_wind": true
+      }
+    },
+    {
+      "active_condition_count": 3,
+      "active_conditions": [
+        "heavy_rain",
+        "building_path_intersection",
+        "sensor_outage"
+      ],
+      "candidate_setup": {
+        "building_path_intersection": true,
+        "rule": "at least one candidate action must be marked intersecting"
+      },
+      "expected_observation_effects": [
+        "wider track-observation uncertainty",
+        "hard exclusion for each intersecting candidate action",
+        "reduced independent sensor coverage"
+      ],
+      "expert_label_status": "unlabelled",
+      "group": "combined-severe",
+      "required_expert_fields": [
+        "acceptable_action_indices",
+        "selected_action_index",
+        "explanation_codes",
+        "replanning_margin_delta_s_when_claimed",
+        "simulated_outcome"
+      ],
+      "sampling_weight": 1,
+      "scenario_id": "IC-SEVERE-02",
+      "state_flags": {
+        "communication_delay": false,
+        "heavy_rain": true,
+        "mist": false,
+        "sensor_outage": true,
+        "strong_wind": false
+      }
+    },
+    {
+      "active_condition_count": 3,
+      "active_conditions": [
+        "heavy_rain",
+        "mist",
+        "communication_delay"
+      ],
+      "candidate_setup": {
+        "building_path_intersection": false,
+        "rule": "all candidate actions are marked clear"
+      },
+      "expected_observation_effects": [
+        "wider track-observation uncertainty",
+        "reduced visibility and wider observation uncertainty",
+        "older information at the decision point"
+      ],
+      "expert_label_status": "unlabelled",
+      "group": "combined-severe",
+      "required_expert_fields": [
+        "acceptable_action_indices",
+        "selected_action_index",
+        "explanation_codes",
+        "replanning_margin_delta_s_when_claimed",
+        "simulated_outcome"
+      ],
+      "sampling_weight": 1,
+      "scenario_id": "IC-SEVERE-03",
+      "state_flags": {
+        "communication_delay": true,
+        "heavy_rain": true,
+        "mist": true,
+        "sensor_outage": false,
+        "strong_wind": false
+      }
+    },
+    {
+      "active_condition_count": 3,
+      "active_conditions": [
+        "strong_wind",
+        "building_path_intersection",
+        "sensor_outage"
+      ],
+      "candidate_setup": {
+        "building_path_intersection": true,
+        "rule": "at least one candidate action must be marked intersecting"
+      },
+      "expected_observation_effects": [
+        "wider simulated path variation",
+        "hard exclusion for each intersecting candidate action",
+        "reduced independent sensor coverage"
+      ],
+      "expert_label_status": "unlabelled",
+      "group": "combined-severe",
+      "required_expert_fields": [
+        "acceptable_action_indices",
+        "selected_action_index",
+        "explanation_codes",
+        "replanning_margin_delta_s_when_claimed",
+        "simulated_outcome"
+      ],
+      "sampling_weight": 1,
+      "scenario_id": "IC-SEVERE-04",
+      "state_flags": {
+        "communication_delay": false,
+        "heavy_rain": false,
+        "mist": false,
+        "sensor_outage": true,
+        "strong_wind": true
+      }
+    },
+    {
+      "active_condition_count": 3,
+      "active_conditions": [
+        "strong_wind",
+        "building_path_intersection",
+        "communication_delay"
+      ],
+      "candidate_setup": {
+        "building_path_intersection": true,
+        "rule": "at least one candidate action must be marked intersecting"
+      },
+      "expected_observation_effects": [
+        "wider simulated path variation",
+        "hard exclusion for each intersecting candidate action",
+        "older information at the decision point"
+      ],
+      "expert_label_status": "unlabelled",
+      "group": "combined-severe",
+      "required_expert_fields": [
+        "acceptable_action_indices",
+        "selected_action_index",
+        "explanation_codes",
+        "replanning_margin_delta_s_when_claimed",
+        "simulated_outcome"
+      ],
+      "sampling_weight": 1,
+      "scenario_id": "IC-SEVERE-05",
+      "state_flags": {
+        "communication_delay": true,
+        "heavy_rain": false,
+        "mist": false,
+        "sensor_outage": false,
+        "strong_wind": true
+      }
+    },
+    {
+      "active_condition_count": 3,
+      "active_conditions": [
+        "mist",
+        "sensor_outage",
+        "communication_delay"
+      ],
+      "candidate_setup": {
+        "building_path_intersection": false,
+        "rule": "all candidate actions are marked clear"
+      },
+      "expected_observation_effects": [
+        "reduced visibility and wider observation uncertainty",
+        "reduced independent sensor coverage",
+        "older information at the decision point"
+      ],
+      "expert_label_status": "unlabelled",
+      "group": "combined-severe",
+      "required_expert_fields": [
+        "acceptable_action_indices",
+        "selected_action_index",
+        "explanation_codes",
+        "replanning_margin_delta_s_when_claimed",
+        "simulated_outcome"
+      ],
+      "sampling_weight": 1,
+      "scenario_id": "IC-SEVERE-06",
+      "state_flags": {
+        "communication_delay": true,
+        "heavy_rain": false,
+        "mist": true,
+        "sensor_outage": true,
+        "strong_wind": false
+      }
+    },
+    {
+      "active_condition_count": 6,
+      "active_conditions": [
+        "heavy_rain",
+        "mist",
+        "strong_wind",
+        "building_path_intersection",
+        "sensor_outage",
+        "communication_delay"
+      ],
+      "candidate_setup": {
+        "building_path_intersection": true,
+        "rule": "at least one candidate action must be marked intersecting"
+      },
+      "expected_observation_effects": [
+        "wider track-observation uncertainty",
+        "reduced visibility and wider observation uncertainty",
+        "wider simulated path variation",
+        "hard exclusion for each intersecting candidate action",
+        "reduced independent sensor coverage",
+        "older information at the decision point"
+      ],
+      "expert_label_status": "unlabelled",
+      "group": "combined-stress",
+      "required_expert_fields": [
+        "acceptable_action_indices",
+        "selected_action_index",
+        "explanation_codes",
+        "replanning_margin_delta_s_when_claimed",
+        "simulated_outcome"
+      ],
+      "sampling_weight": 1,
+      "scenario_id": "IC-STRESS-ALL",
+      "state_flags": {
+        "communication_delay": true,
+        "heavy_rain": true,
+        "mist": true,
+        "sensor_outage": true,
+        "strong_wind": true
+      }
+    }
+  ],
+  "sampling_plan": {
+    "archetype_count": 29,
+    "balance_statement": "Each retained condition is active in exactly 10 of 34 weighted slots.",
+    "condition_weighted_incidence": {
+      "building_path_intersection": 10,
+      "communication_delay": 10,
+      "heavy_rain": 10,
+      "mist": 10,
+      "sensor_outage": 10,
+      "strong_wind": 10
+    },
+    "control_weighted_slots": 6,
+    "weighted_slot_count": 34
+  },
+  "schema_version": "imperfect-condition-matrix/1"
+}

@@ -1,0 +1,115 @@
+{
+  "schema_version": "imperfect-condition-source-registry/1",
+  "sources": [
+    {
+      "source_id": "nea-rainfall-api",
+      "title": "Rainfall across Singapore",
+      "publisher": "National Environment Agency via data.gov.sg",
+      "url": "https://data.gov.sg/datasets/d_6580738cdd7db79374ed3152159fbd69/view",
+      "role": "public_environmental_input",
+      "native_fields": ["rainfall_rate_mm_h"],
+      "update_frequency": "five-minute observations",
+      "limitations": "Station observations can contain gaps and do not represent every point between stations. Preserve station, timestamp, and retrieval provenance.",
+      "use_for_training": "May seed or validate environmental scenario distributions; it does not supply a system-performance coefficient."
+    },
+    {
+      "source_id": "mss-visibility",
+      "title": "Visibility observations",
+      "publisher": "Meteorological Service Singapore",
+      "url": "https://www.weather.gov.sg/weather-currentobservations-visibility/",
+      "role": "public_environmental_input",
+      "native_fields": ["visibility_m"],
+      "update_frequency": "publisher-dependent station observations",
+      "limitations": "Spatial and temporal coverage varies by station. Keep the station and observation time and leave unmatched values null.",
+      "use_for_training": "May support mist scenario labelling or distribution fitting; it does not directly determine track uncertainty."
+    },
+    {
+      "source_id": "mss-observation-network",
+      "title": "Meteorological observing network",
+      "publisher": "Meteorological Service Singapore",
+      "url": "https://www.weather.gov.sg/learn_observations/",
+      "role": "public_environmental_input",
+      "native_fields": ["rainfall_rate_mm_h", "wind_speed_mps"],
+      "update_frequency": "depends on instrument and published product",
+      "limitations": "Measurements are point observations with instrument-specific sampling and averaging. Retain source-native units and timing metadata.",
+      "use_for_training": "May inform scenario ranges and replay cases; simulator response remains separately calibrated."
+    },
+    {
+      "source_id": "authoritative-building-geometry",
+      "title": "Versioned building geometry selected by the project",
+      "publisher": "project-supplied authoritative or licensed source",
+      "url": null,
+      "role": "required_project_input",
+      "native_fields": ["intersected_building_ids", "building_path_intersection"],
+      "update_frequency": "record the selected dataset release",
+      "limitations": "No building dataset is bundled here. Geometry, height assumptions, coordinate reference system, and release identity must be supplied and versioned before use.",
+      "use_for_training": "Compute candidate-local intersections consistently across all candidates and splits."
+    },
+    {
+      "source_id": "simulator-telemetry",
+      "title": "Versioned simulation or test telemetry",
+      "publisher": "project simulator or approved test harness",
+      "url": null,
+      "role": "required_project_input",
+      "native_fields": ["communication_delay_s", "unavailable_sensor_ids", "replanning_margin_delta_s"],
+      "update_frequency": "per simulation decision",
+      "limitations": "The simulator version, configuration, random seed, and measurement definition must accompany each generated dataset.",
+      "use_for_training": "Supplies system-specific condition evidence and outcomes; never substitute undocumented constants."
+    },
+    {
+      "source_id": "faa-weather-radar-handbook",
+      "title": "Aviation Weather Handbook",
+      "publisher": "Federal Aviation Administration",
+      "url": "https://www.faa.gov/sites/faa.gov/files/FAA-H-8083-28B.pdf",
+      "role": "research_basis_only",
+      "native_fields": [],
+      "update_frequency": "edition-based publication",
+      "limitations": "Provides general evidence about precipitation, blockage, and reflection; it is not a calibration source for this simulator.",
+      "use_for_training": "Justifies representing degraded observations, not any numeric performance multiplier."
+    },
+    {
+      "source_id": "gps-gov-accuracy",
+      "title": "GPS Accuracy",
+      "publisher": "United States government GPS program",
+      "url": "https://archive.gps.gov/systems/gps/performance/accuracy/",
+      "role": "research_basis_only",
+      "native_fields": [],
+      "update_frequency": "reference publication",
+      "limitations": "Describes blockage and multipath generally and does not specify this project's sensors or geometry.",
+      "use_for_training": "Supports inclusion of mapped obstruction evidence, not an automatic action label."
+    },
+    {
+      "source_id": "nist-measurement-uncertainty",
+      "title": "Measurement Uncertainty",
+      "publisher": "National Institute of Standards and Technology",
+      "url": "https://www.nist.gov/itl/sed/topic-areas/measurement-uncertainty",
+      "role": "methodology_reference",
+      "native_fields": [],
+      "update_frequency": "reference publication",
+      "limitations": "General uncertainty guidance; project-specific probability models still require documented calibration and validation.",
+      "use_for_training": "Supports retaining distributions and missingness instead of applying unsupported deterministic corrections."
+    },
+    {
+      "source_id": "synthetic-weather-v1",
+      "title": "Synthetic example weather",
+      "publisher": "project fixture",
+      "url": null,
+      "role": "example_only",
+      "native_fields": ["rainfall_rate_mm_h", "communication_delay_s", "unavailable_sensor_ids"],
+      "update_frequency": "fixed fixture",
+      "limitations": "Invented values used only to demonstrate the contract shape.",
+      "use_for_training": "Do not treat as observed Singapore data."
+    },
+    {
+      "source_id": "synthetic-building-map-v1",
+      "title": "Synthetic example building map",
+      "publisher": "project fixture",
+      "url": null,
+      "role": "example_only",
+      "native_fields": ["intersected_building_ids", "building_path_intersection"],
+      "update_frequency": "fixed fixture",
+      "limitations": "Invented geometry identifiers used only to demonstrate the contract shape.",
+      "use_for_training": "Replace with a versioned project geometry source before dataset generation."
+    }
+  ]
+}

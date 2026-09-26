@@ -1,9 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  changeText, clockEndS, flattenSnapshot, lockTimeOf, naiveCostMismatch, outcomesOf, pairFailure, pairPhase, pairProblem,
-  positionAt, summaryRows, threatDetail, threatStateAt,
+  changeText, clockEndS, flattenSnapshot, interceptTargetOf, lockTimeOf, naiveCostMismatch, outcomesOf, pairFailure, pairPhase, pairProblem,
+  planIntercepts, positionAt, REACTION_S, summaryRows, threatDetail, threatStateAt,
 } from "../../frontend/src/demo/engagement-model.ts";
+import { BASES, INTERCEPTOR_SPEED_MPS } from "../../frontend/src/demo/interceptor-model.ts";
 import type { RunPair } from "../../frontend/src/demo/engagement-model.ts";
 import type { SimulationResult, SimulationResultV2, SimulationTrajectory } from "../../frontend/src/demo/simulation-model.ts";
 
@@ -23,7 +24,7 @@ function v2(policy: string, active: number, naive: number, physical: Record<stri
     schemaVersion: "simulation-result/2", start: "2026-09-26T04:00:00Z", end: "2026-09-26T04:01:40Z",
     trajectories: [trajectory("threat-01", 1), trajectory("threat-02", 5)],
     outcomes: [outcome("threat-01", "intercepted", 8), outcome("threat-02", "unhandled", null)],
-    assignments: [{ threat_id: "threat-01", lock_time_s: 4 }],
+    assignments: [{ threat_id: "threat-01", lock_time_s: 4, interception_time_s: 8, position: { lon: 103.86, lat: 1.36, heightM: 12_000 } }],
     selectedFootprints: [{ id: "fp-1", threatId: "threat-01", kind: "selected", label: "supplied 100 m area", center: { lon: 103.85, lat: 1.35, heightM: 0 }, radiusM: 100, consequence: { people: 12, nested: { ok: true, none: null } } }],
     terminalCounterfactualFootprints: [],
     consequenceSummary: { ordinalObjectiveCost: active, physicalComponents: physical, wording: { area: "supplied 100 m area", population: "people potentially exposed", casualties: "assumption-grade expected casualties" } },
@@ -134,4 +135,40 @@ test("pair phase and failure text", () => {
   assert.equal(pairPhase(pair), "failed");
   assert.equal(pairFailure(pair), "Optimised run failed · SCENARIO_IDENTITY_MISMATCH: drift");
   assert.equal(pairFailure({ ...pair, optimised: { ...pair.optimised, status: "succeeded" }, problem: "Runs are on different scenarios" }), "Runs are on different scenarios");
+});
+
+test("intercept target: the assignment's meet point, or the threat's own position when the record has none", () => {
+  assert.deepEqual(interceptTargetOf(naiveRun, "threat-01"), { position: { lon: 103.86, lat: 1.36, height: 12_000 }, timeFromStartS: 8 });
+  assert.equal(interceptTargetOf(naiveRun, "threat-02"), null, "unhandled threats are not met");
+  const bare = { ...naiveRun, assignments: [] };
+  const t = interceptTargetOf(bare, "threat-01")!;
+  assert.equal(t.timeFromStartS, 8);
+  assert.ok(Math.abs(t.position.lon - positionAt(naiveRun.trajectories[0]!, 8).lon) < 1e-12);
+});
+
+test("planIntercepts: nearest base, reaction delay, fitted speed when 400 m/s cannot make it, stock runs down", () => {
+  const { plans, stock } = planIntercepts(naiveRun);
+  assert.deepEqual([...plans.keys()], ["threat-01"]);
+  const p = plans.get("threat-01")!;
+  assert.equal(p.base.id, "paya-lebar", "nearest of the three to the meet point");
+  // 400 m/s would need a launch before detection + reaction, so it launches at detection + reaction and flies faster.
+  assert.equal(p.launchS, 1 + REACTION_S);
+  assert.ok(p.speedMps > INTERCEPTOR_SPEED_MPS);
+  assert.equal(p.interceptS, 8);
+  assert.equal(p.samples[0]!.height, 0);
+  assert.deepEqual(p.samples.at(-1)!.height, 12_000);
+  assert.equal(stock.get("paya-lebar"), 7);
+  assert.equal(stock.get("khatib"), 8);
+  // A late, close meet keeps the slow flight: launch as late as 400 m/s allows.
+  const lazy = { ...naiveRun, assignments: [{ threat_id: "threat-01", interception_time_s: 60, position: { lon: 103.9105, lat: 1.3700, heightM: 3_000 } }],
+    outcomes: [{ ...naiveRun.outcomes[0]!, resolvedTimeS: 60 }, naiveRun.outcomes[1]!] };
+  const slow = planIntercepts(lazy).plans.get("threat-01")!;
+  assert.ok(Math.abs(slow.speedMps - INTERCEPTOR_SPEED_MPS) < 1e-6);
+  assert.ok(slow.launchS > 1 + REACTION_S);
+  // Stock exhausted: later meets get no interceptor.
+  const one = BASES.map(b => ({ ...b, stock: b.id === "paya-lebar" ? 1 : 0 }));
+  const two = { ...naiveRun, outcomes: [naiveRun.outcomes[0]!, { ...naiveRun.outcomes[1]!, outcome: "intercepted" as const, resolvedTimeS: 12 }] };
+  const short = planIntercepts(two, one);
+  assert.equal(short.plans.size, 1);
+  assert.equal(short.stock.get("paya-lebar"), 0);
 });

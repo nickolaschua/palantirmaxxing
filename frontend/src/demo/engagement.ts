@@ -1,9 +1,10 @@
 import type { CircleStyle, MarkerStyle, SingaporeCanvas } from "../lib/index.js";
 import { circleBounds, formatT, framePose } from "./decision-model.js";
 import {
-  BASELINE_POLICY, clockEndS, elapsedOf, lockTimeOf, mapInsets, outcomesOf, pairFailure, pairPhase, pairProblem, POLICY_NAMES,
-  positionAt, STATE_LABELS, threatStateAt, viewAspect,
+  BASELINE_POLICY, clockEndS, elapsedOf, lockTimeOf, mapInsets, outcomesOf, pairFailure, pairPhase, pairProblem, planIntercepts,
+  POLICY_NAMES, positionAt, STATE_LABELS, threatStateAt, viewAspect,
 } from "./engagement-model.js";
+import { BASES } from "./interceptor-model.js";
 import type { RunPair, RunRef, ThreatState } from "./engagement-model.js";
 import { mountOutcomePanel } from "./outcome-panel.js";
 import { mountResultLoader } from "./result-loader.js";
@@ -24,6 +25,8 @@ const BIRDS_EYE_S = 0.6;
 const COLOURS = ["#ff6b6b", "#ffd166", "#06d6a0", "#4cc9f0", "#7b61ff", "#f72585", "#90be6d", "#f8961e"];
 const UNHANDLED = "#ff3b30";
 const SELECTED = "#06d6a0";
+const INTERCEPTOR = "#35c78a";
+const BASE_MARKER = "#c9d1d9";
 
 function el<K extends keyof HTMLElementTagNameMap>(tag: K, className?: string, text?: string): HTMLElementTagNameMap[K] {
   const e = document.createElement(tag);
@@ -81,6 +84,14 @@ function renderScenario(
   );
   const markers = canvas.addMarkers(footprints.map(f => ({ id: f.id, position: { lon: f.center.lon, lat: f.center.lat } })));
 
+  // Interceptors: an illustration worked backwards from the backend's intercept point and time (see planIntercepts).
+  const { plans } = planIntercepts(result);
+  const baseMarkers = canvas.addMarkers(BASES.map(b => ({ id: `base:${b.id}`, position: b.position })));
+  const flights = new Map([...plans.values()].map(p => [p.threatId, canvas.addPath(p.samples, {
+    color: INTERCEPTOR, trailColor: alpha(INTERCEPTOR, 0.4), width: 3, markerSize: 25, markerShape: "craft", markerPulse: true,
+  })]));
+  const bursts = new Map([...plans.values()].map(p => [p.threatId, canvas.addBurst(p.target.position, { color: "#ff7043", radiusM: 600, durationS: 2.2 })]));
+
   // Rows, built once; the list shows the detected ones in detection order.
   const rows = new Map(threats.map(({ t, colour }) => {
     const li = el("li");
@@ -100,7 +111,9 @@ function renderScenario(
   resources.use(() => { for (const r of rows.values()) r.li.remove(); if (!list.threatList.childElementCount) list.listEmpty.hidden = false; });
 
   const shown = new Map<string, boolean>();
-  let lastOrder = "", lastCircles = "", lastMarkers = "";
+  const flightShown = new Map<string, boolean>();
+  const previous = new Map<string, ThreatState>();
+  let lastOrder = "", lastCircles = "", lastMarkers = "", lastBases = "";
   const stateOf = (threatId: string, elapsed: number, live = true): ThreatState | undefined => {
     const x = byId.get(threatId);
     return x ? (live ? threatStateAt(x.t, x.outcome, x.lockAtS, elapsed) : "unseen") : undefined;
@@ -112,7 +125,22 @@ function renderScenario(
       const s = states.get(x.t.threatId)!;
       const flying = s === "detected" || s === "locked";
       if (shown.get(x.t.threatId) !== flying) { shown.set(x.t.threatId, flying); paths.get(x.t.threatId)!.setVisible(flying); }
+      // The interceptor flies from its launch to the meet; the burst plays once, when the threat resolves as intercepted.
+      const plan = plans.get(x.t.threatId);
+      if (plan) {
+        const away = live && elapsed >= plan.launchS && elapsed < plan.interceptS;
+        if (flightShown.get(x.t.threatId) !== away) { flightShown.set(x.t.threatId, away); flights.get(x.t.threatId)!.setVisible(away); }
+        if (live && s === "intercepted" && previous.get(x.t.threatId) !== "intercepted") { const b = bursts.get(x.t.threatId)!; b.setVisible(true); b.play(); }
+      }
+      previous.set(x.t.threatId, s);
     }
+    // Base labels: stock left once every launch up to now has gone.
+    const baseStyles = new Map<string, MarkerStyle>(BASES.map(b => {
+      const launched = live ? [...plans.values()].filter(p => p.base.id === b.id && elapsed >= p.launchS).length : 0;
+      return [`base:${b.id}`, { color: BASE_MARKER, size: 10, visible: true, label: `${b.label} · ${b.stock - launched}/${b.stock} ready` }];
+    }));
+    const baseKey = JSON.stringify([...baseStyles]);
+    if (baseKey !== lastBases) { lastBases = baseKey; baseMarkers.setStyles(baseStyles); }
     const circleStyles = new Map<string, CircleStyle>(footprints.map(f => {
       const s = states.get(f.threatId)!;
       const strong = f.threatId === focus;
@@ -145,7 +173,9 @@ function renderScenario(
       if (s === "intercepted" || s === "unhandled") resolved++;
       const at = s === "intercepted" && x.outcome?.resolvedTimeS !== null && x.outcome?.resolvedTimeS !== undefined ? ` · ${formatT(x.outcome.resolvedTimeS)}` : "";
       const who = (s === "locked" || s === "intercepted") && x.outcome?.interceptorId ? ` · ${x.outcome.interceptorId}` : "";
-      setText(row.status, `${STATE_LABELS[s]}${who}${at}`);
+      const plan = plans.get(x.t.threatId);
+      const away = plan && (s === "detected" || s === "locked") && elapsed >= plan.launchS;
+      setText(row.status, away ? `Interceptor away · ${plan.base.label} · intercept ${formatT(plan.interceptS)}` : `${STATE_LABELS[s]}${who}${at}`);
       row.li.classList.toggle("focused", x.t.threatId === focus);
       if (row.li.dataset.state !== s) row.li.dataset.state = s;
     }
@@ -153,9 +183,11 @@ function renderScenario(
   }
 
   function reset(): void {
-    shown.clear();
+    shown.clear(); flightShown.clear(); previous.clear();
     for (const p of paths.values()) p.setVisible(false);
-    lastCircles = lastMarkers = lastOrder = "";
+    for (const f of flights.values()) f.setVisible(false);
+    for (const b of bursts.values()) b.setVisible(false);
+    lastCircles = lastMarkers = lastOrder = lastBases = "";
     circles.setStyles(new Map());
     markers.setStyles(new Map());
     list.threatList.replaceChildren();
@@ -165,6 +197,7 @@ function renderScenario(
   const framePoints = [
     ...threats.flatMap(x => x.t.samples.map(s => ({ lon: s.position.lon, lat: s.position.lat }))),
     ...footprints.flatMap(f => circleBounds({ lon: f.center.lon, lat: f.center.lat }, f.radiusM)),
+    ...BASES.map(b => b.position),
   ];
   reset();
   // Last, once every layer has built: a construction that throws must leave the shared clock alone.
@@ -188,7 +221,8 @@ export function mountEngagement(canvas: SingaporeCanvas, panel: HTMLElement, loa
   const listArea = el("section", "list-area"); listArea.setAttribute("aria-label", "Threats");
   const listEmpty = el("p", "empty", "No threats detected.");
   const threatList = el("ol", "threats");
-  listArea.append(el("h2", undefined, "Threats"), listEmpty, threatList);
+  listArea.append(el("h2", undefined, "Threats"), listEmpty, threatList,
+    el("p", "note", "Interceptor bases and flights are illustrative: three fixed sites, speed fitted to the backend's intercept time."));
   const historyView = el("section", "history-view"); historyView.setAttribute("aria-label", "History");
   const historyEmpty = el("p", "empty", "No runs yet.");
   const historyList = el("ul");

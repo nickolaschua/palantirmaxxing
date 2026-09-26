@@ -2,6 +2,8 @@
 import { formatNumber } from "./decision-model.ts";
 import type { FrozenPolicy } from "./scenario-manifest-model.ts";
 import type { SimulationFootprint, SimulationOutcome, SimulationResult, SimulationResultV2, SimulationTrajectory } from "./simulation-model.ts";
+import { BASES, groundDistanceM, INTERCEPTOR_SPEED_MPS, interceptorSamples } from "./interceptor-model.ts";
+import type { InterceptorBase, InterceptTarget } from "./interceptor-model.ts";
 
 export type ThreatState = "unseen" | "detected" | "locked" | "intercepted" | "unhandled";
 export const STATE_LABELS: Record<ThreatState, string> = {
@@ -168,4 +170,59 @@ export function pairFailure(p: RunPair): string | null {
     if (ref.status === "failed") return `${side} run failed · ${ref.error?.code ?? "UNKNOWN"}: ${ref.error?.message ?? "no message"}`;
   }
   return p.problem ?? null;
+}
+
+/** Seconds after detection before a base can launch. */
+export const REACTION_S = 1;
+
+/**
+ * Where and when the backend met this threat: the assignment's intercept position and time, or, for a
+ * record without one, the threat's own position at its resolved time. Null for threats not intercepted.
+ */
+export function interceptTargetOf(result: SimulationResult, threatId: string): InterceptTarget | null {
+  const o = outcomesOf(result).find(row => row.threatId === threatId);
+  if (!o || o.outcome !== "intercepted" || o.resolvedTimeS === null) return null;
+  const row = result.assignments.find(a => a.threat_id === threatId || a.threatId === threatId);
+  const p = row?.position as { lon?: unknown; lat?: unknown; heightM?: unknown } | undefined;
+  const timeS = num(row?.interception_time_s) ?? o.resolvedTimeS;
+  if (p && typeof p.lon === "number" && typeof p.lat === "number") {
+    return { position: { lon: p.lon, lat: p.lat, height: num(p.heightM) ?? num(row?.position_z_m) ?? 0 }, timeFromStartS: timeS };
+  }
+  const t = result.trajectories.find(row => row.threatId === threatId);
+  return t ? { position: positionAt(t, timeS), timeFromStartS: timeS } : null;
+}
+
+export interface InterceptPlan {
+  threatId: string; base: InterceptorBase; launchS: number; interceptS: number; speedMps: number; distanceM: number;
+  target: InterceptTarget; samples: { lon: number; lat: number; height: number; time: Date }[];
+}
+
+/**
+ * One interceptor per backend-intercepted threat, in intercept order, from the nearest base with stock.
+ * Illustration, not backend output: the sites are fixed, and the flight launches as late as 400 m/s
+ * allows (never sooner than REACTION_S after detection) or, when that cannot make the meet, at
+ * detection + REACTION_S at whatever speed the backend's intercept time requires.
+ */
+export function planIntercepts(result: SimulationResult, bases: readonly InterceptorBase[] = BASES): { plans: Map<string, InterceptPlan>; stock: Map<string, number> } {
+  const start = new Date(result.start);
+  const stock = new Map(bases.map(b => [b.id, b.stock]));
+  const plans = new Map<string, InterceptPlan>();
+  const detection = new Map(result.trajectories.map(t => [t.threatId, t.detectionTimeS]));
+  const targets = result.trajectories.flatMap(t => { const target = interceptTargetOf(result, t.threatId); return target ? [{ threatId: t.threatId, target }] : []; })
+    .sort((a, b) => a.target.timeFromStartS - b.target.timeFromStartS);
+  for (const { threatId, target } of targets) {
+    const ready = bases.filter(b => (stock.get(b.id) ?? 0) > 0);
+    if (!ready.length) break;
+    const base = ready.reduce((best, b) => (groundDistanceM(b.position, target.position) < groundDistanceM(best.position, target.position) ? b : best));
+    const distanceM = groundDistanceM(base.position, target.position);
+    const interceptS = target.timeFromStartS;
+    const earliestS = (detection.get(threatId) ?? 0) + REACTION_S;
+    let launchS = Math.max(earliestS, interceptS - distanceM / INTERCEPTOR_SPEED_MPS);
+    if (launchS >= interceptS) launchS = Math.max(0, Math.min(earliestS - REACTION_S, interceptS - 0.5));
+    const flightS = Math.max(1e-3, interceptS - launchS);
+    stock.set(base.id, (stock.get(base.id) ?? 0) - 1);
+    plans.set(threatId, { threatId, base, launchS, interceptS, speedMps: distanceM / flightS, distanceM, target,
+      samples: interceptorSamples(base, target, { launchS, flightS }, start) });
+  }
+  return { plans, stock };
 }

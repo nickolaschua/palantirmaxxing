@@ -1,5 +1,5 @@
 import {
-  Cartesian3, Color, HeightReference, HorizontalOrigin, LabelCollection, LabelStyle, VerticalOrigin, Viewer,
+  Cartesian3, Color, HorizontalOrigin, LabelCollection, LabelStyle, VerticalOrigin, Viewer,
 } from "cesium";
 import type { GeoPoint } from "./types.js";
 
@@ -19,7 +19,11 @@ export const LABEL_LOOK = {
   disableDepthTestDistance: Number.POSITIVE_INFINITY,
 } as const;
 
-/** Screen-aligned text at geographic points. Points without a height sit on the ground. Not pickable by callers. */
+/**
+ * Screen-aligned text at geographic points. Points without a height sit at height 0, like markers:
+ * not clamped, since a clamped label whose ground is not loaded can resolve far below the surface
+ * and, drawn through the depth test, pile up mid-screen. Not pickable by callers.
+ */
 export function addLabels(
   viewer: Viewer, labels: readonly { position: GeoPoint; text: string }[], style: { font?: string } = {},
 ): LabelLayer {
@@ -28,7 +32,6 @@ export function addLabels(
     if (![p.lon, p.lat, p.height ?? 0].every(Number.isFinite)) throw new Error(`Label "${text}" has a non-finite position`);
     collection.add({
       position: Cartesian3.fromDegrees(p.lon, p.lat, p.height ?? 0),
-      heightReference: p.height === undefined ? HeightReference.CLAMP_TO_GROUND : HeightReference.NONE,
       text,
       ...LABEL_LOOK,
       ...(style.font && { font: style.font }),

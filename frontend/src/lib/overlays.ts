@@ -13,8 +13,10 @@ import type { GeoPoint, TimedSample } from "./types.js";
 export interface PathLayer {
   inspect?(): unknown;
   setVisible(visible: boolean): void;
-  /** Hides the moving marker while the route stays drawn. */
+  /** Hides the moving marker (and its label) while the route stays drawn. */
   setMarkerVisible(visible: boolean): void;
+  /** The text riding with the marker; needs `label` in the style. Unchanged text costs nothing. */
+  setLabel(text: string): void;
   destroy(): void;
 }
 export interface PathStyle {
@@ -29,6 +31,8 @@ export interface PathStyle {
   /** The craft brightens to white and back on a ~1 s cycle, so it stays findable when the map is zoomed out. */
   markerPulse?: boolean;
   dashed?: boolean;
+  /** Text that rides above the marker, e.g. an identifier and live readings. */
+  label?: string;
 }
 
 export interface MarkerStyle { color: string; size: number; visible: boolean; label?: string }
@@ -118,6 +122,12 @@ export function addPath(
     disableDepthTestDistance: Number.POSITIVE_INFINITY,
   });
 
+  const labels = size > 0 && style.label !== undefined ? scene.primitives.add(new LabelCollection({ scene })) as LabelCollection : undefined;
+  const label = labels?.add({
+    position: positions[0]!, text: style.label, ...LABEL_LOOK,
+    verticalOrigin: VerticalOrigin.BOTTOM, pixelOffset: new Cartesian2(0, -(size + 6)),
+  });
+
   const times = samples.map(s => s.time.getTime());
   const scratch = new Cartesian3();
   const scratchAhead = new Cartesian3();
@@ -136,6 +146,7 @@ export function addPath(
       dot.position = p; // the setter copies
       halo.position = p;
     }
+    if (label) label.position = p;
     // Everything from the marker to the last sample; hidden once there is no line left.
     const ms = JulianDate.toDate(time).getTime();
     const next = times.findIndex(t => t > ms);
@@ -150,6 +161,7 @@ export function addPath(
   const applyVisibility = (): void => {
     lines.show = layerVisible;
     if (points) points.show = layerVisible && markerVisible;
+    if (labels) labels.show = layerVisible && markerVisible;
     craft?.setVisible(layerVisible && markerVisible);
     scene.requestRender();
   };
@@ -162,6 +174,11 @@ export function addPath(
       markerVisible = visible;
       applyVisibility();
     },
+    setLabel(text) {
+      if (!label || label.text === text) return;
+      label.text = text;
+      scene.requestRender();
+    },
     inspect: () => ({ kind: "path", visible: lines.show, positions: lines.get(0).positions.map((p: Cartesian3) => {
       const c = Cartographic.fromCartesian(p);
       return { lon: CesiumMath.toDegrees(c.longitude), lat: CesiumMath.toDegrees(c.latitude), heightM: c.height };
@@ -172,6 +189,7 @@ export function addPath(
       scene.preRender.removeEventListener(move);
       scene.primitives.remove(lines);
       if (points) scene.primitives.remove(points);
+      if (labels) scene.primitives.remove(labels);
       craft?.destroy();
       scene.requestRender();
     },

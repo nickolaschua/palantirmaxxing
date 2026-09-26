@@ -1,20 +1,9 @@
-import { resultSource } from "./source.js";
 import type { ResultKind } from "./delivery.ts";
 import { DEMO_POLICIES, DEMO_SCENARIO_REF, filterScenarioEntries, parseScenarioManifest, POLICIES, POLICY_LABELS, POLICY_NOTES, PROFILES, SPLITS } from "./scenario-manifest-model.js";
 import type { FrozenPolicy, FrozenProfile, FrozenSplit, ScenarioManifest } from "./scenario-manifest-model.js";
 
-type Run = { runId: string; status: "queued" | "running" | "succeeded" | "failed";
-  resultKind?: ResultKind; resultId?: string; error?: { code: string; message: string } };
-
-function parseRun(value: unknown, kind: ResultKind, identity?: string): Run {
-  const row = value as Run;
-  if (!row || typeof row.runId !== "string" || !row.runId || (identity && identity !== row.runId)
-      || !["queued", "running", "succeeded", "failed"].includes(row.status)) throw new Error("Malformed run response");
-  if (row.status === "succeeded" && (row.resultKind !== kind || typeof row.resultId !== "string" || !row.resultId)) throw new Error("Malformed run result identity");
-  if (row.status === "failed" && (!row.error || typeof row.error.code !== "string" || !row.error.code
-      || typeof row.error.message !== "string" || !row.error.message)) throw new Error("Malformed run failure");
-  return row;
-}
+import { pollRun, submitRun } from "./runs.js";
+import type { Run } from "./runs.js";
 
 const option = (value: string, label = value): HTMLOptionElement => {
   const row = document.createElement("option"); row.value = value; row.textContent = label; return row;
@@ -23,7 +12,7 @@ const labelled = (caption: string, control: HTMLElement): HTMLLabelElement => {
   const row = document.createElement("label"); row.append(document.createTextNode(caption + " "), control); return row;
 };
 
-export function mountRunControls(parent: HTMLElement, kind: ResultKind, display: (identity: string) => Promise<unknown>) {
+export function mountRunControls(parent: HTMLElement, kind: ResultKind, display: (identity: string) => Promise<unknown>, onSelectionChange?: () => void) {
   const root = document.createElement("section");
   root.className = "run-controls"; root.dataset.kind = kind;
   const runButton = document.createElement("button");
@@ -110,6 +99,7 @@ export function mountRunControls(parent: HTMLElement, kind: ResultKind, display:
     selection.textContent = entry ? `${entry.split} · ${entry.profile} · seed ${entry.seed} · ${entry.canonicalEpisodeHash} · ${policyNote}`
       : rows.length ? "Select a frozen scenario." : "No references match these filters.";
     refreshDisabled();
+    onSelectionChange?.();
   };
   const selectDemoPreset = (selectedPolicy: FrozenPolicy) => {
     if (!legacyMode || !frozenMode || !split || !profile || !search || !scenario || !policy) return false;
@@ -128,17 +118,6 @@ export function mountRunControls(parent: HTMLElement, kind: ResultKind, display:
     refreshSelection(); refreshDisabled();
   };
 
-  async function request(path: string, options?: RequestInit): Promise<unknown> {
-    const response = await fetch(path, { ...options, cache: "no-store", signal: abort.signal });
-    let value: unknown;
-    try { value = await response.json(); } catch { throw new Error(`HTTP ${response.status}: invalid run JSON`); }
-    if (!response.ok) {
-      const error = (value as { error?: { code?: string; message?: string } })?.error;
-      throw new Error(`HTTP ${response.status}${error?.code ? ` · ${error.code}` : ""}: ${error?.message ?? "Run request failed"}`);
-    }
-    return value;
-  }
-
   async function update(record: Run): Promise<void> {
     if (disposed) return;
     runId = record.runId; root.dataset.runId = runId; root.dataset.status = record.status;
@@ -156,8 +135,8 @@ export function mountRunControls(parent: HTMLElement, kind: ResultKind, display:
     if (disposed || !runId || polling || !active) return;
     polling = true; retry.hidden = true;
     try {
-      const value = await request(`/api/v1/runs/${encodeURIComponent(runId)}`);
-      if (!disposed) await update(parseRun(value, kind, runId));
+      const record = await pollRun(runId, kind, abort.signal);
+      if (!disposed) await update(record);
     } catch (error) {
       if (!disposed) { message.textContent = `Run status unavailable · ${runId}: ${errorText(error)}`; retry.hidden = false; }
     } finally { polling = false; }
@@ -179,8 +158,8 @@ export function mountRunControls(parent: HTMLElement, kind: ResultKind, display:
       ? { kind, scenarioRef: entry!.scenarioRef, policy: policy!.value as FrozenPolicy }
       : { kind, seed: number };
     try {
-      const value = await request("/api/v1/runs", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-      if (!disposed) await update(parseRun(value, kind));
+      const record = await submitRun(body, kind, abort.signal);
+      if (!disposed) await update(record);
     } catch (error) {
       if (!disposed) { message.textContent = `Run failed: ${errorText(error)}`; root.dataset.status = "failed"; setActive(false); }
     }
@@ -195,31 +174,32 @@ export function mountRunControls(parent: HTMLElement, kind: ResultKind, display:
   retry.onclick = () => { void poll(); };
   if (legacyMode && frozenMode) { legacyMode.onchange = refreshMode; frozenMode.onchange = refreshMode; }
   for (const control of [split, profile, search, scenario, policy]) if (control) control.onchange = refreshSelection;
-  try {
-    if (resultSource() === "fixture") {
-      permanentlyDisabled = true; message.textContent = "Fixture mode · backend runs disabled"; refreshDisabled();
-    } else if (kind === "simulation") {
-      void (async () => {
-        try {
-          const response = await fetch("/api/v1/scenario-manifest", { cache: "no-store", signal: manifestAbort.signal });
-          const value: unknown = await response.json();
-          if (!response.ok) throw new Error(`HTTP ${response.status}: scenario manifest request failed`);
-          const checked = parseScenarioManifest(value);
-          if (disposed) return;
-          manifest = checked;
-          if (!selectDemoPreset(DEMO_POLICIES[0]!)) refreshSelection();
-        } catch (error) {
-          if (!disposed && !manifestAbort.signal.aborted) {
-            if (scenario) scenario.replaceChildren(option("", "Checked manifest unavailable"));
-            if (selection) selection.textContent = `Frozen scenarios unavailable: ${errorText(error)}`;
-            refreshDisabled();
-          }
+  if (kind === "simulation") {
+    void (async () => {
+      try {
+        const response = await fetch("/api/v1/scenario-manifest", { cache: "no-store", signal: manifestAbort.signal });
+        const value: unknown = await response.json();
+        if (!response.ok) throw new Error(`HTTP ${response.status}: scenario manifest request failed`);
+        const checked = parseScenarioManifest(value);
+        if (disposed) return;
+        manifest = checked;
+        if (!selectDemoPreset(DEMO_POLICIES[0]!)) refreshSelection();
+      } catch (error) {
+        if (!disposed && !manifestAbort.signal.aborted) {
+          if (scenario) scenario.replaceChildren(option("", "Checked manifest unavailable"));
+          if (selection) selection.textContent = `Frozen scenarios unavailable: ${errorText(error)}`;
+          refreshDisabled();
         }
-      })();
-    }
-  } catch (error) { permanentlyDisabled = true; message.textContent = errorText(error); refreshDisabled(); }
+      }
+    })();
+  }
   refreshMode();
   return {
+    selection() {
+      const entry = selectedEntry();
+      if (!frozenSelected() || !entry || !policy || !POLICIES.includes(policy.value as FrozenPolicy)) return null;
+      return { scenarioRef: entry.scenarioRef, policy: policy.value as FrozenPolicy };
+    },
     dispose() {
       if (disposed) return;
       disposed = true; clearTimeout(timer); abort.abort(); manifestAbort.abort();

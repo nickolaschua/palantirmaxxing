@@ -1,11 +1,17 @@
 import {
   Cartesian3,
+  ClassificationType,
   ClippingPolygon,
   ClippingPolygonCollection,
   Color,
+  ColorGeometryInstanceAttribute,
   Event,
   GeographicTilingScheme,
+  GeometryInstance,
+  GroundPolylineGeometry,
+  GroundPolylinePrimitive,
   Math as CesiumMath,
+  PolylineColorAppearance,
   Rectangle,
   Viewer,
 } from "cesium";
@@ -52,26 +58,26 @@ import type { Lines } from "./ground-model.js";
  * 3,000 m² are dropped.
  */
 
-/** Open sea. This is the globe's base colour, so it covers everything unpainted. */
-export const SEA_BLUE = Color.fromCssColorString("#1d4e6b");
-/** Reservoirs and lakes — a shade up from the sea so inland water separates. */
-export const WATER_BLUE = Color.fromCssColorString("#2a6788");
-/** Land. Matches the tone the buildings sit on. */
-export const LAND_GREY = Color.fromCssColorString("#8f9194");
-/** Coast edge, lighter than land so the boundary stays crisp. */
-export const COAST_GREY = Color.fromCssColorString("#c2c6cb");
-/** Carriageways — darker than land so they read as cut lines. */
-export const ROAD_GREY = Color.fromCssColorString("#5f6469");
+/** Open sea, near black. The globe's base colour, so it covers everything unpainted. */
+export const SEA_GREY = Color.fromCssColorString("#191a1a");
+/** Reservoirs and lakes, a dark blue-grey a shade up from the sea so inland water separates. */
+export const WATER_BLUE = Color.fromCssColorString("#40494f");
+/** Land, a dark warm grey: the canvas is dark, and its lines are lighter than the land. */
+export const LAND_GREY = Color.fromCssColorString("#343332");
+/** Coast edge, a faint step up from land; the land/sea contrast carries the boundary. */
+export const COAST_GREY = Color.fromCssColorString("#454442");
+/** Carriageways — lighter than land so they read as drawn lines. */
+export const ROAD_GREY = Color.fromCssColorString("#61605e");
 /** Pavements and park connectors — between land and road, and thinner. */
-export const PAVEMENT_GREY = Color.fromCssColorString("#7c8188");
-/** Forest, nature reserves and mangrove. Muted, so the canvas stays grey first. */
-export const FOREST_GREEN = Color.fromCssColorString("#5f6f57");
-/** Parks, grass and golf courses — a step lighter than forest. */
-export const PARK_GREEN = Color.fromCssColorString("#74845e");
-/** Road bridges and tunnels — darker than the carriageways around them. */
-export const STRUCTURE_GREY = Color.fromCssColorString("#44484d");
-/** MRT and LRT viaducts and tunnels. */
-export const RAIL_GREY = Color.fromCssColorString("#383c42");
+export const PAVEMENT_GREY = Color.fromCssColorString("#444341");
+/** Forest, nature reserves and mangrove. A greyish green, so the canvas stays grey first. */
+export const FOREST_GREEN = Color.fromCssColorString("#61695d");
+/** Parks, grass and golf courses — a greyish green a step lighter than forest. */
+export const PARK_GREEN = Color.fromCssColorString("#737b67");
+/** Road bridges and tunnels — lighter than the carriageways around them. */
+export const STRUCTURE_GREY = Color.fromCssColorString("#7d7c7a");
+/** MRT and LRT viaducts and tunnels, the lightest line. */
+export const RAIL_GREY = Color.fromCssColorString("#898886");
 
 export interface Ground {
   setVisible(visible: boolean): void;
@@ -114,8 +120,6 @@ const land = packLines(landRings as number[][], false);
 const water = packLines(waterRings as number[][], false);
 const forest = packLines(greenRings.forest as number[][], true);
 const parks = packLines(greenRings.park as number[][], true);
-const roadStructures = packLines(structureLines.road as number[][], true);
-const railStructures = packLines(structureLines.rail as number[][], true);
 
 /*
  * Level of detail by tile level. A 256 px geographic tile at level L is about
@@ -194,8 +198,6 @@ function drawTile(x: number, y: number, level: number, lod: number): HTMLCanvasE
   paint(water, WATER_BLUE, 0, true);
   if (lod >= PATHS_FROM_LEVEL) paint(paths, PAVEMENT_GREY, 1, false);
   if (lod >= ROADS_FROM_LEVEL) paint(roads, ROAD_GREY, 1.25, false);
-  paint(roadStructures, STRUCTURE_GREY, 1.25, false);
-  paint(railStructures, RAIL_GREY, 1.5, false);
   paint(land, COAST_GREY, 1, true);
   return canvas;
 }
@@ -210,6 +212,31 @@ export function singaporeClip(): ClippingPolygonCollection {
     inverse: true,
     polygons: landPositions.map((positions) => new ClippingPolygon({ positions })),
   });
+}
+
+/** Constant screen-width lines draped on the terrain, over the painted ground. Not pickable. */
+function structureLayer(lines: number[][], color: Color, width: number): GroundPolylinePrimitive {
+  const attributes = { color: ColorGeometryInstanceAttribute.fromColor(color) };
+  return new GroundPolylinePrimitive({
+    classificationType: ClassificationType.TERRAIN,
+    allowPicking: false,
+    appearance: new PolylineColorAppearance(),
+    geometryInstances: lines.flatMap((enc) => {
+      const flat = dedupe(decodeDegrees(enc));
+      return flat.length >= 4 ? [new GeometryInstance({ geometry: new GroundPolylineGeometry({ positions: Cartesian3.fromDegreesArray(flat), width }), attributes })] : [];
+    }),
+  });
+}
+
+/** Delta-encoded integers of degrees * 1e5 (see roads.json) back to flat lon/lat degrees. */
+function decodeDegrees(enc: readonly number[]): number[] {
+  const out: number[] = [];
+  let x = 0, y = 0;
+  for (let i = 0; i + 1 < enc.length; i += 2) {
+    x += enc[i]!; y += enc[i + 1]!;
+    out.push(x / 1e5, y / 1e5);
+  }
+  return out;
 }
 
 export function addGround(viewer: Viewer): Ground {
@@ -250,14 +277,22 @@ export function addGround(viewer: Viewer): Ground {
   } as unknown as ImageryProvider;
 
   const layer = layers.addImageryProvider(provider);
+  // Bridges, tunnels, viaducts and rail stay geometry: only ~4k lines, and they are
+  // the network's skeleton from the island view, where tiles would blur them.
+  const structures = [
+    scene.primitives.add(structureLayer(structureLines.road as number[][], STRUCTURE_GREY, 2.5)),
+    scene.primitives.add(structureLayer(structureLines.rail as number[][], RAIL_GREY, 3)),
+  ] as GroundPolylinePrimitive[];
 
   return {
     setVisible(visible: boolean): void {
       layer.show = visible;
+      for (const s of structures) s.show = visible;
       scene.requestRender();
     },
     destroy(): void {
       layers.remove(layer);
+      for (const s of structures) scene.primitives.remove(s);
     },
   };
 }

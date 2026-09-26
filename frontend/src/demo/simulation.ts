@@ -7,16 +7,11 @@ import { ResultResources } from "./result-resources.js";
 import type { Snapshot } from "./source.js";
 import { mountRunControls } from "./run-controls.js";
 import { framePose } from "./decision-model.js";
+import { POLICY_NAMES } from "./engagement-model.js";
 
 export interface SimulationView { dispose(): void }
 
 const COLOURS = ["#ff6b6b", "#ffd166", "#06d6a0", "#4cc9f0", "#7b61ff", "#f72585", "#90be6d", "#f8961e"];
-const POLICY_NAMES: Record<string, string> = {
-  "naive-launch-on-detection/1": "Naive",
-  "optimal-fixed-rank-assignment/1": "Exact",
-  "structured-behavior-cloning/1": "Imitation",
-  "feasible-immediate-matching/1": "Matching",
-};
 const REPLAY_SPEED = 12;
 
 const metric = (label: string, value: string, note: string): HTMLElement => {

@@ -59,7 +59,8 @@ export interface CanvasOptions {
    * Cesium's tile detail threshold for the city tilesets; its default is 16.
    * Smaller loads finer tiles. Tile choice scales with canvas height, so a
    * small canvas needs a small value to show what a large one shows at the
-   * same pose: a 300 px tall window wants about 2.
+   * same pose: a 300 px tall window wants about 2. Applies below 20 km camera
+   * height, where roads draw; above it the default keeps zoomed-out views light.
    */
   maximumScreenSpaceError?: number;
 }

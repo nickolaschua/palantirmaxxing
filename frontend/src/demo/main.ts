@@ -1,9 +1,7 @@
 import { createSingaporeCanvas, FlightCancelled, PRESETS } from "../lib/index.js";
 import { mountPopulation } from "./population.js";
 import { HOSPITALS, MILITARY, mountOsmAreas } from "./osm-areas.js";
-import { mountDecision } from "./decision.js";
-import { mountComparison } from "./comparison.js";
-import { mountSimulationResult } from "./simulation.js";
+import { mountEngagement } from "./engagement.js";
 import type { BasemapKind, LightingPreset } from "../lib/index.js";
 import "./style.css";
 
@@ -12,7 +10,7 @@ const panel = document.getElementById("panel");
 const statusEl = document.getElementById("status");
 if (!container || !panel || !statusEl) throw new Error("demo markup missing");
 
-// The panel slides in from the left edge and back out again.
+// The drawer slides in from the left edge and back out again. It starts closed.
 const panelToggle = document.getElementById("panel-toggle");
 if (panelToggle) panelToggle.onclick = () => {
   const open = panelToggle.getAttribute("aria-expanded") !== "true";
@@ -21,9 +19,7 @@ if (panelToggle) panelToggle.onclick = () => {
   panelToggle.textContent = open ? "‹" : "›";
 };
 
-const setStatus = (text: string): void => {
-  statusEl.textContent = text;
-};
+const setStatus = (text: string): void => { statusEl.textContent = text; };
 
 const FALLBACK_STATUS = "Terrain or buildings unavailable — plain fallback.";
 
@@ -35,21 +31,13 @@ const keys = {
 // Grey canvas is the default view. `plain` is only ever the fallback.
 const plainStartup = new URLSearchParams(location.search).get("basemap") === "plain";
 const acceptance = new URLSearchParams(location.search).get("acceptance") === "1";
-const planningMode = new URLSearchParams(location.search).get("mode") === "planning";
-const canvas = await createSingaporeCanvas(container, { ...keys, acceptance, basemap: plainStartup ? "plain" : "extruded" })
+// Building detail 4 (Cesium's default is 16) once zoomed in to road level; further out it eases off (see scene.ts).
+const canvas = await createSingaporeCanvas(container, { ...keys, acceptance, basemap: plainStartup ? "plain" : "extruded", maximumScreenSpaceError: 4 })
   .catch(() => createSingaporeCanvas(container, { basemap: "plain", acceptance }));
 
-/**
- * Clicking a second preset cancels the first; that rejection is expected.
- *
- * Matched by name as well as by instance: under Vite HMR the lib and the demo
- * can end up holding two separate copies of the module, so `instanceof` fails
- * and a normal cancellation escapes as an unhandled rejection.
- */
+/** Clicking a second preset cancels the first; that rejection is expected. Matched by name too: under HMR `instanceof` can fail. */
 const ignoreCancel = (err: unknown): void => {
-  const cancelled =
-    err instanceof FlightCancelled ||
-    (err instanceof Error && err.name === "FlightCancelled");
+  const cancelled = err instanceof FlightCancelled || (err instanceof Error && err.name === "FlightCancelled");
   if (!cancelled) throw err;
 };
 
@@ -76,8 +64,6 @@ const VIEWS: readonly { id: View; label: string; basemap: BasemapKind }[] = [
   { id: "google", label: "Google", basemap: "photorealistic" },
 ];
 let view: View = "grey";
-// Mounted last; the panel can be used before it is ready.
-let decision: Awaited<ReturnType<typeof mountComparison>> | ReturnType<typeof mountDecision> | undefined;
 const viewButtons = new Map<View, HTMLButtonElement>();
 
 async function setView(next: (typeof VIEWS)[number]): Promise<void> {
@@ -87,7 +73,6 @@ async function setView(next: (typeof VIEWS)[number]): Promise<void> {
     await canvas.scene.setBasemap(next.basemap);
     setStatus("Singapore");
   } catch {
-    // A failed load keeps the current map, so Google failing leaves the view as it was.
     if (next.id !== "grey") {
       setStatus(`${next.label} failed — check provider credentials; view unchanged.`);
       return;
@@ -99,9 +84,7 @@ async function setView(next: (typeof VIEWS)[number]): Promise<void> {
   }
   view = next.id;
   population.setActive(view === "population");
-  for (const layer of osmLayers) layer.setVisible(view !== "population"); // that view has its own labels and colours
-  decision?.setBasemap(canvas.scene.basemap);
-  comparison?.setBasemap(canvas.scene.basemap);
+  for (const layer of osmLayers) layer.setVisible(view !== "population");
   for (const [id, b] of viewButtons) b.setAttribute("aria-pressed", String(id === view));
 }
 
@@ -114,7 +97,6 @@ for (const v of VIEWS) {
 }
 const population = mountPopulation(canvas, panel);
 
-// Named areas from OSM: tinted buildings and boundaries, labelled up close.
 panel.append(group("Layers"));
 const osmLayers = [MILITARY, HOSPITALS].map(layer => {
   const legend = document.createElement("p");
@@ -125,34 +107,27 @@ const osmLayers = [MILITARY, HOSPITALS].map(layer => {
   panel.append(legend);
   return mountOsmAreas(canvas, layer, { labels: true });
 });
-const simulation = planningMode ? mountSimulationResult(canvas, panel) : undefined;
 
-// Lighting
+// The simulation loader, run controls and rehearsed demo live in the drawer; the screen they feed is fixed.
+const engagement = mountEngagement(canvas, panel);
+
 let lighting: LightingPreset = "midday";
 const lightBtn = button(`Light: ${lighting}`, () => {
   lighting = lighting === "midday" ? "blue-hour" : "midday";
   canvas.scene.setLighting(lighting);
-  decision?.setLighting(lighting);
-  comparison?.setLighting(lighting);
   lightBtn.textContent = `Light: ${lighting}`;
 });
 panel.append(group("Lighting"), lightBtn);
 
-// Presets, straight from the library's own data file, collapsed.
 const places = document.createElement("details");
 const placesSummary = document.createElement("summary");
 placesSummary.textContent = "Places";
 places.append(placesSummary);
 for (const id of canvas.camera.presets) {
-  places.append(
-    button(PRESETS[id]?.label ?? id, () => {
-      canvas.camera.flyToPreset(id).catch(ignoreCancel);
-    }),
-  );
+  places.append(button(PRESETS[id]?.label ?? id, () => { canvas.camera.flyToPreset(id).catch(ignoreCancel); }));
 }
 panel.append(places);
 
-// The cage, made visible. Without feedback a hard clamp just feels broken.
 let edgeTimer: number | undefined;
 canvas.on("boundsHit", ({ edge }) => {
   document.body.classList.add("at-edge");
@@ -163,28 +138,17 @@ canvas.on("boundsHit", ({ edge }) => {
     setStatus("Singapore");
   }, 900);
 });
-
 canvas.on("renderError", ({ message }) => setStatus(`Map rendering failed: ${message}`));
 
-// The promise resolving IS the ready signal — there is no "ready" event.
 setStatus(plainStartup ? "Singapore · plain basemap" : canvas.scene.basemap === "plain" ? FALLBACK_STATUS : "Singapore");
-decision = planningMode
-  ? mountDecision(canvas, { ...keys, lighting })
-  : await mountComparison(canvas, { ...keys, lighting });
 if (import.meta.hot) import.meta.hot.dispose(() => {
   window.clearTimeout(edgeTimer);
-  decision?.dispose();
-  comparison?.dispose();
+  engagement.dispose();
   population.dispose();
-  simulation?.dispose();
   canvas.destroy();
 });
 
 Object.assign(window, { __canvas: canvas });
 if (acceptance) Object.defineProperty(window, "__mvpAcceptance", { configurable: true, value: Object.freeze({
-  inspect: () => ({
-    canvas: canvas.inspect?.(),
-    planning: planningMode && decision ? (decision as ReturnType<typeof mountDecision>).snapshot() : undefined,
-    simulation: simulation?.snapshot(),
-  }),
+  inspect: () => ({ canvas: canvas.inspect?.(), simulation: engagement.snapshot() }),
 }) });

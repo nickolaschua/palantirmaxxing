@@ -4,7 +4,6 @@ import type { SingaporeCanvas } from "../src/lib/index.js";
 
 vi.mock("../src/lib/index.js", () => ({ SINGAPORE_BOUNDS: { west: 103.6, east: 104.1, south: 1.2, north: 1.5 } }));
 
-import { mountComparison } from "../src/demo/comparison.js";
 import { mountSimulationResult } from "../src/demo/simulation.js";
 
 function canvasMock() {
@@ -55,49 +54,6 @@ afterEach(() => {
   document.body.replaceChildren();
   vi.restoreAllMocks();
 });
-describe("multi-threat comparison view", () => {
-  it("renders the bundled fallback, advances stages, and disposes every layer", async () => {
-    const { canvas, live } = canvasMock();
-    const view = await mountComparison(canvas, { lighting: "midday" });
-
-    expect(document.body.textContent).toContain("Outcome comparison");
-    expect(document.body.textContent).toContain("Bundled retrospective · not the live run");
-    expect(document.body.textContent).toContain("Baseline - earliest feasible");
-    expect(live.size).toBeGreaterThan(0);
-
-    const next = [...document.querySelectorAll<HTMLButtonElement>("button")]
-      .find(button => button.textContent === "Show optimised outcome");
-    next?.click();
-    expect(document.body.textContent).toContain("Optimised - consequence-aware v1");
-
-    const compare = [...document.querySelectorAll<HTMLButtonElement>("button")]
-      .find(button => button.textContent === "Compare outcomes");
-    compare?.click();
-    expect(document.body.textContent).toContain("Measured improvement");
-
-    view.dispose();
-    expect(live.size).toBe(0);
-    expect(document.body.childElementCount).toBe(0);
-  });
-
-  it("navigates across missiles and opens the aggregate comparison", async () => {
-    const { canvas } = canvasMock();
-    const view = await mountComparison(canvas, { lighting: "midday" });
-
-    const nextThreat = [...document.querySelectorAll<HTMLButtonElement>("button")]
-      .find(button => button.textContent === "Next");
-    nextThreat?.click();
-    expect(document.body.textContent).toContain("M-02 - Missile 2 of 3");
-
-    const all = document.querySelector<HTMLButtonElement>(".all-missiles-button");
-    all?.click();
-    expect(document.body.textContent).toContain("All missiles - 3 threats");
-    expect(document.body.textContent).toContain("Scenario-wide comparison");
-
-    view.dispose();
-  });
-});
-
 describe("simulation result view", () => {
   it("shows pending state, validates, draws, and disposes all layers", async () => {
     const pending = deferred();

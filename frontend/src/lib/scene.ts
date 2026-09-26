@@ -13,7 +13,7 @@ import {
   createGooglePhotorealistic3DTileset,
   createWorldTerrainAsync,
 } from "cesium";
-import { addGround, singaporeClip, SEA_BLUE } from "./coastline.js";
+import { addGround, singaporeClip, SEA_GREY } from "./coastline.js";
 import type { Ground } from "./coastline.js";
 import type { BasemapKind, LightingPreset } from "./types.js";
 
@@ -50,6 +50,11 @@ export interface SceneInternals {
   requireGlobe(required: boolean): void;
   destroy(): void;
 }
+
+/** Camera height below which roads draw (see coastline.ts), and with them full building detail. */
+const DETAIL_BELOW_M = 20_000;
+/** Cesium3DTileset's own default. */
+const DEFAULT_SSE = 16;
 
 export async function createScene(
   viewer: Viewer,
@@ -104,15 +109,16 @@ export async function createScene(
       // runs the other's commands: WebGL cross-context errors and corrupted
       // ground. Off, tilesets use Cesium's fallback diffuse lighting.
       next.environmentMapManager.enabled = false;
-      if (maximumScreenSpaceError !== undefined) next.maximumScreenSpaceError = maximumScreenSpaceError;
     }
     clearTileset();
     tileset = next;
     if (next) viewer.scene.primitives.add(next);
+    applyDetail();
     for (const listener of tilesetListeners) listener(tileset);
     viewer.terrainProvider = terrain;
-    viewer.scene.globe.baseColor = SEA_BLUE;
+    viewer.scene.globe.baseColor = SEA_GREY;
     current = kind;
+    viewer.scene.highDynamicRange = kind === "photorealistic"; // see setLighting
     viewer.scene.globe.show = kind !== "photorealistic" || globeRequired;
     ground?.setVisible(kind !== "photorealistic" && !globeRequired);
     viewer.scene.requestRender();
@@ -134,7 +140,10 @@ export async function createScene(
     globe.showGroundAtmosphere = true;
     globe.translucency.enabled = false;
     if (skyAtmosphere) skyAtmosphere.show = true;
-    scene.highDynamicRange = true;
+    // HDR for Google's tiles only. On the painted basemaps it would gamma-brighten the globe's base
+    // colour (the sea: used as linear) but not the painted tiles (decoded from sRGB), then tone-map
+    // everything darker, so the palette would not render as coded.
+    scene.highDynamicRange = current === "photorealistic";
     fog.enabled = true;
 
     if (preset === "midday") {
@@ -185,6 +194,17 @@ export async function createScene(
   }
 
   ground = addGround(viewer);
+  // The finer building detail applies only once the camera is low enough for roads
+  // to draw; above that Cesium's default keeps the zoomed-out view light.
+  function applyDetail(): void {
+    if (!tileset || maximumScreenSpaceError === undefined) return;
+    const near = viewer.camera.positionCartographic.height < DETAIL_BELOW_M;
+    const sse = near ? maximumScreenSpaceError : DEFAULT_SSE;
+    if (tileset.maximumScreenSpaceError === sse) return;
+    tileset.maximumScreenSpaceError = sse;
+    viewer.scene.requestRender();
+  }
+  const offCameraDetail = [viewer.camera.changed, viewer.camera.moveEnd].map((e) => e.addEventListener(applyDetail));
   await load(initial);
   setLighting(lighting);
 
@@ -209,6 +229,7 @@ export async function createScene(
       viewer.scene.requestRender();
     },
     destroy(): void {
+      for (const off of offCameraDetail) off();
       clearTileset();
       viewer.scene.postProcessStages.remove(grade);
       ground?.destroy();

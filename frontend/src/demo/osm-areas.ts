@@ -12,7 +12,7 @@ export interface OsmAreaLayer {
 }
 
 export const MILITARY: OsmAreaLayer = {
-  id: "military", colour: "#a970ff", legend: "Military bases · OpenStreetMap landuse=military",
+  id: "military", colour: "#70a366", legend: "Military bases · OpenStreetMap landuse=military",
   areas: militaryJson.military as OsmAreaLayer["areas"],
 };
 export const HOSPITALS: OsmAreaLayer = {
@@ -78,7 +78,7 @@ export function mountOsmAreas(canvas: SingaporeCanvas, layer: OsmAreaLayer, opti
     for (const a of areas) {
       if (a.name && area(a.ring) > area(largest.get(a.name) ?? [])) largest.set(a.name, a.ring);
     }
-    labels = canvas.addLabels([...largest].map(([text, ring]) => ({ position: centroid(ring), text })), { font: "600 11px sans-serif" });
+    labels = canvas.addLabels([...largest].map(([text, ring]) => ({ position: centroid(ring), text })));
     labelsShow(canvas.camera.pose.height);
     offCamera = canvas.on("cameraChange", pose => labelsShow(pose.height));
   }

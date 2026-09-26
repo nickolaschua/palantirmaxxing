@@ -96,13 +96,13 @@ export async function createSingaporeCanvas(
     infoBox: false,
     selectionIndicator: false,
     // Lighter on integrated GPUs: no 2D/Columbus vertex data, a frame only when
-    // something changes (the clock, the camera, a load, a layer), and FXAA in place
-    // of 4x MSAA, which quadruples the framebuffer.
+    // something changes (the clock, the camera, a load, a layer), and 2x MSAA
+    // rather than Cesium's 4x: half the multisampled framebuffer, and unlike FXAA
+    // it keeps thin outlines and highways crisp.
     scene3DOnly: true,
     requestRenderMode: true,
-    msaaSamples: 1,
+    msaaSamples: 2,
   });
-  viewer.scene.postProcessStages.fxaa.enabled = true;
   let postRenderCount = 0;
   const renderErrors: string[] = [];
   if (options.acceptance) viewer.scene.postRender.addEventListener(() => { ++postRenderCount; });

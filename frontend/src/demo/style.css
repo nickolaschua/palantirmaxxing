@@ -17,6 +17,10 @@
   --fs-lg: 16px; /* headings, key messages */
   --fs-xl: 22px; /* the clock */
   --lh: 1.45;
+  /* Layout: the threat list on the left, the map in the middle, the right column and the bottom row beside them. */
+  --list: 300px; /* the left column: 36 (clear of the drawer's tab) + 248 list + 16 gutter */
+  --side: 332px; /* the right column: 16 gutter + 300 panel + 16 gutter */
+  --strip: 160px; /* the bottom row: 16 gutter + 128 card + 16 gutter */
   font-family: var(--font);
 }
 
@@ -28,14 +32,17 @@ body {
   overflow: hidden;
 }
 
+/* The map: between the threat list and the right column, above the bottom row. Cesium resizes its canvas to fit. */
 #scene {
-  width: 100%;
-  height: 100%;
+  position: absolute;
+  top: 0;
+  left: var(--list);
+  right: var(--side);
+  bottom: var(--strip);
 }
 
 #panel,
-#population-details,
-#inspector {
+#population-details {
   position: absolute;
   z-index: 2;
   top: 16px;
@@ -53,25 +60,28 @@ body {
   scrollbar-width: thin;
 }
 
+/* Over the threat list, exactly: 36 + 248 (218 + 2 × 14 padding + 2 border), and above it (z 3 over the card's 2). */
 #panel {
-  left: 16px;
-  width: 200px;
+  z-index: 3;
+  left: 36px;
+  width: calc(var(--list) - 82px);
+  max-height: calc(100vh - var(--strip) - 46px); /* down to the threat list's bottom */
   transition: transform 0.3s ease, visibility 0s;
 }
 
 /* Hidden: slid off the left edge, and out of the tab order once it has gone. */
 #panel-toggle[aria-expanded="false"] + #panel {
-  transform: translateX(calc(-100% - 24px));
+  transform: translateX(calc(-100% - 44px));
   visibility: hidden;
   transition: transform 0.3s ease, visibility 0s 0.3s;
 }
 
-/* One button: in the panel's header while it is open, a tab on the left edge while it is hidden. */
+/* One button: in the drawer's header while it is open, a tab on the left edge while it is hidden. */
 #panel-toggle {
   position: absolute;
-  z-index: 3;
+  z-index: 4;
   top: 22px;
-  left: 214px; /* the panel's right edge (16 + 200 + 2 × 14 + 2) less 8 px and the button */
+  left: calc(var(--list) - 48px);
   width: 24px;
   height: 24px;
   padding: 0;
@@ -93,6 +103,8 @@ body {
   border-left: 0;
   border-radius: 0 6px 6px 0;
 }
+
+
 
 #panel h1 {
   position: sticky;
@@ -235,191 +247,24 @@ body {
   font-size: var(--fs-xs);
 }
 
-/* Decision tray: bottom centre, clear of the credits strip, and centred between the
-   left panel (16 + 200 + 16) and the side window (16 + 400 + 16) so neither covers it. */
-.decision-tray {
-  position: absolute;
-  z-index: 2;
-  left: 232px;
-  right: 432px;
-  bottom: 40px;
-  margin-inline: auto;
-  box-sizing: border-box;
-  max-width: 960px;
-  max-height: 50vh;
-  overflow-y: auto;
-  padding: 16px 18px;
-  background: rgba(13, 17, 23, 0.7); /* a step more see-through than the other panels: the map shows under it */
-  backdrop-filter: blur(12px);
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  color: var(--text);
-  font: var(--fs-md)/var(--lh) var(--font);
-  /* 25% smaller as a whole; scaling from the bottom centre keeps it anchored in place. */
-  transform: scale(0.75);
-  transform-origin: bottom center;
-}
-
-.decision-tray header {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-}
-
-.decision-tray .phase {
-  font-size: var(--fs-xs);
-  font-weight: 600;
-  letter-spacing: 0.15em;
-  color: var(--muted);
-}
-
-.decision-tray[data-phase="live"] .phase,
-.decision-tray[data-phase="fired"] .phase {
-  color: #ff6b6b;
-}
-
-.decision-tray .clock {
-  font: 600 var(--fs-xl)/var(--lh) var(--font);
-  font-variant-numeric: tabular-nums;
-}
-
-.decision-tray .message {
-  margin: 2px 0 12px;
-  font-size: var(--fs-lg);
-}
-
-.decision-tray .cards {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-}
-
-.decision-tray .card {
-  flex: 1 1 280px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.decision-tray .pick {
-  display: block;
-  width: 100%;
-  padding: 10px 12px;
-  text-align: left;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid var(--line);
-  border-left: 3px solid var(--option);
-  border-radius: 4px;
-  color: inherit;
-  font: inherit;
-  cursor: pointer;
-}
-
-.decision-tray .pick:disabled { cursor: default; }
-.decision-tray .card[data-state="selected"] .pick { background: rgba(255, 255, 255, 0.1); border-color: var(--option); }
-.decision-tray .card[data-state="fired"] .pick { background: rgba(255, 255, 255, 0.12); border-color: #fff; }
-.decision-tray .card[data-state="closed"] .pick { opacity: 0.45; }
-
-.decision-tray .card-title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: var(--fs-lg);
-  font-weight: 600;
-}
-
-.decision-tray kbd,
-.decision-tray code {
-  font: var(--fs-sm)/var(--lh) var(--font);
-  color: var(--muted);
-}
-
-.decision-tray kbd { padding: 0 4px; border: 1px solid var(--line); border-radius: 3px; }
-.decision-tray code { margin-left: auto; }
-
-.decision-tray .badges {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 2px 12px;
-  margin: 5px 0;
-  font-size: var(--fs-md);
-}
-
-.decision-tray .badge { display: inline-flex; align-items: center; gap: 5px; }
-.decision-tray .badge i { width: 10px; height: 10px; border-radius: 50%; }
-
-.decision-tray dl {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 3px 12px;
-  margin: 5px 0 8px;
-  font-size: var(--fs-md);
-}
-
-.decision-tray dt { color: var(--muted); }
-.decision-tray dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
-
-.decision-tray .bar {
-  display: block;
-  height: 4px;
-  overflow: hidden;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 2px;
-}
-
-.decision-tray .bar i {
-  display: block;
-  height: 100%;
-  background: color-mix(in oklab, var(--option), var(--poor) calc(var(--urgency, 0) * var(--urgency, 0) * 100%));
-}
-
-.decision-tray .left {
-  display: block;
-  margin-top: 4px;
-  font: var(--fs-md)/var(--lh) var(--font);
-  font-variant-numeric: tabular-nums;
-}
-
 /* Figures graded at a glance; a countdown blends from muted to red as its window closes, faster near the end. */
 dd[data-grade] { font-weight: 600; }
 dd[data-grade="good"] { color: var(--good); }
 dd[data-grade="fair"] { color: var(--fair); }
 dd[data-grade="poor"] { color: var(--poor); }
-.decision-tray .left,
-#inspector .countdown {
-  color: color-mix(in oklab, var(--muted), var(--poor) calc(var(--urgency, 0) * var(--urgency, 0) * 100%));
-}
-
-.decision-tray dd { font-variant-numeric: tabular-nums; }
-
-.decision-tray .fire {
-  padding: 11px;
-  background: #b71c1c;
-  border: 1px solid #ff6b6b;
-  border-radius: 4px;
-  color: #fff;
-  font: 600 var(--fs-lg)/var(--lh) var(--font);
-  letter-spacing: 0.15em;
-  cursor: pointer;
-}
-
-.decision-tray .fire:hover { background: #d32f2f; }
-
-.decision-tray .summary { margin: 10px 0 0; padding-left: 18px; }
-.decision-tray .summary:empty { display: none; }
 
 /* Multi-threat retrospective comparison. The main map remains the only Cesium canvas. */
 #comparison-panel {
   position: absolute;
-  z-index: 4;
+  z-index: 2;
   top: 16px;
   right: 16px;
-  bottom: 32px;
+  bottom: 16px;
   box-sizing: border-box;
-  width: 440px;
+  width: calc(var(--side) - 32px);
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: 18px;
+  padding: 14px;
   background: rgba(11, 15, 20, 0.94);
   border: 1px solid rgba(255, 255, 255, 0.16);
   border-radius: 6px;
@@ -431,15 +276,6 @@ dd[data-grade="poor"] { color: var(--poor); }
 }
 
 #comparison-panel[data-stage="improvement"] { width: min(820px, calc(100vw - 272px)); }
-
-#comparison-panel[data-expanded="true"] {
-  top: 16px;
-  right: 16px;
-  bottom: 16px;
-  left: 16px;
-  width: auto;
-  background: rgba(11, 15, 20, 0.985);
-}
 
 .comparison-header,
 .threat-navigator,
@@ -482,29 +318,6 @@ dd[data-grade="poor"] { color: var(--poor); }
 #comparison-panel button:hover:not(:disabled) { background: rgba(255, 255, 255, 0.1); }
 #comparison-panel button:focus-visible { outline: 2px solid #8eb8ff; outline-offset: 2px; }
 #comparison-panel button:disabled { opacity: 0.35; cursor: default; }
-
-.replay-button,
-.expand-comparison,
-.close-comparison { white-space: nowrap; }
-
-.restore-comparison-panel {
-  position: absolute;
-  z-index: 4;
-  top: 16px;
-  right: 16px;
-  min-height: 38px;
-  padding: 8px 12px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 4px;
-  background: rgba(11, 15, 20, 0.92);
-  color: var(--text);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
-  font: 650 12px/1 ui-sans-serif, -apple-system, "Segoe UI", sans-serif;
-  cursor: pointer;
-}
-
-.restore-comparison-panel:hover { background: rgba(28, 35, 44, 0.96); }
-.restore-comparison-panel:focus-visible { outline: 2px solid #8eb8ff; outline-offset: 2px; }
 
 .threat-navigator {
   margin: 16px -18px 0;
@@ -573,16 +386,6 @@ dd[data-grade="poor"] { color: var(--poor); }
   text-transform: uppercase;
 }
 
-.outcome-metrics,
-.vector-section,
-.category-section,
-.evidence-section,
-.explanation,
-.robustness-section {
-  padding: 15px 0;
-  border-top: 1px solid var(--line);
-}
-
 .outcome-metrics dl { margin: 0; }
 .metric-guide { margin: -2px 0 8px; color: var(--muted); font-size: 11px; }
 .metric-row {
@@ -621,18 +424,9 @@ dd[data-grade="poor"] { color: var(--poor); }
 .vector-value { text-align: right; }
 .vector-range { color: var(--muted); text-align: right; }
 
-.category-section ol { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
-.category-section li span { display: flex; justify-content: space-between; gap: 12px; }
-.category-section li b { color: var(--stage-colour); font-variant-numeric: tabular-nums; }
-.category-section li small { display: block; margin-top: 1px; color: var(--muted); }
-
 .evidence-bar { display: flex; height: 7px; overflow: hidden; background: rgba(255, 255, 255, 0.08); border-radius: 2px; }
 .evidence-bar i:first-child { background: #5ea8ff; }
 .evidence-bar i:last-child { background: #d6a84b; }
-.evidence-section p,
-.robustness-section p { margin: 7px 0 0; color: var(--muted); }
-
-.synthetic-note { margin: 10px 0; color: #8f99a5; font-size: 10px; }
 .stage-actions { position: sticky; bottom: -18px; margin: 12px -18px -18px; padding: 14px 18px 18px; background: rgba(11, 15, 20, 0.98); border-top: 1px solid var(--line); }
 .stage-actions .primary-action { margin-left: auto; border-color: var(--stage-colour); background: color-mix(in srgb, var(--stage-colour) 18%, transparent); font-weight: 650; }
 
@@ -647,15 +441,6 @@ dd[data-grade="poor"] { color: var(--poor); }
 .comparison-table .delta-good { color: #58d49b; font-weight: 650; }
 .comparison-table .delta-cost { color: #f2b45f; font-weight: 650; }
 
-.aggregation-note {
-  margin: 0 0 14px;
-  padding: 10px 12px;
-  border-left: 3px solid #8eb8ff;
-  background: rgba(142, 184, 255, 0.07);
-  color: #b8c1cc;
-  font-size: 11px;
-}
-
 .missile-breakdown { padding: 18px 0 4px; }
 .missile-table .missile-link {
   min-height: 0;
@@ -666,11 +451,6 @@ dd[data-grade="poor"] { color: var(--poor); }
   font-weight: 700;
 }
 .missile-table .missile-link:hover { background: transparent; text-decoration: underline; }
-
-.explanation ul { display: grid; gap: 7px; margin: 0; padding-left: 19px; }
-.explanation.benefits { border-left: 3px solid #35c78a; padding-left: 14px; }
-.explanation.tradeoffs { border-left: 3px solid #f0a04b; padding-left: 14px; }
-.robustness-section strong { font-size: 15px; }
 
 @media (max-width: 700px) {
   #comparison-panel,
@@ -705,145 +485,10 @@ dd[data-grade="poor"] { color: var(--poor); }
   .stage-actions button { font-size: 11px; }
 }
 
-/* Side window: the zoomed second canvas and one area's stats. */
-#inspector {
-  right: 16px;
-  width: 400px;
-  max-height: calc(100vh - 140px); /* ends above the presenter buttons */
-  box-sizing: border-box;
-  font-size: var(--fs-sm);
-}
-
-#inspector header { display: flex; justify-content: space-between; align-items: center; }
-#inspector .eyebrow { font-size: var(--fs-xs); font-weight: 600; letter-spacing: 0.15em; color: var(--muted); }
-
-#inspector .unpin {
-  padding: 3px 8px;
-  background: transparent;
-  border: 1px solid var(--line);
-  border-radius: 4px;
-  color: var(--text);
-  font: inherit;
-  font-size: var(--fs-sm);
-  cursor: pointer;
-}
-
-#inspector h2 {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 6px 0 8px;
-  font-size: var(--fs-lg);
-  font-weight: 600;
-}
-
-#inspector h2 i { width: 10px; height: 10px; border-radius: 50%; }
-
-#inspector .inspector-map {
-  position: relative;
-  height: clamp(170px, 26vh, 300px); /* shorter on laptop screens so the stats fit without scrolling */
-  overflow: hidden;
-  border: 1px solid var(--line);
-  border-radius: 4px;
-}
-
-#inspector dl {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 4px 12px;
-  margin: 10px 0 0;
-  font-size: var(--fs-sm);
-}
-
-#inspector dt { color: var(--muted); }
-#inspector dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
-
-/* Presenter controls: Play and Restart (temporary) stacked above History. */
-#presenter {
-  position: absolute;
-  z-index: 2;
-  right: 16px;
-  bottom: 40px;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 6px;
-}
-
-#presenter .row { display: flex; gap: 6px; }
-#presenter button[aria-expanded="true"] { background: rgba(255, 255, 255, 0.12); }
-
-/* Past threats and their marks. Sits above the presenter controls. */
-#history {
-  position: absolute;
-  z-index: 2;
-  right: 16px;
-  bottom: 124px;
-  box-sizing: border-box;
-  width: 380px;
-  max-height: 40vh;
-  overflow-y: auto;
-  padding: 12px 14px;
-  background: rgba(13, 17, 23, 0.7);
-  backdrop-filter: blur(12px);
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  color: var(--text);
-  font: var(--fs-md)/var(--lh) var(--font);
-  /* Closed: shrunk into the History button (origin set in decision.ts), and out of the tab order once gone. */
-  transform: scale(0.05);
-  opacity: 0;
-  visibility: hidden;
-  transition: transform 0.25s ease-in, opacity 0.25s ease-in, visibility 0s 0.25s;
-}
-
-#history.open {
-  transform: none;
-  opacity: 1;
-  visibility: visible;
-  transition: transform 0.25s ease-out, opacity 0.25s ease-out, visibility 0s;
-}
-
 @media (prefers-reduced-motion: reduce) {
   #history,
   #history.open { transition: none; }
 }
-
-#history h2 { margin: 0 0 8px; font-size: var(--fs-xs); font-weight: 600; letter-spacing: 0.15em; color: var(--muted); }
-#history .empty { margin: 0; color: var(--muted); }
-#history ul { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
-#history li { display: flex; align-items: center; gap: 8px; }
-#history label { display: flex; cursor: pointer; }
-#history .muted { color: var(--muted); }
-#history .entry { padding: 0; background: none; border: 0; color: inherit; font: inherit; text-align: left; cursor: pointer; }
-#history .entry:hover,
-#history .entry[aria-pressed="true"] { text-decoration: underline; }
-
-/* A past engagement reopened from History: the tray as it closed, read-only. */
-.decision-tray.snapshot { z-index: 3; }
-.decision-tray.snapshot header { gap: 12px; }
-.decision-tray.snapshot .clock { margin-left: auto; }
-.decision-tray .close {
-  padding: 4px 10px;
-  background: none;
-  border: 1px solid var(--line);
-  border-radius: 4px;
-  color: var(--text);
-  font: var(--fs-sm)/var(--lh) var(--font);
-  cursor: pointer;
-}
-
-#presenter button {
-  padding: 7px 12px;
-  background: var(--panel);
-  border: 1px dashed rgba(255, 255, 255, 0.35);
-  border-radius: 4px;
-  color: var(--text);
-  font: var(--fs-sm)/var(--lh) var(--font);
-  cursor: pointer;
-}
-
-#presenter button:disabled { opacity: 0.4; cursor: default; }
 
 button:focus-visible,
 summary:focus-visible {
@@ -903,37 +548,6 @@ body.at-edge::after {
 }
 
 #panel .legend i { flex: none; width: 10px; height: 10px; border-radius: 2px; }
-
-/* Consequence: one row per dimension — name, weight, 0–100 range bar (band = low–high, tick = central), value. */
-#inspector .consequence { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line); }
-#inspector .consequence h3 { display: flex; align-items: center; gap: 8px; margin: 0; font-size: var(--fs-sm); font-weight: 600; }
-#inspector .consequence .tag {
-  padding: 1px 6px;
-  border: 1px dashed var(--fair);
-  border-radius: 3px;
-  color: var(--fair);
-  font-size: var(--fs-xs);
-  font-weight: 600;
-}
-#inspector .consequence .scenario { margin: 2px 0 8px; color: var(--muted); font-size: var(--fs-sm); }
-#inspector .consequence .scenario:empty { display: none; }
-#inspector .consequence ol { display: grid; gap: 5px; margin: 0; padding: 0; list-style: none; }
-#inspector .consequence li {
-  display: grid;
-  grid-template-columns: 1fr 32px 90px 78px;
-  align-items: center;
-  gap: 8px;
-  font-size: var(--fs-sm);
-}
-#inspector .consequence .name { color: var(--muted); }
-#inspector .consequence .weight { color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; }
-#inspector .consequence .value { text-align: right; font-variant-numeric: tabular-nums; }
-#inspector .consequence li.total { padding-bottom: 5px; border-bottom: 1px solid var(--line); font-weight: 600; }
-#inspector .consequence li.total .name { color: var(--text); }
-#inspector .consequence li[data-unavailable] .value { color: var(--muted); font-style: italic; }
-#inspector .consequence .bar { position: relative; height: 6px; background: rgba(255, 255, 255, 0.08); border-radius: 3px; }
-#inspector .consequence .bar i { position: absolute; top: 0; bottom: 0; background: rgba(88, 166, 255, 0.35); border-radius: 3px; }
-#inspector .consequence .bar b { position: absolute; top: -2px; width: 2px; height: 10px; margin-left: -1px; background: #58a6ff; }
 #simulation-result { margin-top: 10px; border-top: 1px solid var(--line); padding-top: 8px; }
 #simulation-result summary { cursor: pointer; font-size: 12px; font-weight: 700; }
 #simulation-result p, #simulation-result small { display: block; color: var(--muted); font-size: 10px; line-height: 1.4; }
@@ -1066,3 +680,163 @@ body > .result-metadata { position: fixed; top: 12px; right: 12px; z-index: 20; 
 }
 .run-status { margin: 5px 0; }
 .result-metadata p { margin: 3px 0; }
+
+/* --- Engagement screen: threat list left, presenter and bird's-eye on the map, standby bar below, comparison panel right --- */
+
+#ops {
+  position: absolute;
+  z-index: 2;
+  top: 16px;
+  left: 36px; /* clear of the drawer's tab */
+  bottom: var(--strip);
+  box-sizing: border-box;
+  width: calc(var(--list) - 52px);
+  display: flex;
+  flex-direction: column;
+  background: var(--panel);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--text);
+  font: var(--fs-sm)/var(--lh) var(--font);
+}
+
+#ops[data-view="history"] .list-area,
+#ops:not([data-view="history"]) .history-view { display: none; }
+
+#ops .list-area,
+#ops .history-view {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 14px;
+  scrollbar-width: thin;
+}
+
+#ops h2 { margin: 0 0 8px; font-size: var(--fs-xs); font-weight: 600; letter-spacing: 0.15em; text-transform: uppercase; color: var(--muted); }
+#ops .empty { margin: 0; color: var(--muted); }
+
+#ops .threats { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+#ops .row {
+  display: grid;
+  gap: 3px 10px;
+  width: 100%;
+  padding: 8px 10px;
+  text-align: left;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--threat);
+  border-radius: 4px;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+#ops .row:hover { background: rgba(255, 255, 255, 0.08); }
+#ops li.focused .row { background: rgba(255, 255, 255, 0.1); border-color: rgba(255, 255, 255, 0.6); border-left-color: var(--threat); }
+#ops .row .name { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: var(--fs-md); }
+#ops .row .name i { width: 9px; height: 9px; border-radius: 50%; background: var(--threat); }
+#ops .row .name b { font-weight: 600; }
+#ops .row code { color: var(--muted); font: var(--fs-xs)/var(--lh) var(--font); }
+#ops .row .status { color: var(--muted); font-variant-numeric: tabular-nums; }
+#ops li[data-state="unhandled"] .row .status { color: var(--poor); }
+#ops li[data-state="intercepted"] .row .status { color: var(--good); }
+
+#ops .history-view ul { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+#ops .history-view li { display: grid; gap: 2px; }
+#ops .history-view .entry {
+  padding: 6px 8px;
+  text-align: left;
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+#ops .history-view .entry[aria-pressed="true"] { background: rgba(255, 255, 255, 0.12); border-color: rgba(255, 255, 255, 0.4); }
+#ops .history-view .entry:disabled { opacity: 0.5; cursor: default; }
+#ops .history-view small { color: var(--muted); font-size: var(--fs-xs); overflow-wrap: anywhere; }
+
+/* Play, Restart and History: on the map's bottom left, above the credits. */
+#presenter {
+  position: absolute;
+  z-index: 2;
+  left: calc(var(--list) + 16px);
+  bottom: calc(var(--strip) + 44px);
+  display: flex;
+  gap: 6px;
+}
+#presenter button {
+  padding: 7px 12px;
+  background: var(--panel);
+  border: 1px dashed rgba(255, 255, 255, 0.35);
+  border-radius: 4px;
+  color: var(--text);
+  font: var(--fs-sm)/var(--lh) var(--font);
+  cursor: pointer;
+}
+#presenter button:disabled { opacity: 0.4; cursor: default; }
+#presenter button[aria-expanded="true"] { background: rgba(255, 255, 255, 0.12); }
+
+/* Bird's-eye view: on the map's top right. */
+#birds-eye {
+  position: absolute;
+  z-index: 2;
+  top: 16px;
+  right: calc(var(--side) + 16px);
+  padding: 7px 12px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  color: var(--text);
+  font: var(--fs-sm)/var(--lh) var(--font);
+  cursor: pointer;
+}
+
+/* The standby bar: the bottom row under the map, 128 px tall so nothing moves between phases. */
+.standby-bar {
+  position: absolute;
+  z-index: 2;
+  left: var(--list);
+  right: var(--side);
+  bottom: 16px;
+  height: 128px;
+  box-sizing: border-box;
+  overflow-y: auto;
+  padding: 16px 18px;
+  background: rgba(13, 17, 23, 0.7);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--text);
+  font: var(--fs-md)/var(--lh) var(--font);
+}
+.standby-bar header { display: flex; justify-content: space-between; align-items: baseline; }
+.standby-bar .phase { font-size: var(--fs-xs); font-weight: 600; letter-spacing: 0.15em; color: var(--muted); }
+.standby-bar[data-phase="live"] .phase { color: #ff6b6b; }
+.standby-bar[data-phase="submitting"] .phase,
+.standby-bar[data-phase="loading"] .phase { color: var(--fair); }
+.standby-bar .clock { font: 600 var(--fs-xl)/var(--lh) var(--font); font-variant-numeric: tabular-nums; }
+.standby-bar .message { margin: 2px 0 0; font-size: var(--fs-lg); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+
+.replay-button { white-space: nowrap; }
+
+.outcome-metrics {
+  padding: 15px 0;
+  border-top: 1px solid var(--line);
+}
+
+/* Comparison panel additions: the all-missiles strip, unavailable figures, the snapshot list. */
+#comparison-panel .summary { margin: 0 0 12px; padding-bottom: 8px; border-bottom: 1px solid var(--line); }
+#comparison-panel .summary .total { display: grid; grid-template-columns: 1fr auto auto; gap: 8px; margin: 3px 0; font-variant-numeric: tabular-nums; }
+#comparison-panel .summary .name { color: var(--muted); }
+#comparison-panel .better { color: var(--good); }
+#comparison-panel .worse { color: var(--fair); }
+#comparison-panel [data-unavailable], #comparison-panel .unavailable { color: var(--muted); }
+#comparison-panel .note { margin: 4px 0 0; color: var(--fair); font-size: var(--fs-xs); }
+#comparison-panel .empty { color: var(--muted); }
+#comparison-panel dl.facts { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; margin: 8px 0; font-size: var(--fs-sm); }
+#comparison-panel dl.facts dt { color: var(--muted); }
+#comparison-panel dl.facts dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+#comparison-panel .limitations { margin: 6px 0 0; padding-left: 18px; color: var(--muted); font-size: var(--fs-xs); }

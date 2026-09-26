@@ -96,19 +96,17 @@ try {
     await until(async () => (await meta(kind).getAttribute('data-result-id')) === identity, `${kind} snapshot ${identity}`);
   }
   await page.goto(url);
-  for (const kind of ['planning', 'simulation']) {
+  for (const kind of ['simulation']) {
     await loaded(kind, ready.initial[kind].resultId);
     check(requests.includes(`${origin}/api/v1/${kind}-results/latest`), `${kind} requests latest through the Vite origin`);
     check((await meta(kind).textContent()).includes(ready.initial[kind].publishedAt), `${kind} displays publication time`);
   }
   check(new URL(page.url()).origin === origin, 'Browser remains on Vite origin');
   check(!requests.some(u => /fixture-source|demo-planning-result\.json|demo-simulation-result\.json/.test(u)), 'HTTP success imports no fixtures');
-  check((await page.locator('#decision-tray').textContent()).includes('Option 1'), 'Planning result renders');
   const inspect = () => page.evaluate(() => window.__mvpAcceptance.inspect());
-  check(!(await inspect()).planning.result.candidates.some(c => c.consequence), 'Live planning receives no fabricated consequence extension');
-  await page.locator('#simulation-result').evaluate(el => { el.open = true; });
-  const population = ready.initial.simulation.result.consequenceSummary.physicalComponents.people_potentially_exposed_total;
-  check((await page.locator('#simulation-result').textContent()).includes(population.toLocaleString()), 'Simulation displays served population value');
+  check((await page.locator('#ops .list-area').textContent()).includes('No threats detected.'), 'Threats list starts empty in standby');
+  check((await page.locator('#standby').textContent()).includes('Standby'), 'Standby bar shows standby');
+  check((await page.locator('#comparison-panel').textContent()).includes('No run pair yet'), 'Comparison panel waits for a run pair');
   await page.screenshot({ path: resolve(evidence, 'http-success.png'), fullPage: true });
   if (gate === 'B05') {
     const failures = [
@@ -117,36 +115,31 @@ try {
       ['network', null, 'Network request failed'],
       ['invalid-json', { status: 200, contentType: 'application/json', body: '{' }, 'invalid JSON'],
       ['malformed', { status: 200, json: { result: {} } }, 'resultId'],
-      ['wrong-kind', { status: 200, json: ready.initial.simulation }, 'expected planning-result/1'],
+      ['wrong-kind', { status: 200, json: { resultId: 'x', publishedAt: '2026-09-26T00:00:00Z', result: { schemaVersion: 'planning-result/1' } } }, 'unsupported simulation result schema'],
     ];
-    for (const kind of ['planning', 'simulation']) {
+    for (const kind of ['simulation']) {
       for (const [name, originalResponse, originalReason] of failures) {
-        const response = name === 'wrong-kind'
-          ? { status: 200, json: ready.initial[kind === 'planning' ? 'simulation' : 'planning'] } : originalResponse;
-        const reason = name === 'wrong-kind' && kind === 'simulation' ? 'unsupported simulation result schema' : originalReason;
-        const handler = route => response ? route.fulfill(response) : route.abort('failed');
+        const handler = route => originalResponse ? route.fulfill(originalResponse) : route.abort('failed');
         await page.route(`**/api/v1/${kind}-results/latest`, handler);
         await page.goto(url);
-        await until(async () => (await page.locator(`.result-load-status[aria-label="${kind === 'planning' ? 'Planning' : 'Simulation'} result loading"]`).textContent()).includes(reason), `visible ${kind} ${name} reason`);
+        await until(async () => (await page.locator(`.result-load-status[aria-label="${'Simulation'} result loading"]`).textContent()).includes(originalReason), `visible ${kind} ${name} reason`);
         check(!requests.some(u => /fixture-source|demo-planning-result\.json|demo-simulation-result\.json/.test(u)), `${kind} ${name} does not load fixtures`);
-        check(await page.locator(kind === 'planning' ? '#decision-tray' : '#simulation-result').count() === 0, `${kind} ${name} draws no fabricated result`);
+        check((await page.locator('#standby').textContent()).includes('No simulation result loaded'), `${kind} ${name} draws no fabricated result`);
         await page.screenshot({ path: resolve(evidence, `failure-${kind}-${name}.png`), fullPage: true });
         await page.unroute(`**/api/v1/${kind}-results/latest`, handler);
       }
     }
     await page.goto(url);
-    await loaded('planning', ready.initial.planning.resultId);
+    await loaded('simulation', ready.initial.simulation.resultId);
     await page.screenshot({ path: resolve(evidence, 'http-recovered.png'), fullPage: true });
     await page.goto(url + '&source=fixture');
-    await until(async () => (await meta('planning').textContent()).includes('Fixture mode'), 'explicit fixture planning');
-    await until(async () => (await meta('simulation').textContent()).includes('Fixture mode'), 'explicit fixture simulation');
-    check(requests.some(u => u.includes('fixture-source')), 'Explicit fixture mode imports fixture module');
-    await page.screenshot({ path: resolve(evidence, 'fixture-mode.png'), fullPage: true });
+    await loaded('simulation', ready.initial.simulation.resultId);
+    check(!requests.some(u => /fixture-source|demo-simulation-result\.json/.test(u)), 'A source=fixture query is ignored: there is no fixture mode');
   }
   if (gate === 'B06') {
     await until(async () => (await inspect()).canvas.layers.filter(l => l.kind === 'circles').every(l => l.ready), 'Actual circle geometry ready');
     const baseline = (await inspect()).canvas;
-    for (const kind of ['planning', 'simulation']) {
+    for (const kind of ['simulation']) {
       const previous = ready.initial[kind];
       const newer = await publish(kind);
       await delay(200);
@@ -157,7 +150,7 @@ try {
         const handler = route => failure === 'fetch' ? route.abort('failed') : route.fulfill({ status: 200, json: { resultId: 'invalid' } });
         await page.route(`**/api/v1/${kind}-results/latest`, handler);
         await page.getByRole('button', { name: `Refresh ${kind}`, exact: true }).click();
-        await until(async () => (await page.locator(`.result-load-status[aria-label="${kind === 'planning' ? 'Planning' : 'Simulation'} result loading"]`).textContent()).includes('Unavailable'), `${kind} ${failure} failure`);
+        await until(async () => (await page.locator(`.result-load-status[aria-label="${'Simulation'} result loading"]`).textContent()).includes('Unavailable'), `${kind} ${failure} failure`);
         check((await meta(kind).getAttribute('data-result-id')) === newer.resultId, `${kind}: ${failure} failure preserves identity`);
         check((await inspect())[kind].resultId === newer.resultId, `${kind}: ${failure} failure preserves actual payload`);
         await page.unroute(`**/api/v1/${kind}-results/latest`, handler);
@@ -172,61 +165,47 @@ try {
       check(after.layerCount === baseline.layerCount && after.primitiveCount === baseline.primitiveCount, `${kind}: ten refreshes preserve actual live layer and primitive counts`);
       check(after.preRenderListeners === baseline.preRenderListeners && after.eventListeners === baseline.eventListeners, `${kind}: ten refreshes preserve listener counts`);
     }
-    // A failed construction must preserve the actual shared Cesium clock,
-    // not merely leave the old result ID and layer count on screen.
-    await page.getByRole('button', { name: 'Play', exact: true }).click();
+    // A failed construction must preserve the actual shared Cesium clock, not merely leave the old result ID on screen.
+    await page.locator('body').press('Space'); // Naive preset: replays the loaded result alone
     const oldClock = await page.evaluate(() => {
       const canvas = window.__canvas;
-      const start = new Date(window.__mvpAcceptance.inspect().planning.result.start);
+      const start = new Date(window.__mvpAcceptance.inspect().simulation.result.start);
       canvas.time.seek(new Date(start.getTime() + 5000));
       const original = canvas.addGroundCircles;
       window.__restoreCircleFactory = () => { canvas.addGroundCircles = original; delete window.__restoreCircleFactory; };
       canvas.addGroundCircles = () => { throw new Error('Injected refresh construction failure'); };
-      return { time: canvas.time.current.getTime(), playing: canvas.time.playing,
-        resultId: window.__mvpAcceptance.inspect().planning.resultId };
+      return { time: canvas.time.current.getTime(), playing: canvas.time.playing, resultId: window.__mvpAcceptance.inspect().simulation.resultId };
     });
     try {
-      await page.getByRole('button', { name: 'Refresh planning', exact: true }).click();
-      await until(async () => (await page.locator('body > .result-load-status').textContent()).includes('Injected refresh construction failure'), 'Failed live planning construction');
+      await page.getByRole('button', { name: 'Refresh simulation', exact: true }).click();
+      await until(async () => (await page.locator('.result-load-status').textContent()).includes('Injected refresh construction failure'), 'Failed live simulation construction');
       const retained = await page.evaluate(() => ({ time: window.__canvas.time.current.getTime(),
-        playing: window.__canvas.time.playing, resultId: window.__mvpAcceptance.inspect().planning.resultId }));
-      check(oldClock.playing && retained.playing && retained.time >= oldClock.time,
-        'Failed planning construction preserves real clock progress and playback');
+        playing: window.__canvas.time.playing, resultId: window.__mvpAcceptance.inspect().simulation.resultId }));
+      check(oldClock.playing && retained.playing && retained.time >= oldClock.time, 'Failed simulation construction preserves real clock progress and playback');
       check(retained.resultId === oldClock.resultId, 'Failed live construction keeps the preceding snapshot');
     } finally { await page.evaluate(() => window.__restoreCircleFactory()); }
-    await page.getByRole('button', { name: 'Restart', exact: true }).click();
-    check(await page.evaluate(() => !window.__canvas.time.playing), 'Retained planning controls still reset playback');
     const runRequests = [];
     page.on('request', request => { if (request.url().includes('/api/v1/runs')) runRequests.push(request); });
-    await page.getByRole('button', { name: 'Play', exact: true }).click();
     await page.evaluate(() => {
-      const snapshot = window.__mvpAcceptance.inspect().planning;
+      const snapshot = window.__mvpAcceptance.inspect().simulation;
       window.__canvas.time.pause();
-      window.__canvas.time.seek(new Date(snapshot.result.end));
+      window.__canvas.time.seek(new Date(new Date(snapshot.result.start).getTime() + 30000));
     });
-    await until(async () => (await page.locator('#history li').count()) > 0, 'Planning history entry');
-    const historyId = (await inspect()).planning.resultId;
-    check((await page.locator('#history li').first().getAttribute('data-result-id')) === historyId, 'History retains originating snapshot identity');
-    await page.getByRole('button', { name: 'Restart', exact: true }).click();
+    await until(async () => (await page.locator('#ops .threats li').count()) > 0, 'Threats appear once the clock passes their detection');
     await delay(100);
-    check(runRequests.length === 0, 'Planning Restart submits no backend job');
-    const resetHistory = await publish('planning');
-    await page.getByRole('button', { name: 'Refresh planning', exact: true }).click();
-    await loaded('planning', resetHistory.resultId);
-    check((await page.locator('#history li').count()) === 0, 'A new planning snapshot starts a new history');
+    check(runRequests.length === 0, 'Space with the Naive preset submits no backend job');
     // Use real view modules and the real canvas for late-settlement/disposal races.
     const lifecycle = await page.evaluate(async () => {
       const { mountSimulationResult } = await import('/src/demo/simulation.ts');
-      const { mountDecision } = await import('/src/demo/decision.ts');
       const canvas = window.__canvas;
       const initial = window.__mvpAcceptance.inspect();
       const results = [];
-      for (const kind of ['planning', 'simulation']) {
+      for (const kind of ['simulation']) {
         const host = document.createElement('div'); document.body.append(host);
         const snapshot = initial[kind];
         let release;
         const load = () => new Promise(resolve => { release = resolve; });
-        const mounted = kind === 'planning' ? mountDecision(canvas, { lighting: 'midday' }, load) : mountSimulationResult(canvas, host, load);
+        const mounted = mountSimulationResult(canvas, host, load);
         mounted.dispose();
         release(snapshot);
         await new Promise(r => setTimeout(r, 20));
@@ -264,7 +243,7 @@ try {
     };
     await page.route('**/api/v1/runs/*', race);
     const baselineCount = (await inspect()).canvas.layerCount;
-    for (const kind of ['planning', 'simulation']) {
+    for (const kind of ['simulation']) {
       if (kind === 'simulation') {
         await page.getByLabel('Legacy seed', { exact: true }).check();
         await page.getByRole('spinbutton', { name: 'Simulation seed' }).fill('17');
@@ -280,7 +259,7 @@ try {
       check(record.resultId !== another.resultId, `${kind}: competing publication has a different identity`);
       check((await inspect())[kind].resultId === record.resultId, `${kind}: displays exact job publication despite newer latest`);
       check(submissions.length === before + 1, `${kind}: one submission per double click`);
-      assert.deepEqual(submissions[before], kind === 'planning' ? { kind } : { kind, seed: 17 });
+      assert.deepEqual(submissions[before], { kind, seed: 17 });
       assertions.push(`${kind}: submitted intended request`);
       check(requests.includes(`${origin}/api/v1/${kind}-results/${record.resultId}`), `${kind}: fetches exact job result URL`);
       if (kind === 'simulation') check((await inspect()).simulation.result.seed === 17, 'Displayed simulation seed matches submitted seed');
@@ -368,11 +347,8 @@ try {
         && displayed.provenance.canonicalEpisodeHash === entry.canonicalEpisodeHash
         && displayed.policy.identity === 'naive-launch-on-detection/1',
       `${entry.split}: displayed seed, profile, split, hash, and policy match the manifest`);
-      const identities = await page.locator('#simulation-result .scenario-identities').textContent();
-      const badges = await page.locator('#simulation-result .scenario-badges').textContent();
-      check(identities.includes(String(entry.seed)) && identities.includes(entry.canonicalEpisodeHash)
-        && identities.includes('naive-launch-on-detection/1') && badges.includes(entry.split)
-        && badges.includes(entry.profile), `${entry.split}: provenance is visible in the result panel`);
+      const identity = await page.locator('.result-metadata[data-kind="simulation"]').textContent();
+      check(identity.includes(record.resultId), `${entry.split}: the loaded result identity is visible in the drawer`);
       const envelope = await page.evaluate(async resultId => {
         const response = await fetch(`/api/v1/simulation-results/${encodeURIComponent(resultId)}`);
         return response.json();
@@ -401,12 +377,12 @@ try {
     const failurePublication = await publish('simulation', failedPayload);
     await page.getByRole('button', { name: 'Refresh simulation', exact: true }).click();
     await loaded('simulation', failurePublication.resultId);
-    await page.locator('#simulation-result').evaluate(element => { element.open = true; });
     await assertSimulationGeometry(failedPayload);
-    const unhandledLabel = page.locator('#simulation-result .simulation-outcome-unhandled');
-    check((await unhandledLabel.textContent()).startsWith('1 unhandled')
-      && (await unhandledLabel.evaluate(element => getComputedStyle(element).color)) === 'rgb(255, 59, 48)',
-    'An unhandled threat is visibly distinguished in red from intercepted threats');
+    await page.locator('body').press('Space');
+    await page.evaluate(() => { window.__canvas.time.pause(); window.__canvas.time.seek(new Date(window.__mvpAcceptance.inspect().simulation.result.end)); });
+    const unhandledRow = page.locator('#ops .threats li[data-state="unhandled"] .status');
+    await until(async () => (await unhandledRow.count()) === 1, 'The unhandled threat is listed');
+    check((await unhandledRow.evaluate(element => getComputedStyle(element).color)) === 'rgb(248, 81, 73)', 'An unhandled threat is visibly distinguished in red from intercepted threats');
     await page.screenshot({ path: resolve(evidence, 'frozen-scenarios-and-unhandled.png'), fullPage: true });
     const beforeBadReference = (await inspect()).simulation.resultId;
     const badReferenceStatus = await page.evaluate(async () => (await fetch('/api/v1/runs', {
@@ -424,23 +400,7 @@ try {
     const finishedPolls = polls.length;
     await delay(1250);
     check(polls.length === finishedPolls, 'Polling stops after terminal results');
-    const planningControls = page.locator('.run-controls[data-kind="planning"]');
-    check(!(await planningControls.isVisible()), 'Live policy replay focuses the UI by hiding planning controls');
-    const restoredSimulation = await publish('simulation', ready.initial.simulation.result);
-    await page.getByRole('button', { name: 'Refresh simulation', exact: true }).click();
-    await loaded('simulation', restoredSimulation.resultId);
-    await until(() => planningControls.isVisible(), 'Planning controls return after leaving live policy replay');
-    const previous = (await inspect()).planning.resultId;
-    await command('fail-next');
-    await page.getByRole('button', { name: 'Run planning', exact: true }).click();
-    await until(async () => (await page.locator('.run-controls[data-kind="planning"]').getAttribute('data-status')) === 'failed', 'Injected run failure');
-    check((await inspect()).planning.resultId === previous, 'Failed job preserves previous valid snapshot');
-    check((await page.locator('.run-controls[data-kind="planning"]').textContent()).includes('INJECTED_FAILURE'), 'Structured job failure is visible');
-    await page.screenshot({ path: resolve(evidence, 'run-failure.png'), fullPage: true });
-    await page.getByRole('button', { name: 'Run planning', exact: true }).click();
-    await until(async () => (await page.locator('.run-controls[data-kind="planning"]').getAttribute('data-status')) === 'succeeded', 'Submission after failure succeeds');
-    await until(async () => (await inspect()).planning.resultId !== previous, 'Successful rerun displays new result');
-    for (const kind of ['planning', 'simulation']) {
+    for (const kind of ['simulation']) {
       const preceding = (await inspect())[kind].resultId;
       raced.delete(kind);
       const failedIds = [];
@@ -456,7 +416,7 @@ try {
       try {
         await page.getByRole('button', { name: `Run ${kind}`, exact: true }).click();
         await until(async () => (await page.locator(`.run-controls[data-kind="${kind}"]`).getAttribute('data-status')) === 'succeeded', `${kind} succeeds before display failure`, 60000);
-        const status = page.locator(`.result-load-status[aria-label="${kind === 'planning' ? 'Planning' : 'Simulation'} result loading"]`);
+        const status = page.locator(`.result-load-status[aria-label="${'Simulation'} result loading"]`);
         await until(async () => (await status.textContent()).includes('Unavailable'), `${kind} exact result fails to load`);
         const { record, another } = raced.get(kind);
         check((await inspect())[kind].resultId === preceding, `${kind}: failed exact result fetch retains preceding view`);
@@ -472,6 +432,24 @@ try {
       } finally { await page.unroute(`**/api/v1/${kind}-results/*`, failExactOnce); }
     }
     await page.unroute('**/api/v1/runs/*', race);
+    // Space submits a Naive and an optimised run on the drawer's scenario, then compares them.
+    await page.getByLabel('Frozen scenario', { exact: true }).check();
+    await splitControl.selectOption('validation');
+    await scenarioControl.selectOption('sg2:validation:000000');
+    await policyControl.selectOption('optimal-fixed-rank-assignment/1');
+    const pairStart = submissions.length;
+    await page.locator('body').press('Space');
+    await until(async () => (await page.locator('#standby').getAttribute('data-phase')) === 'live', 'Run pair loads and the replay starts', 240000);
+    assert.deepEqual(submissions.slice(pairStart), [
+      { kind: 'simulation', scenarioRef: 'sg2:validation:000000', policy: 'naive-launch-on-detection/1' },
+      { kind: 'simulation', scenarioRef: 'sg2:validation:000000', policy: 'optimal-fixed-rank-assignment/1' },
+    ]);
+    assertions.push('Space submitted exactly a Naive and an optimised run');
+    const comparison = await page.locator('#comparison-panel').textContent();
+    check(comparison.includes('Live runs · sg2:validation:000000') && comparison.includes('Ordinal objective cost'), 'Comparison panel shows the live pair');
+    check(!/Illustrative|Bundled|Synthetic/.test(comparison), 'Comparison panel carries no synthetic or bundled figures');
+    check((await page.locator('#ops .history-view .entry').count()) === 1, 'History lists the run pair');
+    await page.screenshot({ path: resolve(evidence, 'run-pair-comparison.png'), fullPage: true });
     // Dispose while a real status HTTP response is held in transit.
     let held;
     const hold = async route => { const response = await route.fetch(); held = { route, response }; };
@@ -500,20 +478,10 @@ try {
     check(start.canvas.webgl && start.canvas.postRenderCount > 0, 'Actual WebGL context completes Cesium postRender events');
     const simPaths = d => d.canvas.layers.filter(l => l.kind === 'path' && l.positions.length === 20);
     const simCircles = d => d.canvas.layers.find(l => l.kind === 'circles' && l.circles.some(c => c.id === ready.initial.simulation.result.selectedFootprints[0].id));
-    check(simPaths(start).length === 8 && simPaths(start).every(p => !p.visible), 'Eight actual simulation paths start hidden');
-    check(simCircles(start).circles.length === 8 && !simCircles(start).visible, 'Eight selected circles start hidden');
-    await page.getByRole('button', { name: 'Show simulation', exact: true }).click();
-    const shown = await inspect();
-    check(simPaths(shown).length === 8 && simPaths(shown).every(p => p.visible), 'Visibility control shows all eight paths');
-    check(simCircles(shown).visible && simCircles(shown).circles.every(c => c.visible), 'Visibility control shows all eight selected circles');
-    // Compare observations of actual EllipseGeometry instances supplied to Cesium.
+    check(simPaths(start).length === 8 && simPaths(start).every(p => !p.visible), 'Eight actual simulation paths start hidden in standby');
+    const shown = start;
     const allCircles = shown.canvas.layers.filter(l => l.kind === 'circles').flatMap(l => l.circles);
-    const planning = ready.initial.planning.result;
-    const representatives = planning.representativeCandidateIds.map(id => planning.candidates.find(c => c.id === id));
-    const expected = [
-      ...representatives.map(c => ({ id: c.id, center: c.position, radiusM: c.footprint.radiusM })),
-      ...ready.initial.simulation.result.selectedFootprints,
-    ];
+    const expected = [...ready.initial.simulation.result.selectedFootprints];
     for (const footprint of expected) {
       const actual = allCircles.find(c => c.id === footprint.id);
       check(actual && Math.abs(actual.lon - footprint.center.lon) <= 1e-7
@@ -522,40 +490,24 @@ try {
         && Math.abs(actual.minorRadiusM - footprint.radiusM) <= 1e-6, `Actual circle ${footprint.id} matches served center/radius`);
     }
     await page.screenshot({ path: resolve(evidence, 'simulation-success.png'), fullPage: true });
-    await page.getByRole('button', { name: 'Hide simulation', exact: true }).click();
-    const hidden = await inspect();
-    check(simPaths(hidden).every(p => !p.visible) && !simCircles(hidden).visible, 'Visibility control hides all simulation paths and circles');
-    await page.getByRole('button', { name: 'Play', exact: true }).click();
-    await page.evaluate(() => window.__canvas.time.pause());
-    assert.deepEqual(await page.locator('#decision-tray .card').evaluateAll(cards => cards.map(card => card.dataset.candidateId)), planning.representativeCandidateIds);
-    assertions.push('Planning representative IDs and order match served payload');
-    for (const candidate of representatives) {
-      const card = page.locator(`#decision-tray .card[data-candidate-id="${candidate.id}"]`);
-      const text = await card.textContent();
-      const people = candidate.exposure.peoplePotentiallyExposed;
-      if (people !== null) check(text.includes(people.toLocaleString('en-SG', { maximumFractionDigits: 0 })), `Planning exposure ${candidate.id} matches payload`);
-      check(text.includes((candidate.suppliedSuccessProbability * 100).toFixed(1) + '%'), `Planning probability ${candidate.id} matches payload`);
-    }
-    await page.screenshot({ path: resolve(evidence, 'planning-success.png'), fullPage: true });
     const evidencePayload = structuredClone(ready.initial.simulation.result);
     delete evidencePayload.consequenceSummary.physicalComponents.people_potentially_exposed_total;
     evidencePayload.consequenceSummary.physicalComponents.expected_casualties_central_total = 0;
     const evidenceResult = await publish('simulation', evidencePayload);
     await page.getByRole('button', { name: 'Refresh simulation', exact: true }).click();
     await loaded('simulation', evidenceResult.resultId);
-    const evidenceCopy = await page.locator('#simulation-result').textContent();
-    check(evidenceCopy.includes('Unavailable people potentially exposed') && evidenceCopy.includes('0 assumption-grade expected casualties'), 'Missing evidence displays unavailable; numerical zero displays zero');
-    const validIds = { planning: (await inspect()).planning.resultId, simulation: evidenceResult.resultId };
+    check((await inspect()).simulation.result.consequenceSummary.physicalComponents.people_potentially_exposed_total === undefined, 'Missing evidence stays missing in the served payload');
+    const validIds = { simulation: evidenceResult.resultId };
     await command('stop-http');
-    for (const kind of ['planning', 'simulation']) {
+    for (const kind of ['simulation']) {
       await page.getByRole('button', { name: `Refresh ${kind}`, exact: true }).click();
-      await until(async () => (await page.locator(`.result-load-status[aria-label="${kind === 'planning' ? 'Planning' : 'Simulation'} result loading"]`).textContent()).includes('Unavailable'), `${kind} sees actual API loss`);
+      await until(async () => (await page.locator(`.result-load-status[aria-label="${'Simulation'} result loading"]`).textContent()).includes('Unavailable'), `${kind} sees actual API loss`);
       check((await inspect())[kind].resultId === validIds[kind], `${kind} preserves snapshot during API loss`);
     }
     await page.screenshot({ path: resolve(evidence, 'api-loss.png'), fullPage: true });
     await command('start-http');
-    for (const kind of ['planning', 'simulation']) {
-      const status = page.locator(`.result-load-status[aria-label="${kind === 'planning' ? 'Planning' : 'Simulation'} result loading"]`);
+    for (const kind of ['simulation']) {
+      const status = page.locator(`.result-load-status[aria-label="${'Simulation'} result loading"]`);
       await status.getByRole('button', { name: 'Retry', exact: true }).click();
       await until(() => status.isHidden(), `${kind} retries after API recovery`);
     }

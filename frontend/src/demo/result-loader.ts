@@ -55,9 +55,9 @@ export function mountResultLoader<T, V extends { dispose(): void }>(
       view = next;
       snapshot = nextSnapshot;
       metadata.dataset.resultId = snapshot?.resultId ?? "";
-      identity.textContent = snapshot?.source === "http"
+      identity.textContent = snapshot
         ? `${label} · HTTP · ${snapshot.resultId} · Published ${snapshot.publishedAt}`
-        : `${label} · Fixture mode · illustrative demo`;
+        : `${label} · loaded`;
       status.hidden = true;
     } catch (error) {
       if (disposed || request !== generation) return;

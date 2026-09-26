@@ -1,0 +1,264 @@
+{
+  "checksum": "sha256:0115a0478bb3b397c576b8ecce10195c57390db1ea915d2af50103dc9f0bad3d",
+  "distribution_version": "singapore-scenario-distribution/1",
+  "environment": {
+    "max_candidates_per_pair": 20,
+    "max_interceptors": 8,
+    "max_threats": 8,
+    "terminal_grid_columns": 4,
+    "terminal_grid_rows": 4
+  },
+  "episode_schema_version": "simulation-episode/2",
+  "generator_version": "singapore-scenario/2",
+  "max_generation_attempts": 200,
+  "profiles": {
+    "balanced": {
+      "detection": {
+        "burst_count": null,
+        "gap_max_s": 8.0,
+        "gap_min_s": 2.0,
+        "kind": "gaps",
+        "wave_separation_max_s": null,
+        "wave_separation_min_s": null,
+        "wave_width_s": null
+      },
+      "ingress_sectors": [0, 1, 2, 3, 4, 5, 6, 7],
+      "interceptor_layout": "uniform",
+      "interceptor_rule": "equal",
+      "predicates": {
+        "critical_edge_min": 0,
+        "edge_density_max": 0.85,
+        "edge_density_min": 0.45,
+        "exact_absolute_improvement_min": null,
+        "exact_relative_improvement_min": null,
+        "interceptors_reaching_three_burst_threats_min": 0,
+        "low_degree_threat_count_min": 0,
+        "min_threat_degree": 2,
+        "pair_best_margin_median_max_s": null,
+        "threat_cost_spread_min": null
+      },
+      "split_use": "core",
+      "threat_count_max": 6,
+      "threat_count_min": 4,
+      "trajectory_duration_max_s": 84.0,
+      "trajectory_duration_min_s": 44.0
+    },
+    "burst-contention": {
+      "detection": {
+        "burst_count": 4,
+        "gap_max_s": 4.0,
+        "gap_min_s": 1.0,
+        "kind": "burst",
+        "wave_separation_max_s": null,
+        "wave_separation_min_s": null,
+        "wave_width_s": 2.0
+      },
+      "ingress_sectors": [0, 1, 2, 3, 4, 5, 6, 7],
+      "interceptor_layout": "burst-clustered-outliers",
+      "interceptor_rule": "equal",
+      "predicates": {
+        "critical_edge_min": 1,
+        "edge_density_max": 0.70,
+        "edge_density_min": 0.35,
+        "exact_absolute_improvement_min": null,
+        "exact_relative_improvement_min": null,
+        "interceptors_reaching_three_burst_threats_min": 2,
+        "low_degree_threat_count_min": 0,
+        "min_threat_degree": 1,
+        "pair_best_margin_median_max_s": null,
+        "threat_cost_spread_min": null
+      },
+      "split_use": "core",
+      "threat_count_max": 8,
+      "threat_count_min": 6,
+      "trajectory_duration_max_s": 58.0,
+      "trajectory_duration_min_s": 40.0
+    },
+    "cadence-shift": {
+      "detection": {
+        "burst_count": 4,
+        "gap_max_s": null,
+        "gap_min_s": null,
+        "kind": "two-waves",
+        "wave_separation_max_s": 25.0,
+        "wave_separation_min_s": 15.0,
+        "wave_width_s": 1.0
+      },
+      "ingress_sectors": [0, 1, 2, 3, 4, 5, 6, 7],
+      "interceptor_layout": "uniform",
+      "interceptor_rule": "equal",
+      "predicates": {
+        "critical_edge_min": 0,
+        "edge_density_max": 0.85,
+        "edge_density_min": 0.40,
+        "exact_absolute_improvement_min": null,
+        "exact_relative_improvement_min": null,
+        "interceptors_reaching_three_burst_threats_min": 0,
+        "low_degree_threat_count_min": 0,
+        "min_threat_degree": 2,
+        "pair_best_margin_median_max_s": null,
+        "threat_cost_spread_min": 0.25
+      },
+      "split_use": "ood-only",
+      "threat_count_max": 8,
+      "threat_count_min": 8,
+      "trajectory_duration_max_s": 84.0,
+      "trajectory_duration_min_s": 44.0
+    },
+    "consequence-contrast": {
+      "detection": {
+        "burst_count": null,
+        "gap_max_s": 6.0,
+        "gap_min_s": 1.0,
+        "kind": "gaps",
+        "wave_separation_max_s": null,
+        "wave_separation_min_s": null,
+        "wave_width_s": null
+      },
+      "ingress_sectors": [0, 1, 2, 3, 4, 5, 6, 7],
+      "interceptor_layout": "uniform",
+      "interceptor_rule": "equal",
+      "predicates": {
+        "critical_edge_min": 0,
+        "edge_density_max": 0.85,
+        "edge_density_min": 0.40,
+        "exact_absolute_improvement_min": 0.25,
+        "exact_relative_improvement_min": 0.15,
+        "interceptors_reaching_three_burst_threats_min": 0,
+        "low_degree_threat_count_min": 0,
+        "min_threat_degree": 1,
+        "pair_best_margin_median_max_s": null,
+        "threat_cost_spread_min": null
+      },
+      "split_use": "core",
+      "threat_count_max": 8,
+      "threat_count_min": 4,
+      "trajectory_duration_max_s": 76.0,
+      "trajectory_duration_min_s": 42.0
+    },
+    "full-standard": {
+      "detection": {
+        "burst_count": null,
+        "gap_max_s": 4.0,
+        "gap_min_s": 0.5,
+        "kind": "gaps",
+        "wave_separation_max_s": null,
+        "wave_separation_min_s": null,
+        "wave_width_s": null
+      },
+      "ingress_sectors": [0, 1, 2, 3, 4, 5, 6, 7],
+      "interceptor_layout": "uniform",
+      "interceptor_rule": "equal",
+      "predicates": {
+        "critical_edge_min": 0,
+        "edge_density_max": 0.85,
+        "edge_density_min": 0.40,
+        "exact_absolute_improvement_min": null,
+        "exact_relative_improvement_min": null,
+        "interceptors_reaching_three_burst_threats_min": 0,
+        "low_degree_threat_count_min": 0,
+        "min_threat_degree": 2,
+        "pair_best_margin_median_max_s": null,
+        "threat_cost_spread_min": 0.25
+      },
+      "split_use": "core",
+      "threat_count_max": 8,
+      "threat_count_min": 8,
+      "trajectory_duration_max_s": 84.0,
+      "trajectory_duration_min_s": 44.0
+    },
+    "geographic-shift": {
+      "detection": {
+        "burst_count": null,
+        "gap_max_s": 4.0,
+        "gap_min_s": 0.5,
+        "kind": "gaps",
+        "wave_separation_max_s": null,
+        "wave_separation_min_s": null,
+        "wave_width_s": null
+      },
+      "ingress_sectors": [6, 7],
+      "interceptor_layout": "uniform",
+      "interceptor_rule": "equal",
+      "predicates": {
+        "critical_edge_min": 0,
+        "edge_density_max": 0.85,
+        "edge_density_min": 0.40,
+        "exact_absolute_improvement_min": null,
+        "exact_relative_improvement_min": null,
+        "interceptors_reaching_three_burst_threats_min": 0,
+        "low_degree_threat_count_min": 0,
+        "min_threat_degree": 2,
+        "pair_best_margin_median_max_s": null,
+        "threat_cost_spread_min": 0.25
+      },
+      "split_use": "ood-only",
+      "threat_count_max": 8,
+      "threat_count_min": 8,
+      "trajectory_duration_max_s": 84.0,
+      "trajectory_duration_min_s": 44.0
+    },
+    "low-slack": {
+      "detection": {
+        "burst_count": null,
+        "gap_max_s": 3.0,
+        "gap_min_s": 0.5,
+        "kind": "gaps",
+        "wave_separation_max_s": null,
+        "wave_separation_min_s": null,
+        "wave_width_s": null
+      },
+      "ingress_sectors": [0, 1, 2, 3, 4, 5, 6, 7],
+      "interceptor_layout": "clustered-outliers",
+      "interceptor_rule": "equal",
+      "predicates": {
+        "critical_edge_min": 1,
+        "edge_density_max": 0.55,
+        "edge_density_min": 0.25,
+        "exact_absolute_improvement_min": null,
+        "exact_relative_improvement_min": null,
+        "interceptors_reaching_three_burst_threats_min": 0,
+        "low_degree_threat_count_min": 2,
+        "min_threat_degree": 1,
+        "pair_best_margin_median_max_s": 20.0,
+        "threat_cost_spread_min": null
+      },
+      "split_use": "core",
+      "threat_count_max": 8,
+      "threat_count_min": 8,
+      "trajectory_duration_max_s": 60.0,
+      "trajectory_duration_min_s": 40.0
+    },
+    "warmup": {
+      "detection": {
+        "burst_count": null,
+        "gap_max_s": 15.0,
+        "gap_min_s": 8.0,
+        "kind": "gaps",
+        "wave_separation_max_s": null,
+        "wave_separation_min_s": null,
+        "wave_width_s": null
+      },
+      "ingress_sectors": [0, 1, 2, 3, 4, 5, 6, 7],
+      "interceptor_layout": "uniform",
+      "interceptor_rule": "one-extra",
+      "predicates": {
+        "critical_edge_min": 0,
+        "edge_density_max": 1.0,
+        "edge_density_min": 0.75,
+        "exact_absolute_improvement_min": null,
+        "exact_relative_improvement_min": null,
+        "interceptors_reaching_three_burst_threats_min": 0,
+        "low_degree_threat_count_min": 0,
+        "min_threat_degree": 2,
+        "pair_best_margin_median_max_s": null,
+        "threat_cost_spread_min": null
+      },
+      "split_use": "core",
+      "threat_count_max": 3,
+      "threat_count_min": 2,
+      "trajectory_duration_max_s": 190.0,
+      "trajectory_duration_min_s": 105.0
+    }
+  }
+}

@@ -1,4 +1,4 @@
-"""Feasible offline comparator and exact fixed-rank assignment policy."""
+"""Online and offline deterministic assignment policies."""
 from dataclasses import dataclass
 import math
 from typing import Callable, List, Optional, Tuple
@@ -17,6 +17,25 @@ class BaselineRun:
     truncated: bool
     termination_reason: Optional[str]
     plan: AssignmentPlan
+
+
+@dataclass(frozen=True)
+class OnlinePolicyRun:
+    """Outcome of a policy that acts only on the simulator's visible state."""
+
+    actions: Tuple[Tuple[str, ...], ...]
+    raw_score: Optional[float]
+    terminated: bool
+    truncated: bool
+    termination_reason: Optional[str]
+    policy_identity: str
+    information_scope: str = 'online-detected-only'
+
+    @property
+    def completed(self) -> bool:
+        return bool(
+            self.terminated and not self.truncated
+            and self.termination_reason == 'all_threats_resolved')
 
 
 def replay_assignment_plan(engine: SimulationEngine,
@@ -96,6 +115,7 @@ class FeasibleImmediateMatchingPolicy(_AssignmentPolicy):
     """Offline full-episode feasible comparator with stable matching ties."""
 
     identity = 'feasible-immediate-matching/1'
+    information_scope = 'offline-full-episode'
     planner = staticmethod(feasible_immediate_plan)
 
 
@@ -103,7 +123,77 @@ class OptimalFixedRankAssignmentPolicy(_AssignmentPolicy):
     """Exact Singapore assignment optimizer within the declared fixed-rank scope."""
 
     identity = 'optimal-fixed-rank-assignment/1'
+    information_scope = 'offline-full-episode'
     planner = staticmethod(optimal_fixed_rank_plan)
+
+
+class NaiveLaunchOnDetectionPolicy:
+    """Greedily launch at the earliest currently visible valid opportunity.
+
+    The policy deliberately has no planning phase and never reads the episode's
+    scheduled-threat collection.  Candidate consequence ranks are used only by
+    the engine as eligibility evidence; they are not part of this policy's
+    ordering key.
+    """
+
+    identity = 'naive-launch-on-detection/1'
+    information_scope = 'online-detected-only'
+
+    def run(self, engine: SimulationEngine) -> OnlinePolicyRun:
+        if not isinstance(engine, SimulationEngine):
+            raise ValueError('engine must be a SimulationEngine')
+        actions: List[Tuple[str, ...]] = []
+        while not engine.terminated and not engine.truncated:
+            visible = sorted(
+                (engine.threats[threat_id].scheduled
+                 for threat_id in engine.visible_threat_ids()
+                 if threat_id not in engine.assignments),
+                key=lambda row: (
+                    row.detection_time_s, row.expiry_time_s,
+                    row.state.threat_id),
+            )
+            assigned = False
+            for scheduled in visible:
+                threat_id = scheduled.state.threat_id
+                choices = []
+                for interceptor_id in sorted(engine.interceptor_resources):
+                    for index, candidate in enumerate(
+                            engine.threats[threat_id].candidates.get(
+                                interceptor_id, ())):
+                        if not engine.is_assignment_valid(
+                                threat_id, interceptor_id, index):
+                            continue
+                        choices.append((
+                            candidate.interception_time_s,
+                            -float(candidate.opportunity.time_margin_s),
+                            interceptor_id,
+                            candidate.opportunity.opportunity_id,
+                            index,
+                        ))
+                if not choices:
+                    continue
+                _, _, interceptor_id, opportunity_id, index = min(choices)
+                engine.assign(threat_id, interceptor_id, index)
+                actions.append(
+                    ('assign', threat_id, interceptor_id, opportunity_id))
+                assigned = True
+            # An assignment can create an event at the current time. Advancing
+            # the authoritative queue is the only way resources are consumed
+            # and later detections become visible.
+            if engine.can_advance():
+                engine.advance()
+                actions.append(('advance',))
+            elif not engine.terminated and not engine.truncated:
+                engine.truncate('malformed_state:no_event_to_advance')
+            elif assigned:
+                break
+        return OnlinePolicyRun(
+            actions=tuple(actions), raw_score=engine.raw_score,
+            terminated=engine.terminated, truncated=engine.truncated,
+            termination_reason=engine.termination_reason,
+            policy_identity=self.identity,
+            information_scope=self.information_scope,
+        )
 
 
 # Compatibility import for callers compiled against the previous class name.

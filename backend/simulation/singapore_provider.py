@@ -57,6 +57,15 @@ class FrozenDict(dict):
     def __deepcopy__(self, _memo):
         return self
 
+    def __reduce__(self):
+        # Multiprocessing reconstructs dict subclasses by mutation unless an
+        # explicit constructor is provided, which conflicts with immutability.
+        return (_frozen_dict_from_items, (tuple(self.items()),))
+
+
+def _frozen_dict_from_items(items) -> FrozenDict:
+    return FrozenDict(items)
+
 
 def _freeze(value: Any) -> Any:
     if isinstance(value, Mapping):

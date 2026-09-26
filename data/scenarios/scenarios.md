@@ -1,15 +1,40 @@
 # Scenarios
 
-The `rl/suites.json` manifest pins non-overlapping synthetic seeds for the
-centralized RL plumbing validation, held-out comparison, full-capacity stress
-and bounded-oracle suites. These scenarios are synthetic and do not establish
-operational or real-world performance.
+`rl/singapore-distribution-v1.json` is the strict checked configuration for
+`singapore-scenario/2`. Its checksum is computed from canonical compact JSON.
+The generator uses independent deterministic streams and exposes the warmup,
+balanced, full-standard, burst-contention, low-slack, consequence-contrast,
+geographic-shift, and cadence-shift profiles. Every accepted episode has a
+complete consequence-eligible matching and records its profile, distribution,
+hash, active counts, spatial coverage, generation attempts, graph summary, and
+existing source/provider/configuration checksums.
 
-The `rl-scenario-suites/3` manifest reserves scenario seeds at or above
-1,000,000,000 for training. Generated training episodes add this offset to a
-nonnegative explicit reset seed or to the base seed plus automatic episode
-counter. Validation, held-out, stress and oracle ranges stay below that boundary.
-Explicit `EpisodeSpec` inputs bypass the offset for reproducible evaluation.
+`rl/suites.json` is the flat `rl-scenario-suites/5` manifest. It pins 544
+immutable `sg2:` references: 64 validation, 256 held-out, 32 stress, 64 OOD
+geography, 64 OOD cadence, and 64 assignment-reference episodes. Each record
+binds its seed and profile to generator, distribution, provider, and canonical
+episode-hash identities. The bounded synthetic oracle suite remains described
+at the top level. Manifest creation requires the passing canonical 1,000-episode
+audit in `data/results/rl/scenario-audit-v2.json`.
+
+Audit seeds start at 80,000. Frozen split ranges remain below that partition.
+Procedural training reserves scenario seeds at or above 1,000,000,000; generated
+training episodes add this offset to a nonnegative explicit reset seed or to the
+base seed plus automatic episode counter. Explicit `EpisodeSpec` inputs bypass
+the offset for reproducible evaluation. The partitions do not overlap.
+
+`rl/pools/<release-id>/` contains materialized development-training releases.
+Each release has a checksummed `manifest.json` and one canonical episode JSON
+per record. `scripts/generate_scenario_pool.py` creates, resumes, and verifies
+these releases. The initial release is `sg2-pilot-512-v1`; it uses seeds
+1,000,000,000 through 1,000,000,511 and excludes all frozen evaluation, audit,
+and bounded-oracle seed partitions.
+
+These scenarios are synthetic and use assumption-grade consequences. They do
+not establish operational or real-world performance. The generated audit report
+at `docs/specifications/rl-scenario-audit.md` records all episodes, retries,
+unavailable consequence components, online-naive and offline-exact outcomes,
+and every frozen Goldilocks gate.
 
 Supplied PEC episodes follow [pec-episode/1](../../contracts/pec.md). `pec-example.json` is a runnable two-event synthetic example using `tests/fixtures/pec-population.json`; it has complete known-population coverage. Coordinates/radii are supplied illustrative inputs, not predictions or real Singapore hazard locations.
 

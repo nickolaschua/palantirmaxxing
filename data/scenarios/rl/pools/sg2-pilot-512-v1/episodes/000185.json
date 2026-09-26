@@ -1,0 +1,574 @@
+{
+  "candidate_count": 20,
+  "episode_id": "singapore-v2-burst-contention-1000000185",
+  "interceptors": [
+    {
+      "metadata": {
+        "generation_attempt": 3,
+        "generator": "singapore-scenario/2",
+        "layout": "burst-clustered-outliers",
+        "synthetic": true
+      },
+      "state": {
+        "heading_rad": 5.245972511925672,
+        "interceptor_id": "interceptor-01",
+        "max_turn_rate_rad_s": 0.2617993877991494,
+        "position_x_m": 36109.76915734091,
+        "position_y_m": 43432.38928410349,
+        "speed_mps": 500.0
+      }
+    },
+    {
+      "metadata": {
+        "generation_attempt": 3,
+        "generator": "singapore-scenario/2",
+        "layout": "burst-clustered-outliers",
+        "synthetic": true
+      },
+      "state": {
+        "heading_rad": 5.367754355719878,
+        "interceptor_id": "interceptor-02",
+        "max_turn_rate_rad_s": 0.2617993877991494,
+        "position_x_m": 35896.1495432739,
+        "position_y_m": 43614.25688314374,
+        "speed_mps": 500.0
+      }
+    },
+    {
+      "metadata": {
+        "generation_attempt": 3,
+        "generator": "singapore-scenario/2",
+        "layout": "burst-clustered-outliers",
+        "synthetic": true
+      },
+      "state": {
+        "heading_rad": 5.265319247686377,
+        "interceptor_id": "interceptor-03",
+        "max_turn_rate_rad_s": 0.2617993877991494,
+        "position_x_m": 34960.388566804206,
+        "position_y_m": 43838.21960935582,
+        "speed_mps": 500.0
+      }
+    },
+    {
+      "metadata": {
+        "generation_attempt": 3,
+        "generator": "singapore-scenario/2",
+        "layout": "burst-clustered-outliers",
+        "synthetic": true
+      },
+      "state": {
+        "heading_rad": 2.8000909270923535,
+        "interceptor_id": "interceptor-04",
+        "max_turn_rate_rad_s": 0.2617993877991494,
+        "position_x_m": 36093.61047036797,
+        "position_y_m": 43404.220546798526,
+        "speed_mps": 500.0
+      }
+    },
+    {
+      "metadata": {
+        "generation_attempt": 3,
+        "generator": "singapore-scenario/2",
+        "layout": "burst-clustered-outliers",
+        "synthetic": true
+      },
+      "state": {
+        "heading_rad": 6.030857879125771,
+        "interceptor_id": "interceptor-05",
+        "max_turn_rate_rad_s": 0.2617993877991494,
+        "position_x_m": 36024.18786050665,
+        "position_y_m": 44199.54469751219,
+        "speed_mps": 500.0
+      }
+    },
+    {
+      "metadata": {
+        "generation_attempt": 3,
+        "generator": "singapore-scenario/2",
+        "layout": "burst-clustered-outliers",
+        "synthetic": true
+      },
+      "state": {
+        "heading_rad": 2.925977543674356,
+        "interceptor_id": "interceptor-06",
+        "max_turn_rate_rad_s": 0.2617993877991494,
+        "position_x_m": 17426.189279682818,
+        "position_y_m": 45727.07065280999,
+        "speed_mps": 500.0
+      }
+    },
+    {
+      "metadata": {
+        "generation_attempt": 3,
+        "generator": "singapore-scenario/2",
+        "layout": "burst-clustered-outliers",
+        "synthetic": true
+      },
+      "state": {
+        "heading_rad": 0.487535075257233,
+        "interceptor_id": "interceptor-07",
+        "max_turn_rate_rad_s": 0.2617993877991494,
+        "position_x_m": 5293.6282653569215,
+        "position_y_m": 33013.327884449405,
+        "speed_mps": 500.0
+      }
+    },
+    {
+      "metadata": {
+        "generation_attempt": 3,
+        "generator": "singapore-scenario/2",
+        "layout": "burst-clustered-outliers",
+        "synthetic": true
+      },
+      "state": {
+        "heading_rad": 4.392254630682829,
+        "interceptor_id": "interceptor-08",
+        "max_turn_rate_rad_s": 0.2617993877991494,
+        "position_x_m": 28425.88885144955,
+        "position_y_m": 26552.620445243043,
+        "speed_mps": 500.0
+      }
+    }
+  ],
+  "metadata": {
+    "active_interceptor_count": 8,
+    "active_threat_count": 8,
+    "boundary_source_checksum": "sha256:77e30aa02b1784b649d9b6f23e3b2ebb825af787de554f3a3fb76bbee3013c42",
+    "constructive_naive_outcome": {
+      "completed": true,
+      "cost": 3.3316103014956133,
+      "termination_reason": "all_threats_resolved"
+    },
+    "distribution_checksum": "sha256:0115a0478bb3b397c576b8ecce10195c57390db1ea915d2af50103dc9f0bad3d",
+    "distribution_identity": "singapore-scenario-distribution/1",
+    "generation_attempt_count": 3,
+    "generator": "singapore-scenario/2",
+    "generator_configuration_checksum": "sha256:97f617c4de2e41d25155eb096aac145de9a320e03a862abbf9654c72231e3223",
+    "ingress_sectors": [
+      0,
+      0,
+      1,
+      2,
+      0,
+      1,
+      4,
+      6
+    ],
+    "label": "synthetic Singapore v2 scenario; supplied 100 m area",
+    "main_island_geometry_checksum": "sha256:c6064a578a5e89fb4e4bd13a0770535147e79ef513403ff96177398873189cc5",
+    "matching_summary": {
+      "candidate_cost_spread_by_threat": {
+        "threat-01": 1.0,
+        "threat-02": 1.0,
+        "threat-03": 1.0,
+        "threat-04": 1.0,
+        "threat-05": 1.0,
+        "threat-06": 1.0,
+        "threat-07": 1.0,
+        "threat-08": 1.0
+      },
+      "candidate_cost_spread_max": 1.0,
+      "complete_matchable": true,
+      "complete_matching_count_capped_10000": 360,
+      "critical_edge_count": 1,
+      "critical_edges": [
+        [
+          "threat-08",
+          "interceptor-08"
+        ]
+      ],
+      "edge_density": 0.640625,
+      "feasible_edge_count": 41,
+      "feasible_edges": {
+        "threat-01": [
+          "interceptor-01",
+          "interceptor-02",
+          "interceptor-03",
+          "interceptor-04",
+          "interceptor-05"
+        ],
+        "threat-02": [
+          "interceptor-01",
+          "interceptor-02",
+          "interceptor-03",
+          "interceptor-04",
+          "interceptor-05"
+        ],
+        "threat-03": [
+          "interceptor-01",
+          "interceptor-02",
+          "interceptor-03",
+          "interceptor-04",
+          "interceptor-05",
+          "interceptor-06"
+        ],
+        "threat-04": [
+          "interceptor-01",
+          "interceptor-02",
+          "interceptor-03",
+          "interceptor-04",
+          "interceptor-05",
+          "interceptor-06",
+          "interceptor-07"
+        ],
+        "threat-05": [
+          "interceptor-01",
+          "interceptor-02",
+          "interceptor-03",
+          "interceptor-04",
+          "interceptor-05"
+        ],
+        "threat-06": [
+          "interceptor-01",
+          "interceptor-02",
+          "interceptor-03",
+          "interceptor-04",
+          "interceptor-05"
+        ],
+        "threat-07": [
+          "interceptor-06",
+          "interceptor-07"
+        ],
+        "threat-08": [
+          "interceptor-01",
+          "interceptor-02",
+          "interceptor-03",
+          "interceptor-04",
+          "interceptor-05",
+          "interceptor-08"
+        ]
+      },
+      "interceptor_degrees": {
+        "interceptor-01": 7,
+        "interceptor-02": 7,
+        "interceptor-03": 7,
+        "interceptor-04": 7,
+        "interceptor-05": 7,
+        "interceptor-06": 3,
+        "interceptor-07": 2,
+        "interceptor-08": 1
+      },
+      "matching": {
+        "threat-01": "interceptor-05",
+        "threat-02": "interceptor-04",
+        "threat-03": "interceptor-01",
+        "threat-04": "interceptor-07",
+        "threat-05": "interceptor-03",
+        "threat-06": "interceptor-02",
+        "threat-07": "interceptor-06",
+        "threat-08": "interceptor-08"
+      },
+      "pair_best_time_margin_median_s": 1.3202853815622397,
+      "pair_best_time_margin_min_s": 0.14049033361607144,
+      "threat_degrees": {
+        "threat-01": 5,
+        "threat-02": 5,
+        "threat-03": 6,
+        "threat-04": 7,
+        "threat-05": 5,
+        "threat-06": 5,
+        "threat-07": 2,
+        "threat-08": 6
+      }
+    },
+    "objective_reference": "full-candidate-universe/1",
+    "profile": "burst-contention",
+    "provider_config_checksum": "sha256:42366e28f8f860d61673866a041f9cc7df99108f4f62c1a86c1a77bc276b57d5",
+    "provider_data_checksum": "sha256:47068b7250a657ec00a8adc65ee7b87c05283a4af653859114fa084f0e29b26c",
+    "provider_identity": "singapore-consequence-provider",
+    "provider_source_checksums": {
+      "boundary_source": "sha256:77e30aa02b1784b649d9b6f23e3b2ebb825af787de554f3a3fb76bbee3013c42",
+      "critical_facilities": "sha256:7c45d07fe80b65c516848eea15883195ae2771cdcdeb1fc530e248bd7d97ca0d",
+      "critical_profiles": "sha256:d0e7c10f6f33f41dd5e065a9d0435dd1ce638860b40021ed5c7d1d766e6f536c",
+      "main_island_geometry": "sha256:c6064a578a5e89fb4e4bd13a0770535147e79ef513403ff96177398873189cc5",
+      "military_geometry": "sha256:5b373b2b42af1c68e5b24d956e9a3e2e346b6fa7c597c9abb0f23ca226a0425d",
+      "parks_conditions": "sha256:cda288d7933ae7d51037bcd32ad36be17aafaeb3c347ab956ce431af2b6ced3e",
+      "parks_sites": "sha256:b0ea32bd8358b7b78220776f4f5a1b806eba9855ae9cf19949245d0a7951aebb",
+      "population": "sha256:366d2f8b9baaf3b7586ede42dba2542295caf00dc1a7f3c7a17678d00cd81804"
+    },
+    "provider_version": "singapore-demo-v2-fixed-rank/2",
+    "rejected_attempt_count": 2,
+    "rejected_attempts": [
+      {
+        "attempt": 1,
+        "failed_predicates": [
+          "edge_density",
+          "critical_edge_count"
+        ]
+      },
+      {
+        "attempt": 2,
+        "failed_predicates": [
+          "edge_density"
+        ]
+      }
+    ],
+    "scenario_config_checksum": "sha256:04c0e77887a888a709360a4e8482affd216541757f6a2309aaedc2b547757018",
+    "scenario_contract": {
+      "altitude_max_m": 15000.0,
+      "altitude_min_m": 5000.0,
+      "altitude_mode_m": 10000.0,
+      "consequence_condition": "weekday_midday",
+      "detection_boundary_offset_m": 10000.0,
+      "detection_time_max_s": 10.0,
+      "detection_time_min_s": 0.0,
+      "gravity_mps2": 9.80665,
+      "horizontal_crs": "EPSG:3414",
+      "interceptor_count": 8,
+      "interceptor_speed_mps": 500.0,
+      "interceptor_turn_rate_deg_s": 15.0,
+      "max_generation_attempts": 100,
+      "schema_version": "singapore-scenario/1",
+      "supplied_footprint_radius_m": 100.0,
+      "threat_count": 8,
+      "threat_horizontal_speed_mps": 250.0,
+      "trajectory_samples_per_pair": 20,
+      "vertical_reference": "height above the synthetic terminal ground plane"
+    },
+    "terminal_grid_cells": [
+      14,
+      14,
+      14,
+      13,
+      14,
+      14,
+      4,
+      2
+    ],
+    "unavailable_consequence_components": [
+      "transport",
+      "healthcare",
+      "education",
+      "richer_residential_services"
+    ]
+  },
+  "schema_version": "simulation-episode/2",
+  "seed": 1000000185,
+  "threats": [
+    {
+      "detection_time_s": 0.549027992,
+      "metadata": {
+        "consequence_condition": "weekday_midday",
+        "generation_attempt": 3,
+        "generator": "singapore-scenario/2",
+        "ingress_sector": 0,
+        "supplied_footprint_radius_m": 100.0,
+        "synthetic": true,
+        "terminal_grid_cell": 14,
+        "terminal_position_x_m": 36147.01179698667,
+        "terminal_position_y_m": 43322.189778724045,
+        "terminal_position_z_m": 0.0,
+        "threat_retry_attempt": 0,
+        "vertical_reference": "height above the synthetic terminal ground plane"
+      },
+      "state": {
+        "acceleration_z_mps2": -9.80665,
+        "maximum_time_to_go_s": 46.00928687981474,
+        "position_x_m": 44002.97058493196,
+        "position_y_m": 51723.81560182659,
+        "position_z_m": 8364.793355200876,
+        "threat_id": "threat-01",
+        "velocity_x_mps": -170.7472408443667,
+        "velocity_y_mps": -182.60717330936325,
+        "velocity_z_mps": 43.79185748373186
+      }
+    },
+    {
+      "detection_time_s": 0.669562478,
+      "metadata": {
+        "consequence_condition": "weekday_midday",
+        "generation_attempt": 3,
+        "generator": "singapore-scenario/2",
+        "ingress_sector": 0,
+        "supplied_footprint_radius_m": 100.0,
+        "synthetic": true,
+        "terminal_grid_cell": 14,
+        "terminal_position_x_m": 36077.52788989899,
+        "terminal_position_y_m": 43311.41107562859,
+        "terminal_position_z_m": 0.0,
+        "threat_retry_attempt": 0,
+        "vertical_reference": "height above the synthetic terminal ground plane"
+      },
+      "state": {
+        "acceleration_z_mps2": -9.80665,
+        "maximum_time_to_go_s": 46.23093195247493,
+        "position_x_m": 44002.97058493196,
+        "position_y_m": 51723.81560182659,
+        "position_z_m": 8795.601439574362,
+        "threat_id": "threat-02",
+        "velocity_x_mps": -171.4316013179285,
+        "velocity_y_mps": -181.9648484448873,
+        "velocity_z_mps": 36.431679997594024
+      }
+    },
+    {
+      "detection_time_s": 1.08161331,
+      "metadata": {
+        "consequence_condition": "weekday_midday",
+        "generation_attempt": 3,
+        "generator": "singapore-scenario/2",
+        "ingress_sector": 1,
+        "supplied_footprint_radius_m": 100.0,
+        "synthetic": true,
+        "terminal_grid_cell": 14,
+        "terminal_position_x_m": 34562.75121347143,
+        "terminal_position_y_m": 43570.02529221599,
+        "terminal_position_z_m": 0.0,
+        "threat_retry_attempt": 0,
+        "vertical_reference": "height above the synthetic terminal ground plane"
+      },
+      "state": {
+        "acceleration_z_mps2": -9.80665,
+        "maximum_time_to_go_s": 47.07802208894534,
+        "position_x_m": 38698.808228055976,
+        "position_y_m": 54588.84068272225,
+        "position_z_m": 10282.24935596897,
+        "threat_id": "threat-03",
+        "velocity_x_mps": -87.85536925850927,
+        "velocity_y_mps": -234.05434004190352,
+        "velocity_z_mps": 12.430147906925422
+      }
+    },
+    {
+      "detection_time_s": 1.609594147,
+      "metadata": {
+        "consequence_condition": "weekday_midday",
+        "generation_attempt": 3,
+        "generator": "singapore-scenario/2",
+        "ingress_sector": 2,
+        "supplied_footprint_radius_m": 100.0,
+        "synthetic": true,
+        "terminal_grid_cell": 13,
+        "terminal_position_x_m": 17448.42046083687,
+        "terminal_position_y_m": 45415.439603212064,
+        "terminal_position_z_m": 0.0,
+        "threat_retry_attempt": 0,
+        "vertical_reference": "height above the synthetic terminal ground plane"
+      },
+      "state": {
+        "acceleration_z_mps2": -9.80665,
+        "maximum_time_to_go_s": 50.015748840499924,
+        "position_x_m": 18218.541462424153,
+        "position_y_m": 57895.63829544699,
+        "position_z_m": 9418.071312394652,
+        "threat_id": "threat-04",
+        "velocity_x_mps": -15.397570154216739,
+        "velocity_y_mps": -249.52537913676431,
+        "velocity_z_mps": 56.94135623509109
+      }
+    },
+    {
+      "detection_time_s": 5.358373508,
+      "metadata": {
+        "consequence_condition": "weekday_midday",
+        "generation_attempt": 3,
+        "generator": "singapore-scenario/2",
+        "ingress_sector": 0,
+        "supplied_footprint_radius_m": 100.0,
+        "synthetic": true,
+        "terminal_grid_cell": 14,
+        "terminal_position_x_m": 36414.25150964718,
+        "terminal_position_y_m": 43637.97366065429,
+        "terminal_position_z_m": 0.0,
+        "threat_retry_attempt": 0,
+        "vertical_reference": "height above the synthetic terminal ground plane"
+      },
+      "state": {
+        "acceleration_z_mps2": -9.80665,
+        "maximum_time_to_go_s": 44.35664497704254,
+        "position_x_m": 44002.97058493196,
+        "position_y_m": 51723.81560182659,
+        "position_z_m": 5299.307136745839,
+        "threat_id": "threat-05",
+        "velocity_x_mps": -171.08415388973697,
+        "velocity_y_mps": -182.29155846564257,
+        "velocity_z_mps": 98.02462326637576
+      }
+    },
+    {
+      "detection_time_s": 8.524682499,
+      "metadata": {
+        "consequence_condition": "weekday_midday",
+        "generation_attempt": 3,
+        "generator": "singapore-scenario/2",
+        "ingress_sector": 1,
+        "supplied_footprint_radius_m": 100.0,
+        "synthetic": true,
+        "terminal_grid_cell": 14,
+        "terminal_position_x_m": 36040.56130234277,
+        "terminal_position_y_m": 43889.69817694574,
+        "terminal_position_z_m": 0.0,
+        "threat_retry_attempt": 0,
+        "vertical_reference": "height above the synthetic terminal ground plane"
+      },
+      "state": {
+        "acceleration_z_mps2": -9.80665,
+        "maximum_time_to_go_s": 44.09769646173865,
+        "position_x_m": 38698.808228055976,
+        "position_y_m": 54588.84068272225,
+        "position_z_m": 8157.959339284122,
+        "threat_id": "threat-06",
+        "velocity_x_mps": -60.28085680211505,
+        "velocity_y_mps": -242.62361447971813,
+        "velocity_z_mps": 31.227934149944073
+      }
+    },
+    {
+      "detection_time_s": 11.296981419,
+      "metadata": {
+        "consequence_condition": "weekday_midday",
+        "generation_attempt": 3,
+        "generator": "singapore-scenario/2",
+        "ingress_sector": 4,
+        "supplied_footprint_radius_m": 100.0,
+        "synthetic": true,
+        "terminal_grid_cell": 4,
+        "terminal_position_x_m": 5116.996714877408,
+        "terminal_position_y_m": 33299.47124921053,
+        "terminal_position_z_m": 0.0,
+        "threat_retry_attempt": 0,
+        "vertical_reference": "height above the synthetic terminal ground plane"
+      },
+      "state": {
+        "acceleration_z_mps2": -9.80665,
+        "maximum_time_to_go_s": 42.92657245505427,
+        "position_x_m": -5535.866681972172,
+        "position_y_m": 34597.417846436874,
+        "position_z_m": 7869.409527769052,
+        "threat_id": "threat-07",
+        "velocity_x_mps": 248.16477970617214,
+        "velocity_y_mps": -30.23643685004996,
+        "velocity_z_mps": 27.16036718732936
+      }
+    },
+    {
+      "detection_time_s": 12.301992314,
+      "metadata": {
+        "consequence_condition": "weekday_midday",
+        "generation_attempt": 3,
+        "generator": "singapore-scenario/2",
+        "ingress_sector": 6,
+        "supplied_footprint_radius_m": 100.0,
+        "synthetic": true,
+        "terminal_grid_cell": 2,
+        "terminal_position_x_m": 28118.60005636215,
+        "terminal_position_y_m": 26571.603320878352,
+        "terminal_position_z_m": 0.0,
+        "threat_retry_attempt": 0,
+        "vertical_reference": "height above the synthetic terminal ground plane"
+      },
+      "state": {
+        "acceleration_z_mps2": -9.80665,
+        "maximum_time_to_go_s": 46.50659646446617,
+        "position_x_m": 37680.770166873626,
+        "position_y_m": 19957.688258909795,
+        "position_z_m": 8758.349438279496,
+        "threat_id": "threat-08",
+        "velocity_x_mps": -205.60889932716424,
+        "velocity_y_mps": 142.21455803634188,
+        "velocity_z_mps": 39.712071950710225
+      }
+    }
+  ]
+}

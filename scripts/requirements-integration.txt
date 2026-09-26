@@ -1,0 +1,4 @@
+-r ../backend/data_sources/requirements.txt
+-r ../backend/learning/requirements-rl.txt
+-r ../backend/data_sources/consequence/requirements.txt
+pytest==8.4.2

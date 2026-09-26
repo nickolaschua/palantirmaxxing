@@ -9,7 +9,9 @@ import type { Flow, Grade, Option } from "./decision-model.js";
 import { mountInspector } from "./inspector.js";
 import { loadPlanningResult } from "./source.js";
 import { mountResultLoader } from "./result-loader.js";
-import type { ResultLoader } from "./source.js";
+import type { ResultLoader, Snapshot } from "./source.js";
+import { ResultResources } from "./result-resources.js";
+import { mountRunControls } from "./run-controls.js";
 
 export interface Decision {
   setBasemap(kind: BasemapKind): void;
@@ -59,8 +61,11 @@ function renderDecision(
   canvas: SingaporeCanvas,
   setup: { ionToken?: string; googleApiKey?: string; lighting: LightingPreset },
   parsed: ReturnType<typeof parseResult>,
+  resources: ResultResources,
+  snapshot?: Snapshot,
 ): Decision {
-  const tray = el("section");
+  const tray = resources.node(el("section"));
+  tray.dataset.resultId = snapshot?.resultId ?? "fixture";
   tray.id = "decision-tray";
   tray.setAttribute("aria-label", "Engagement decision");
   const phaseEl = el("span", "phase");
@@ -75,7 +80,7 @@ function renderDecision(
   tray.append(head, message, cardsEl, summary);
 
   // Presenter controls, bottom right: Play and Restart (temporary) above History.
-  const presenter = el("div");
+  const presenter = resources.node(el("div"));
   presenter.id = "presenter";
   const playBtn = el("button", undefined, "Play");
   const restartBtn = el("button", undefined, "Restart");
@@ -85,7 +90,8 @@ function renderDecision(
   presenterRow.append(playBtn, restartBtn);
   presenter.append(presenterRow, historyBtn);
   // Past threats, each with its mark on the map that can be switched off.
-  const historyPanel = el("aside");
+  const historyPanel = resources.node(el("aside"));
+  historyPanel.dataset.resultId = snapshot?.resultId ?? "fixture";
   historyPanel.id = "history";
   historyPanel.setAttribute("aria-label", "Past threats");
   const historyEmpty = el("p", "empty", "No past threats yet.");
@@ -156,6 +162,7 @@ function renderDecision(
     options,
     onUnpin() { pinned = null; showInspector(); },
   });
+  resources.use(() => inspector.dispose());
   // Everything that belongs to this threat's flight. Once it is down, this goes
   // and only the struck area stays, as a mark of where an intercept has been.
   const setRouteVisible = (visible: boolean): void => {
@@ -174,7 +181,7 @@ function renderDecision(
 
   // --- history: one entry per run; a struck area's mark stays on the map across restarts ---
   // snapshot: a copy of the tray as it closed, reopened from the history entry.
-  interface HistoryEntry { text: string; mark?: { circle: CircleLayer; marker: MarkerLayer }; shown: boolean; snapshot?: HTMLElement }
+  interface HistoryEntry { text: string; resultId: string; mark?: { circle: CircleLayer; marker: MarkerLayer }; shown: boolean; snapshot?: HTMLElement }
   const history: HistoryEntry[] = [];
   let recorded = false; // this run already has its entry
   let runMarkReady = false; // this run's history mark is built, so the run's own area can go
@@ -199,6 +206,7 @@ function renderDecision(
     historyEmpty.hidden = history.length > 0;
     historyList.replaceChildren(...[...history].reverse().map(entry => {
       const li = el("li");
+      li.dataset.resultId = entry.resultId;
       const label = el("label");
       const box = el("input");
       box.type = "checkbox";
@@ -239,7 +247,7 @@ function renderDecision(
       mark = { circle, marker };
       void circle.ready.then(() => { runMarkReady = true; if (!disposed) render(); });
     }
-    history.push({ text, mark, shown: true });
+    history.push({ text, resultId: snapshot?.resultId ?? "fixture", mark, shown: true });
     renderHistory();
   }
 
@@ -271,6 +279,7 @@ function renderDecision(
   // take seconds, longer than an option's whole window.
   let layersReady = false;
   let disposed = false;
+  resources.use(() => { disposed = true; });
   void circles.ready.then(() => {
     layersReady = true;
     if (!disposed) render();
@@ -279,6 +288,7 @@ function renderDecision(
 
   const cards = options.map((o, i) => {
     const card = el("div", "card");
+    card.dataset.candidateId = o.id;
     card.style.setProperty("--option", optionColour(o));
     const pick = el("button", "pick");
     pick.type = "button";
@@ -362,6 +372,7 @@ function renderDecision(
   }
 
   let closeTray: ReturnType<typeof setTimeout> | undefined;
+  resources.use(() => { clearTimeout(closeTray); openSnapshot?.remove(); });
   let lastCircles = "";
   let lastMarkers = "";
   function render(): void {
@@ -522,6 +533,7 @@ function renderDecision(
   playBtn.onclick = detectNow;
   restartBtn.onclick = reset;
   const onKey = (e: KeyboardEvent): void => {
+    if (e.target instanceof HTMLElement && e.target.closest("input, textarea, select")) return;
     if (e.ctrlKey || e.metaKey || e.altKey || e.repeat) return;
     if (e.code === "Space") {
       e.preventDefault(); // also keeps Space from pressing whichever button has focus
@@ -534,6 +546,7 @@ function renderDecision(
     }
   };
   window.addEventListener("keydown", onKey);
+  resources.use(() => window.removeEventListener("keydown", onKey));
   const offTick = canvas.on("clockTick", t => {
     inspector.syncTime(t);
     render();
@@ -563,6 +576,7 @@ function renderDecision(
       inspector.dispose();
       tray.remove();
       presenter.remove();
+      resources.dispose();
     },
   };
 }
@@ -572,19 +586,24 @@ export function mountDecision(
   canvas: SingaporeCanvas,
   setup: { ionToken?: string; googleApiKey?: string; lighting: LightingPreset },
   loader: ResultLoader = loadPlanningResult,
-): Decision & { retry(): void } {
+): Decision & { retry(): void; snapshot(): Snapshot | undefined } {
   let basemap = canvas.scene.basemap;
   let lighting = setup.lighting;
   const loading = mountResultLoader(document.body, "Planning", loader, parseResult,
-    parsed => {
-      const view = renderDecision(canvas, { ...setup, lighting }, parsed);
-      view.setBasemap(basemap);
-      return view;
+    (parsed, snapshot) => {
+      const resources = new ResultResources(canvas);
+      try {
+        const view = renderDecision(resources.canvas, { ...setup, lighting }, parsed, resources, snapshot);
+        view.setBasemap(basemap);
+        return view;
+      } catch (error) { resources.dispose(); throw error; }
     });
+  const runs = mountRunControls(loading.controls, "planning", loading.loadIdentity);
   return {
     retry: loading.retry,
+    snapshot: loading.snapshot,
     setBasemap(kind) { basemap = kind; loading.current()?.setBasemap(kind); },
     setLighting(preset) { lighting = preset; loading.current()?.setLighting(preset); },
-    dispose: loading.dispose,
+    dispose() { runs.dispose(); loading.dispose(); },
   };
 }

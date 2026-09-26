@@ -3,13 +3,16 @@ import { loadSimulationResult } from "./source.js";
 import type { ResultLoader } from "./source.js";
 import { mountResultLoader } from "./result-loader.js";
 import { parseSimulationResult } from "./simulation-model.js";
+import { ResultResources } from "./result-resources.js";
+import type { Snapshot } from "./source.js";
+import { mountRunControls } from "./run-controls.js";
 
 export interface SimulationView { dispose(): void }
 
 const COLOURS = ["#ff6b6b", "#ffd166", "#06d6a0", "#4cc9f0", "#7b61ff", "#f72585", "#90be6d", "#f8961e"];
 
-function renderSimulationResult(canvas: SingaporeCanvas, panel: HTMLElement, result: ReturnType<typeof parseSimulationResult>): SimulationView {
-  const details = document.createElement("details");
+function renderSimulationResult(canvas: SingaporeCanvas, panel: HTMLElement, result: ReturnType<typeof parseSimulationResult>, resources: ResultResources): SimulationView {
+  const details = resources.node(document.createElement("details"));
   details.id = "simulation-result";
   const summary = document.createElement("summary");
   summary.textContent = "8-threat simulation baseline";
@@ -47,12 +50,18 @@ function renderSimulationResult(canvas: SingaporeCanvas, panel: HTMLElement, res
   caveat.textContent = "Every circle is a supplied 100 m area, not a validated blast radius.";
   details.append(copy, claim, toggle, caveat);
   panel.append(details);
-  return { dispose() { for (const path of paths) path.destroy(); circles?.destroy(); details.remove(); } };
+  return { dispose() { resources.dispose(); } };
 }
 
 export function mountSimulationResult(
   canvas: SingaporeCanvas, panel: HTMLElement, loader: ResultLoader = loadSimulationResult,
-): SimulationView & { retry(): void } {
-  return mountResultLoader(panel, "Simulation", loader, parseSimulationResult,
-    result => renderSimulationResult(canvas, panel, result));
+): SimulationView & { retry(): void; snapshot(): Snapshot | undefined } {
+  const loading = mountResultLoader(panel, "Simulation", loader, parseSimulationResult,
+    result => {
+      const resources = new ResultResources(canvas);
+      try { return renderSimulationResult(resources.canvas, panel, result, resources); }
+      catch (error) { resources.dispose(); throw error; }
+    });
+  const runs = mountRunControls(loading.controls, "simulation", loading.loadIdentity);
+  return { retry: loading.retry, snapshot: loading.snapshot, dispose() { runs.dispose(); loading.dispose(); } };
 }

@@ -1,15 +1,14 @@
 # Frontend–backend HTTP delivery contract, v1
 
-This is the canonical contract for future result delivery. **The backend has no
-HTTP service yet.** No endpoint is implemented or verified by this frontend work.
-This document supersedes the backend-delivery guidance in the historical
-[frontend/docs/API-DESIGN.md](../frontend/docs/API-DESIGN.md), which is retained
-unchanged. The canonical planning payload is [planning-result.md](planning-result.md);
-the independent simulation payload is [simulation-result.md](simulation-result.md).
+This is the canonical local HTTP delivery and run contract. The standard-library
+service is implemented under `backend/api/`, with immutable publications and a
+single serial job worker. The canonical [planning payload](planning-result.md)
+and independent [simulation payload](simulation-result.md) retain their existing
+versions and model settings. Historical `frontend/docs/API-DESIGN.md` is preserved.
 
 ## Routes and publication
 
-All routes are same-origin, read-only GET requests:
+Result routes are same-origin, read-only GET requests:
 
 | Request | Successful result |
 | --- | --- |
@@ -77,39 +76,74 @@ All failures below use `Content-Type: application/json` and
 | 500 | Unexpected server failure | `{"error":{"code":"INTERNAL_ERROR","message":"Unexpected server failure."}}` |
 
 The codes above are examples; clients validate nonempty strings and display the
-reason safely as text. A future HTTP client must check status before selecting
+reason safely as text. The HTTP client checks status before selecting
 the success or error adapter. Transport and JSON decoding failures also become
 Unavailable with a reason. A 200 response with a malformed envelope, wrong result
 kind, or unsupported payload schema is invalid and must not draw a result.
 The pure adapters in `frontend/src/demo/delivery.ts` validate bodies; they do not
 make requests or verify HTTP headers.
 
+## Jobs
+
+`POST /api/v1/runs` accepts exactly `{"kind":"planning"}` or
+`{"kind":"simulation","seed":7}`. Simulation seed defaults to 7 and must be an
+integer in 0–2147483647. Unknown fields, unsupported kinds, booleans, fractional,
+negative, oversized and string seeds return 400. Input cannot specify commands,
+paths, policies or configuration. The baseline policy and existing exporters are fixed.
+
+A submission returns 202 with a UUID `runId` and `status: "queued"`.
+`GET /api/v1/runs/{runId}` returns a persisted record with `queued`, `running`,
+`succeeded` or `failed`. Success adds `resultKind` and `resultId`; failure adds
+`error: {code, message}`. Unknown IDs return 404. Responses are JSON/no-store.
+One background worker executes one isolated exporter subprocess at a time,
+with eight waiting jobs, a 120-second execution timeout, and separate output/logs.
+Overflow returns 429. Failed/invalid/timed-out exports do not change latest.
+Restart retains terminal records and marks interrupted queued/running jobs failed.
+
 ## Client lifecycle and versioning
 
-Both views remain fixture-backed through injectable async loaders. Loading is
-visible before validation; failures show Unavailable, a reason, and Retry.
-Validation precedes drawing. Superseded or disposed requests cannot update the UI.
-Retry replaces a mounted snapshot only after validation succeeds, disposing its
-previous layers. Failed retries preserve an already validated snapshot.
+Both views default to HTTP through Vite's `/api` proxy. Set `?source=fixture`
+(or `VITE_RESULT_SOURCE=fixture`) for explicitly labelled fixture mode. Only that
+mode imports fixtures or adds illustrative planning consequence values; HTTP
+failures never trigger fallback. Delivery metadata stays alongside the payload.
 
-V1 has no authentication, run submission, polling, push updates or automatic
-replacement of displayed results. An eventual explicit refresh requests latest
-again and changes the displayed snapshot only after validation succeeds. The
-current Retry action reruns the injected fixture loader; it performs no HTTP call.
+Loading and errors have visible reasons. Explicit Refresh loads latest; publishing
+alone never replaces a displayed snapshot. Request generations and abort signals
+prevent stale/disposed requests from rendering. Failed fetching, validation, or
+render construction preserves the preceding snapshot and identity. Render attempts
+own their partial resources; successful replacement disposes old layers/listeners.
+Planning history retains its originating result ID and starts fresh per snapshot.
+Planning Restart is a presentation action and never submits a backend job.
 
-`planning-result/1` and `simulation-result/1` are independent payload versions.
-Incompatible payload changes require a new schemaVersion and a compatible parser.
-Changes to the HTTP envelope or route semantics require `/api/v2`; changing a
-payload version alone does not change delivery identity or route semantics.
-Unknown additive fields may be ignored. No simulation payload is accepted by the
-planning adapter or vice versa.
+Each Run control disables duplicate submission, displays job status, and polls at
+one-second intervals without overlap. On success it loads the exact result ID,
+not latest. Polling stops at terminal state or disposal. A failed job leaves the
+preceding view intact and enables another submission. A polling transport failure
+offers Retry run status while keeping the existing job active.
 
-## Verification boundary
+Payload versions stay independent. Incompatible payload changes require a new
+schemaVersion and compatible parser; incompatible envelope/routes require `/api/v2`.
 
-`npm test` checks actual-artifact envelopes, wrong kind, absent/empty identity,
-invalid publication times, unsupported schema and the three failure examples.
-`npm run test:ui` exercises both actual view mounts in jsdom with mocked canvas
-layers, including retry and lifecycle races. These tests prove frontend behavior,
-not backend HTTP conformance, real Cesium rendering, route implementation,
-publication ordering, headers or server immutability. Those require integration
-tests against a future service.
+## Startup and verification
+
+`.venv-rl/bin/python scripts/run_integration_mvp.py` checks prerequisites, starts
+backend 127.0.0.1:8000 and Vite 127.0.0.1:5173, verifies direct and proxied readiness,
+and prints a plain-basemap URL. It publishes missing default demos before ready;
+restarts preserve existing publications. Occupied ports fail explicitly without
+stopping their owners. Ctrl-C stops only the launcher's children.
+
+The standalone server remains available via `.venv-rl/bin/python -m backend.api.server`;
+add `--bootstrap` for explicit missing-demo generation. GET itself never exports.
+Runtime state and evidence are ignored under `outputs/integration-mvp/`.
+
+`.venv-rl/bin/python scripts/verify_integration_mvp.py --all` runs all ten gates;
+`--gate B04` independently checks HTTP. Results contain the tested HEAD, tracked
+diff/source/input hashes, runtime versions, commands, exit codes and assertions.
+Browser gates use real Chromium/Cesium, block external network, retain traces and
+screenshots, and observe actual geometry via a read-only `?acceptance=1` hook.
+Circle tolerances are 1e-7 degrees for center and 1e-6 metres for radius.
+See [readiness](../nickolas/integration-readiness.md) for current evidence.
+
+Successful job status and its result identity commit in the same atomic publication
+index replacement. Per-run JSON files mirror that state; a failed mirror write
+cannot turn an already committed success into an interrupted job on restart.

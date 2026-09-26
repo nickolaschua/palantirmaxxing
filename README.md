@@ -4,13 +4,39 @@ This repository combines **Singapore Canvas**, an existing CesiumJS/TypeScript/V
 
 The implemented standalone Population Exposure Calculator (PEC) receives versioned population zones and externally supplied circular event footprints. PEC v0.1 is deterministic and assumes population is uniformly distributed within each zone. It reports per-event and episode-unique people potentially exposed, total person-exposures, people exposed to multiple events, population-data coverage and calculation metadata. The machine-side static MVP now composes existing deterministic trajectory/reachability, an explicitly synthetic monotonic success profile, supplied fixed circles, PEC, two-objective Pareto filtering and descriptive representative categories. It does not predict real footprints, interception performance, casualties or injuries, and it does not select a final action.
 
+## Local integrated MVP
+
+After the [documented prerequisites](nickolas/integration-readiness.md#setup), start both services:
+
+```sh
+.venv-rl/bin/python scripts/run_integration_mvp.py
+```
+
+Open the printed URL. The launcher uses loopback ports 8000 and 5173, publishes
+the existing planning demo and seed-7 baseline only when missing, and stops both
+children on Ctrl-C. Both views default to HTTP through Vite. **Run planning** and
+**Run simulation** create jobs; **Refresh** fetches latest explicitly. Snapshot IDs
+and publication times remain visible, and failed requests preserve the last valid
+view. Planning **Restart** resets presentation only. `?source=fixture` explicitly
+selects the labelled illustrative fixtures; `?basemap=plain` avoids remote basemaps.
+
+Verify independently, with fresh outputs, isolated stores, real Chromium/WebGL,
+and retained logs, traces, and screenshots:
+
+```sh
+.venv-rl/bin/python scripts/verify_integration_mvp.py --all
+```
+
+[Acceptance checklist and evidence](nickolas/integration-readiness.md) ·
+[HTTP and job contract](contracts/frontend-backend-api.md).
+
 ## Current status
 
 The viewer now presents **Singapore Resident Population — Census 2020** with population/density shading, fixed legend, unknown-data styling, search, planning-area filtering, ranked chart and hover/click details. It preserves the existing camera, lighting and basemap controls, adding a plain globe for use without remote credentials. Polygon rendering and picking are reusable library capabilities; population-specific logic remains in the demo application.
 
 The Python preparation pipeline acquires official Census 2020 and URA Master Plan 2019 files, verifies a local cache, parses the source hierarchy, joins zones, projects to SVY21 metres and generates provenance and validation reports. All 332 subzones join uniquely. There are 46 qualified unknown population values, six invalid geometries and seven overlap pairs; 275 zones containing 3,982,190 residents qualify for a **partial-coverage PEC-candidate subset**. Known display counts total 4,044,340, or 130 above the published national total; no counts are adjusted.
 
-Read the [population preparation specification](docs/specifications/population-data.md), [file contract](contracts/population-dataset.md), [validation summary](data/processed/validation-summary.md) and [browser/check report](frontend/docs/POPULATION-VERIFICATION.md). Standalone PEC calculation, strict file execution, tests and [PEC specification](docs/specifications/pec.md) are implemented under the [PEC contracts](contracts/pec.md). The [static-scenario contract](contracts/static-scenario-evaluation.md) and [benchmark report](docs/specifications/static-mvp-benchmark.md) document machine-side Phases D-G. Frontend PEC integration, endpoints, dynamic replanning, resource allocation and databases are not implemented. Existing historical frontend scenario-design notes remain preserved.
+Read the [population preparation specification](docs/specifications/population-data.md), [file contract](contracts/population-dataset.md), [validation summary](data/processed/validation-summary.md) and [browser/check report](frontend/docs/POPULATION-VERIFICATION.md). Standalone PEC calculation, strict file execution, tests and [PEC specification](docs/specifications/pec.md) are implemented under the [PEC contracts](contracts/pec.md). The [static-scenario contract](contracts/static-scenario-evaluation.md) and [benchmark report](docs/specifications/static-mvp-benchmark.md) document machine-side Phases D-G. The local demo delivery and run endpoints are implemented; scenario editing, dynamic replanning and production databases remain outside this integration scope. Existing historical frontend scenario-design notes remain preserved.
 
 An isolated continuous-event RL preparation layer now exists under
 `backend/simulation/` and `backend/learning/`. It coordinates at most eight

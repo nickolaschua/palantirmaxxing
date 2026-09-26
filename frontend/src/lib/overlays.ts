@@ -1,5 +1,5 @@
 import {
-  Cartesian2, Cartesian3, ClassificationType, Color, ColorGeometryInstanceAttribute, EllipseGeometry, Ellipsoid,
+  Cartesian2, Cartesian3, Cartographic, Math as CesiumMath, ClassificationType, Color, ColorGeometryInstanceAttribute, EllipseGeometry, Ellipsoid,
   ExtrapolationType, GeometryInstance, GroundPolylineGeometry, GroundPolylinePrimitive, GroundPrimitive, JulianDate,
   LabelCollection, Material, Matrix4, PointPrimitiveCollection, PolylineColorAppearance, PolylineCollection,
   SampledPositionProperty, ScreenSpaceEventHandler, ScreenSpaceEventType, ShowGeometryInstanceAttribute, Transforms,
@@ -11,6 +11,7 @@ import { LABEL_LOOK } from "./labels.js";
 import type { GeoPoint, TimedSample } from "./types.js";
 
 export interface PathLayer {
+  inspect?(): unknown;
   setVisible(visible: boolean): void;
   /** Hides the moving marker while the route stays drawn. */
   setMarkerVisible(visible: boolean): void;
@@ -41,6 +42,7 @@ export interface MarkerLayer {
 export interface CircleStyle { fill: string; outline: string; visible: boolean }
 export interface CircleCallbacks { hover(id: string | null): void; click(id: string | null): void }
 export interface CircleLayer {
+  inspect?(): unknown;
   /**
    * Resolves once the circles are built and can draw and be picked. Building
    * runs on Cesium's shared web workers, so it can take seconds while other
@@ -160,6 +162,10 @@ export function addPath(
       markerVisible = visible;
       applyVisibility();
     },
+    inspect: () => ({ kind: "path", visible: lines.show, positions: lines.get(0).positions.map((p: Cartesian3) => {
+      const c = Cartographic.fromCartesian(p);
+      return { lon: CesiumMath.toDegrees(c.longitude), lat: CesiumMath.toDegrees(c.latitude), heightM: c.height };
+    }) }),
     destroy() {
       if (destroyed) return;
       destroyed = true;
@@ -318,6 +324,16 @@ export function addGroundCircles(
   let destroyed = false;
   return {
     ready,
+    inspect: () => ({ kind: "circles", ready: fills.ready && outlines.ready, visible: fills.show && outlines.show,
+      circles: fillInstances.map(instance => {
+        // Inspect the EllipseGeometry objects actually submitted to Cesium.
+        const geometry = instance.geometry as unknown as { _center: Cartesian3; _semiMajorAxis: number; _semiMinorAxis: number };
+        const c = Cartographic.fromCartesian(geometry._center);
+        return { id: instance.id, lon: CesiumMath.toDegrees(c.longitude), lat: CesiumMath.toDegrees(c.latitude),
+          radiusM: geometry._semiMajorAxis, minorRadiusM: geometry._semiMinorAxis,
+          visible: fills.show && (!fills.ready || !!fills.getGeometryInstanceAttributes(instance.id).show[0]) };
+      }),
+    }),
     setStyles(styles) {
       pending = styles;
       applyPending();

@@ -43,6 +43,8 @@ export const SINGAPORE_BOUNDS: Bounds = {
 };
 
 export interface CanvasOptions {
+  /** Read-only diagnostics for local acceptance runs; no rendering substitution. */
+  acceptance?: boolean;
   ionToken?: string;
   googleApiKey?: string;
   basemap?: BasemapKind;

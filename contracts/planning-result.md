@@ -31,8 +31,8 @@ All numbers are finite JSON numbers. No NaN or infinity is permitted.
 The parser is a display safety gate, not an exhaustive producer schema validator.
 In particular the exporter can emit empty or one-sample results and a zero
 supplied radius; the current frontend requires at least two ordered samples and a
-positive assumptions.footprintRadiusM. Such exporter outputs are Unavailable in
-this frontend, not silently repaired.
+positive assumptions.footprintRadiusM. Such exporter outputs are rejected by publication validation before they can
+become latest; direct frontend inputs are also rejected, never silently repaired.
 
 ## Coordinates, clocks and ordering
 
@@ -132,8 +132,8 @@ total is a Figure or null, dimensions is an ordered array of
 A Figure has finite central and nullable low/high, ordered low ≤ central ≤ high,
 with optional confidence/source strings. Values are scores on 0–100, weights
 are fractions, unavailable values are null. Optional scenario is display text.
-The committed exporter does not produce this extension. The fixture loader
-currently adds clearly labelled illustrative consequence values where omitted;
+The committed exporter does not produce this extension. The explicit fixture-mode loader
+adds clearly labelled illustrative consequence values where omitted;
 `illustrative: true` identifies this frontend demonstration enrichment. The
 delivery adapter never adds it or changes the nested payload.
 
@@ -141,7 +141,7 @@ delivery adapter never adds it or changes the nested payload.
 
 Incompatible changes require a new schemaVersion; HTTP delivery changes follow
 the separate /api/v2 rule. Planning does not replace simulation-result/1.
-The actual committed artifact is used in adapter and view tests, with no edits
-to backend code or result artifacts. Producer invariants documented here exceed
-the existing frontend parser's validation coverage; tests do not establish
-backend HTTP conformance or validate every producer invariant.
+Committed artifacts remain unchanged. Fresh-export cross-language checks and
+publication-time Python validation supplement the display parser. The independent
+integration harness verifies HTTP delivery, lifecycle and actual Cesium rendering;
+see the readiness checklist for tested-state evidence.

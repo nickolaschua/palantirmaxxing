@@ -95,11 +95,21 @@ export function parseResult(value: unknown): { result: PlanningResult; options: 
   const r = value as PlanningResult;
   function fail(why: string): never { throw new Error(why); }
   if (r?.schemaVersion !== "planning-result/1") fail(`Unsupported schema "${String(r?.schemaVersion)}" — expected planning-result/1`);
+  const checkNumbers = (v: unknown): void => {
+    if (typeof v === "number" && !Number.isFinite(v)) fail("Result contains a non-finite number");
+    if (v && typeof v === "object") Object.values(v).forEach(checkNumbers);
+  };
+  checkNumbers(r);
+  const position = (p: { lon: number; lat: number; height: number }): void => {
+    if (!p || ![p.lon, p.lat, p.height].every(finite)
+        || Math.abs(p.lon) > 180 || Math.abs(p.lat) > 90) fail("Position is outside coordinate bounds");
+  };
   if (!Number.isFinite(time(r.start)) || !Number.isFinite(time(r.end))) fail("start/end are not valid timestamps");
   const samples = r.threat?.samples;
   if (!Array.isArray(samples) || samples.length < 2) fail("The threat needs at least two samples");
   let previous = -Infinity;
   samples.forEach((s, i) => {
+    position(s);
     if (!(time(s.time) > previous) || ![s.lon, s.lat, s.height].every(finite)) fail(`Threat sample ${i} has an invalid time or position`);
     previous = time(s.time);
   });
@@ -107,6 +117,11 @@ export function parseResult(value: unknown): { result: PlanningResult; options: 
   const byId = new Map(r.candidates.map(c => [c.id, c]));
   if (byId.size !== r.candidates.length) fail("Candidate IDs are not unique");
   if (!finite(r.assumptions?.footprintRadiusM) || r.assumptions.footprintRadiusM <= 0) fail("assumptions.footprintRadiusM is not a positive number");
+  for (const c of r.candidates) {
+    position(c.position);
+    if (c.footprint && c.footprint.radiusM !== r.assumptions.footprintRadiusM) fail("Candidate footprint radius disagrees with assumptions");
+  }
+  if (!Array.isArray(r.paretoCandidateIds) || r.paretoCandidateIds.some(id => !byId.has(id))) fail("Unknown Pareto candidate");
   for (const [key, id] of Object.entries(r.categoryAssignments ?? {})) {
     if (id !== null && !byId.has(id)) fail(`categoryAssignments.${key} names an unknown candidate`);
   }

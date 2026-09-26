@@ -41,6 +41,9 @@ export type { CameraPreset } from "./presets.js";
 export { PRESETS } from "./presets.js";
 
 export interface SingaporeCanvas {
+  /** Present only when CanvasOptions.acceptance is true. Returns copied observations. */
+  inspect?(): { layerCount: number; primitiveCount: number; postRenderCount: number; renderErrors: string[];
+    preRenderListeners: number; eventListeners: number; layers: unknown[]; webgl: boolean };
   readonly camera: CameraModule;
   readonly scene: SceneModule;
   readonly time: TimeModule;
@@ -100,9 +103,13 @@ export async function createSingaporeCanvas(
     msaaSamples: 1,
   });
   viewer.scene.postProcessStages.fxaa.enabled = true;
+  let postRenderCount = 0;
+  const renderErrors: string[] = [];
+  if (options.acceptance) viewer.scene.postRender.addEventListener(() => { ++postRenderCount; });
 
   const emit = new Emitter<CanvasEvents>();
   viewer.scene.renderError.addEventListener((_scene: unknown, error: Error) => {
+    if (options.acceptance) renderErrors.push(error.message);
     emit.emit("renderError", { message: error.message });
   });
   // Time first: lighting pins the sun through it.
@@ -119,6 +126,11 @@ export async function createSingaporeCanvas(
   const layers = new Set<{ destroy(): void }>();
   const track = <T extends { destroy(): void }>(layer: T): T => {
     layers.add(layer);
+    const destroy = layer.destroy.bind(layer);
+    layer.destroy = () => {
+      if (!layers.delete(layer)) return;
+      destroy();
+    };
     return layer;
   };
   const visibleLayers = new Set<object>();
@@ -133,6 +145,16 @@ export async function createSingaporeCanvas(
   await cameraParts.module.flyToPreset("island", { duration: 0 });
 
   return {
+    ...(options.acceptance ? { inspect: () => ({
+      layerCount: layers.size, primitiveCount: viewer.scene.primitives.length, postRenderCount,
+      renderErrors: [...renderErrors], preRenderListeners: viewer.scene.preRender.numberOfListeners,
+      eventListeners: emit.listenerCount(),
+      layers: [...layers].flatMap(layer => {
+        const inspect = (layer as { inspect?: () => unknown }).inspect;
+        return inspect ? [inspect()] : [];
+      }),
+      webgl: !!(viewer.canvas.getContext("webgl2") ?? viewer.canvas.getContext("webgl")),
+    }) } : {}),
     camera: cameraParts.module,
     scene: sceneParts.module,
     time: timeParts.module,

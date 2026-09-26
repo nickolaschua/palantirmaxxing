@@ -102,6 +102,11 @@ function footprint(value: unknown, name: string): SimulationFootprint {
 
 export function parseSimulationResult(value: unknown): SimulationResult {
   const root = object(value, "result");
+  const checkNumbers = (v: unknown): void => {
+    if (typeof v === "number") finite(v, "result number");
+    if (v && typeof v === "object") Object.values(v).forEach(checkNumbers);
+  };
+  checkNumbers(root);
   if (root.schemaVersion !== "simulation-result/1") throw new Error("unsupported simulation result schema");
   if (root.episodeSchemaVersion !== "simulation-episode/2") throw new Error("simulation-result/1 requires simulation-episode/2");
   const trajectories = array(root.trajectories, "trajectories").map((value, i): SimulationTrajectory => {
@@ -148,7 +153,11 @@ export function parseSimulationResult(value: unknown): SimulationResult {
   }
   for (const [i, row] of selectedFootprints.entries()) {
     if (!assignmentThreats.has(row.threatId) || !row.opportunityId
-        || !assignmentOpportunities.has(row.opportunityId)) throw new Error(`selectedFootprints[${i}] does not resolve to an assignment`);
+        || !assignments.some(a => a.threat_id === row.threatId && a.opportunity_id === row.opportunityId)) throw new Error(`selectedFootprints[${i}] does not resolve to an assignment`);
+  }
+  for (const [items, kind] of [[selectedFootprints, "selected"], [terminalCounterfactualFootprints, "terminal_counterfactual"]] as const) {
+    if (new Set(items.map(row => row.id)).size !== 8 || new Set(items.map(row => row.threatId)).size !== 8
+        || items.some(row => row.kind !== kind)) throw new Error("Footprint identities or kinds are invalid");
   }
   if (new Set(terminalCounterfactualFootprints.map(row => row.threatId)).size !== 8
       || terminalCounterfactualFootprints.some(row => !threatIds.has(row.threatId))) {

@@ -3,7 +3,6 @@ import { mountPopulation } from "./population.js";
 import { HOSPITALS, MILITARY, mountOsmAreas } from "./osm-areas.js";
 import { mountDecision } from "./decision.js";
 import { mountSimulationResult } from "./simulation.js";
-import type { Decision } from "./decision.js";
 import type { BasemapKind, LightingPreset } from "../lib/index.js";
 import "./style.css";
 
@@ -33,8 +32,10 @@ const keys = {
 };
 
 // Grey canvas is the default view. `plain` is only ever the fallback.
-const canvas = await createSingaporeCanvas(container, { ...keys, basemap: "extruded" })
-  .catch(() => createSingaporeCanvas(container, { basemap: "plain" }));
+const plainStartup = new URLSearchParams(location.search).get("basemap") === "plain";
+const acceptance = new URLSearchParams(location.search).get("acceptance") === "1";
+const canvas = await createSingaporeCanvas(container, { ...keys, acceptance, basemap: plainStartup ? "plain" : "extruded" })
+  .catch(() => createSingaporeCanvas(container, { basemap: "plain", acceptance }));
 
 /**
  * Clicking a second preset cancels the first; that rejection is expected.
@@ -74,7 +75,7 @@ const VIEWS: readonly { id: View; label: string; basemap: BasemapKind }[] = [
 ];
 let view: View = "grey";
 // Mounted last; the panel can be used before it is ready.
-let decision: Decision | undefined;
+let decision: ReturnType<typeof mountDecision> | undefined;
 const viewButtons = new Map<View, HTMLButtonElement>();
 
 async function setView(next: (typeof VIEWS)[number]): Promise<void> {
@@ -162,7 +163,7 @@ canvas.on("boundsHit", ({ edge }) => {
 canvas.on("renderError", ({ message }) => setStatus(`Map rendering failed: ${message}`));
 
 // The promise resolving IS the ready signal — there is no "ready" event.
-setStatus(canvas.scene.basemap === "plain" ? FALLBACK_STATUS : "Singapore");
+setStatus(plainStartup ? "Singapore · plain basemap" : canvas.scene.basemap === "plain" ? FALLBACK_STATUS : "Singapore");
 decision = await mountDecision(canvas, { ...keys, lighting });
 if (import.meta.hot) import.meta.hot.dispose(() => {
   window.clearTimeout(edgeTimer);
@@ -173,3 +174,6 @@ if (import.meta.hot) import.meta.hot.dispose(() => {
 });
 
 Object.assign(window, { __canvas: canvas });
+if (acceptance) Object.defineProperty(window, "__mvpAcceptance", { configurable: true, value: Object.freeze({
+  inspect: () => ({ canvas: canvas.inspect?.(), planning: decision?.snapshot(), simulation: simulation.snapshot() }),
+}) });

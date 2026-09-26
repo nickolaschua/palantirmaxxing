@@ -106,3 +106,82 @@ it.each([undefined, 0])("simulation figures distinguish omission from zero: %s",
   expect(document.body.textContent).toContain((value === undefined ? "Unavailable" : "0") + " assumption-grade expected casualties");
   view.dispose();
 });
+
+for (const kind of ["planning", "simulation"] as const) {
+  describe(kind + " refresh ownership", () => {
+    const artifact = kind === "planning" ? planning : simulation;
+    const snapshot = (id: string) => ({ source: "http", resultId: id, publishedAt: "2026-09-26T00:00:00Z", result: structuredClone(artifact) });
+    function mount(canvas: SingaporeCanvas, loader: () => Promise<unknown>) {
+      return kind === "planning" ? mountDecision(canvas, { lighting: "midday" }, loader)
+        : mountSimulationResult(canvas, document.body, loader);
+    }
+    it("keeps identity on failed refresh and releases layers across ten replacements", async () => {
+      const { canvas, live } = canvasMock();
+      const load = vi.fn().mockResolvedValue(snapshot("A"));
+      const view = mount(canvas, load);
+      await settle(); const count = live.size;
+      for (let i = 0; i < 10; i++) { load.mockResolvedValue(snapshot("B" + i)); view.retry(); await settle(); expect(live.size).toBe(count); }
+      expect(document.querySelector(`.result-metadata[data-kind=${kind}]`)?.getAttribute("data-result-id")).toBe("B9");
+      load.mockRejectedValue(new Error("offline")); view.retry(); await settle();
+      expect(live.size).toBe(count);
+      expect(view.snapshot()?.resultId).toBe("B9");
+      view.dispose(); expect(live.size).toBe(0); expect(document.body.childElementCount).toBe(0);
+    });
+    it("cleans up partial rendering and keeps the preceding result", async () => {
+      const { canvas, live } = canvasMock();
+      const view = mount(canvas, vi.fn().mockResolvedValueOnce(snapshot("A")).mockResolvedValue(snapshot("B")));
+      await settle(); const count = live.size;
+      vi.mocked(canvas.addGroundCircles).mockImplementationOnce(() => { throw new Error("Injected geometry failure"); });
+      view.retry(); await settle();
+      expect(live.size).toBe(count);
+      expect(view.snapshot()?.resultId).toBe("A");
+      expect(document.body.textContent).toContain("Injected geometry failure");
+      expect(document.querySelectorAll(kind === "planning" ? "#decision-tray" : "#simulation-result").length).toBe(1);
+      view.dispose(); expect(live.size).toBe(0);
+    });
+    it("aborts superseded requests and keeps newer metadata when an ignored abort resolves late", async () => {
+      const { canvas, live } = canvasMock();
+      const old = deferred();
+      const load = vi.fn().mockReturnValueOnce(old.promise).mockResolvedValue(snapshot("B"));
+      const view = mount(canvas, load);
+      const firstSignal = load.mock.calls[0]![1] as AbortSignal;
+      view.retry(); await settle();
+      expect(firstSignal.aborted).toBe(true);
+      old.resolve(snapshot("A")); await settle();
+      expect(view.snapshot()?.resultId).toBe("B");
+      const secondSignal = load.mock.calls[1]![1] as AbortSignal;
+      view.dispose(); expect(secondSignal.aborted).toBe(true); expect(live.size).toBe(0);
+    });
+  });
+}
+
+it("planning disposal removes its keyboard/clock listeners and pending outcome timer", async () => {
+  vi.useFakeTimers();
+  const add = vi.spyOn(window, "addEventListener");
+  const remove = vi.spyOn(window, "removeEventListener");
+  try {
+    const { canvas, live } = canvasMock();
+    let now = new Date(planning.start);
+    Object.defineProperty(canvas.time, "current", { get: () => now });
+    canvas.time.seek = date => { now = date; };
+    let tick: ((date: Date) => void) | undefined;
+    const off = vi.fn();
+    canvas.on = ((_event: string, listener: (date: Date) => void) => { tick = listener; return off; }) as SingaporeCanvas["on"];
+    const view = mountDecision(canvas, { lighting: "midday" }, async () => planning);
+    await settle();
+    document.querySelector<HTMLButtonElement>("#presenter button")!.click();
+    document.querySelector<HTMLButtonElement>(".card .pick")!.click();
+    document.querySelector<HTMLButtonElement>(".card .fire")!.dispatchEvent(new MouseEvent("click", { detail: 1 }));
+    now = new Date(new Date(planning.end).getTime() + 10000);
+    tick!(now);
+    expect(vi.getTimerCount()).toBeGreaterThan(0);
+    const key = add.mock.calls.find(call => call[0] === "keydown")![1];
+    view.dispose();
+    expect(off).toHaveBeenCalledTimes(1);
+    expect(remove).toHaveBeenCalledWith("keydown", key);
+    expect(vi.getTimerCount()).toBe(0);
+    vi.advanceTimersByTime(5000);
+    expect(live.size).toBe(0);
+    expect(document.body.childElementCount).toBe(0);
+  } finally { add.mockRestore(); remove.mockRestore(); vi.useRealTimers(); }
+});

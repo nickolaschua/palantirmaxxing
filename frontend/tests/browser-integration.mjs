@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { createInterface } from 'node:readline';
-import { createWriteStream, mkdirSync, writeFileSync } from 'node:fs';
+import { createWriteStream, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { createServer } from 'node:net';
 import { resolve } from 'node:path';
 import { chromium } from '@playwright/test';
@@ -172,6 +172,30 @@ try {
       check(after.layerCount === baseline.layerCount && after.primitiveCount === baseline.primitiveCount, `${kind}: ten refreshes preserve actual live layer and primitive counts`);
       check(after.preRenderListeners === baseline.preRenderListeners && after.eventListeners === baseline.eventListeners, `${kind}: ten refreshes preserve listener counts`);
     }
+    // A failed construction must preserve the actual shared Cesium clock,
+    // not merely leave the old result ID and layer count on screen.
+    await page.getByRole('button', { name: 'Play', exact: true }).click();
+    const oldClock = await page.evaluate(() => {
+      const canvas = window.__canvas;
+      const start = new Date(window.__mvpAcceptance.inspect().planning.result.start);
+      canvas.time.seek(new Date(start.getTime() + 5000));
+      const original = canvas.addGroundCircles;
+      window.__restoreCircleFactory = () => { canvas.addGroundCircles = original; delete window.__restoreCircleFactory; };
+      canvas.addGroundCircles = () => { throw new Error('Injected refresh construction failure'); };
+      return { time: canvas.time.current.getTime(), playing: canvas.time.playing,
+        resultId: window.__mvpAcceptance.inspect().planning.resultId };
+    });
+    try {
+      await page.getByRole('button', { name: 'Refresh planning', exact: true }).click();
+      await until(async () => (await page.locator('body > .result-load-status').textContent()).includes('Injected refresh construction failure'), 'Failed live planning construction');
+      const retained = await page.evaluate(() => ({ time: window.__canvas.time.current.getTime(),
+        playing: window.__canvas.time.playing, resultId: window.__mvpAcceptance.inspect().planning.resultId }));
+      check(oldClock.playing && retained.playing && retained.time >= oldClock.time,
+        'Failed planning construction preserves real clock progress and playback');
+      check(retained.resultId === oldClock.resultId, 'Failed live construction keeps the preceding snapshot');
+    } finally { await page.evaluate(() => window.__restoreCircleFactory()); }
+    await page.getByRole('button', { name: 'Restart', exact: true }).click();
+    check(await page.evaluate(() => !window.__canvas.time.playing), 'Retained planning controls still reset playback');
     const runRequests = [];
     page.on('request', request => { if (request.url().includes('/api/v1/runs')) runRequests.push(request); });
     await page.getByRole('button', { name: 'Play', exact: true }).click();
@@ -217,7 +241,7 @@ try {
     await page.screenshot({ path: resolve(evidence, 'refresh-success.png'), fullPage: true });
   }
   if (gate === 'B08') {
-    const submissions = [], polls = [], inFlight = new Set();
+    const submissions = [], polls = [], inFlight = new Set(), completedRuns = new Map();
     let maximumPolls = 0;
     page.on('request', request => {
       if (request.method() === 'POST' && request.url().endsWith('/api/v1/runs')) submissions.push(request.postDataJSON());
@@ -231,6 +255,7 @@ try {
     const race = async route => {
       const response = await route.fetch();
       const record = await response.json();
+      if (record.status === 'succeeded') completedRuns.set(record.runId, record);
       if (record.status === 'succeeded' && !raced.has(record.resultKind)) {
         const another = await publish(record.resultKind);
         raced.set(record.resultKind, { record, another });
@@ -258,6 +283,134 @@ try {
       if (kind === 'simulation') check((await inspect()).simulation.result.seed === 17, 'Displayed simulation seed matches submitted seed');
       await page.screenshot({ path: resolve(evidence, `run-${kind}-success.png`), fullPage: true });
     }
+    const manifest = await page.evaluate(async () => {
+      const response = await fetch('/api/v1/scenario-manifest');
+      if (!response.ok) throw new Error(`Manifest HTTP ${response.status}`);
+      return response.json();
+    });
+    const frozenEntries = ['validation', 'held-out', 'stress', 'ood-geography', 'ood-cadence', 'assignment-reference']
+      .map(split => manifest.entries.find(row => row.split === split));
+    check(frozenEntries.every(Boolean), 'Manifest contains a representative from every frozen split');
+    const simulationControl = page.locator('.run-controls[data-kind="simulation"]');
+    const simulationButton = page.getByRole('button', { name: 'Run simulation', exact: true });
+    await page.getByLabel('Frozen scenario', { exact: true }).check();
+    const splitControl = page.getByRole('combobox', { name: 'Scenario split' });
+    const scenarioControl = page.getByRole('combobox', { name: 'Scenario reference', exact: true });
+    const policyControl = page.getByRole('combobox', { name: 'Simulation policy' });
+    await until(async () => (await scenarioControl.locator('option').count()) === manifest.entries.length,
+      'Frozen manifest options loaded into the controls');
+    await policyControl.selectOption('naive-launch-on-detection/1');
+    let simulationLayerBase, simulationListeners, eightThreatPayload;
+    const assertSimulationGeometry = async payload => {
+      const expectedIds = [
+        ...payload.selectedFootprints.map(row => row.id),
+        ...payload.terminalCounterfactualFootprints.filter(row =>
+          payload.outcomes.some(outcome => outcome.threatId === row.threatId && outcome.outcome === 'unhandled')).map(row => row.id),
+      ].sort();
+      await until(async () => {
+        const canvas = (await inspect()).canvas;
+        return canvas.layers.some(layer => layer.kind === 'circles' && layer.ready
+          && JSON.stringify(layer.circles.map(row => row.id).sort()) === JSON.stringify(expectedIds));
+      }, 'Simulation footprint geometry ready');
+      const canvas = (await inspect()).canvas;
+      const paths = canvas.layers.filter(layer => layer.kind === 'path' && layer.positions.length === 20);
+      check(paths.length === payload.trajectories.length,
+        `${payload.trajectories.length}-threat result creates the exact Cesium path count`);
+      const footprintLayer = canvas.layers.find(layer => layer.kind === 'circles'
+        && JSON.stringify(layer.circles.map(row => row.id).sort()) === JSON.stringify(expectedIds));
+      check(footprintLayer?.circles.length === expectedIds.length,
+        `${payload.trajectories.length}-threat result creates the exact footprint count`);
+      const base = canvas.layerCount - paths.length - 1;
+      if (simulationLayerBase === undefined) {
+        simulationLayerBase = base;
+        simulationListeners = { pre: canvas.preRenderListeners, events: canvas.eventListeners };
+      } else {
+        check(base === simulationLayerBase, 'Switching scenarios disposes preceding Cesium layers');
+        check(canvas.preRenderListeners === simulationListeners.pre && canvas.eventListeners === simulationListeners.events,
+          'Switching scenarios preserves Cesium listener counts');
+      }
+    };
+    const frozenSubmissionStart = submissions.length;
+    for (const [index, entry] of frozenEntries.entries()) {
+      await splitControl.selectOption(entry.split);
+      await scenarioControl.selectOption(entry.scenarioRef);
+      await until(async () => !(await simulationButton.isDisabled()), `Frozen ${entry.split} selection ready`);
+      if (index === 0) raced.delete('simulation');
+      if (index === 0) {
+        await simulationButton.evaluate(button => { button.click(); button.click(); });
+      } else await simulationButton.click();
+      await until(async () => (await simulationControl.getAttribute('data-status')) === 'succeeded',
+        `${entry.split} frozen run succeeds`, 120000);
+      const runId = await simulationControl.getAttribute('data-run-id');
+      const record = completedRuns.get(runId);
+      check(Boolean(record?.resultId), `${entry.split}: terminal job exposes an exact result identity`);
+      await loaded('simulation', record.resultId);
+      const expectedBody = { kind: 'simulation', scenarioRef: entry.scenarioRef,
+        policy: 'naive-launch-on-detection/1' };
+      assert.deepEqual(submissions[frozenSubmissionStart + index], expectedBody);
+      assertions.push(`${entry.split}: submitted the exact frozen request body`);
+      if (index === 0) {
+        const competitor = raced.get('simulation');
+        check(record.resultId !== competitor.another.resultId
+          && (await inspect()).simulation.resultId === record.resultId,
+        'Frozen run displays its exact result despite a newer latest publication');
+        check(submissions.length === frozenSubmissionStart + 1,
+          'Duplicate frozen-run clicks submit only once');
+      }
+      const displayed = (await inspect()).simulation.result;
+      check(displayed.seed === entry.seed && displayed.provenance.split === entry.split
+        && displayed.provenance.profile === entry.profile
+        && displayed.provenance.canonicalEpisodeHash === entry.canonicalEpisodeHash
+        && displayed.policy.identity === 'naive-launch-on-detection/1',
+      `${entry.split}: displayed seed, profile, split, hash, and policy match the manifest`);
+      const identities = await page.locator('#simulation-result .scenario-identities').textContent();
+      const badges = await page.locator('#simulation-result .scenario-badges').textContent();
+      check(identities.includes(String(entry.seed)) && identities.includes(entry.canonicalEpisodeHash)
+        && identities.includes('naive-launch-on-detection/1') && badges.includes(entry.split)
+        && badges.includes(entry.profile), `${entry.split}: provenance is visible in the result panel`);
+      const envelope = await page.evaluate(async resultId => {
+        const response = await fetch(`/api/v1/simulation-results/${encodeURIComponent(resultId)}`);
+        return response.json();
+      }, record.resultId);
+      await assertSimulationGeometry(envelope.result);
+      if (envelope.result.trajectories.length === 8) eightThreatPayload = envelope.result;
+    }
+    check(Boolean(eightThreatPayload), 'Frozen representatives include a real eight-threat result');
+    const warmupPayload = JSON.parse(readFileSync(resolve(inputs, 'warmup.json'), 'utf8'));
+    check(warmupPayload.trajectories.length === 2, 'Warmup browser fixture is a real two-threat result');
+    const warmupPublication = await publish('simulation', warmupPayload);
+    await page.getByRole('button', { name: 'Refresh simulation', exact: true }).click();
+    await loaded('simulation', warmupPublication.resultId);
+    await assertSimulationGeometry(warmupPayload);
+    const failedPayload = structuredClone(eightThreatPayload);
+    const unhandled = failedPayload.outcomes.at(-1);
+    failedPayload.assignments = failedPayload.assignments.filter(row => row.threat_id !== unhandled.threatId);
+    failedPayload.selectedFootprints = failedPayload.selectedFootprints.filter(row => row.threatId !== unhandled.threatId);
+    Object.assign(unhandled, { outcome: 'unhandled', interceptorId: null, opportunityId: null });
+    const failureReason = 'constraint_violation:browser_acceptance_fixture';
+    Object.assign(failedPayload.policyComparison.active, { completed: false, terminationReason: failureReason });
+    Object.assign(failedPayload.policyComparison.naive, { completed: false, terminationReason: failureReason });
+    failedPayload.policyComparison.exactRegret = null;
+    Object.assign(failedPayload.termination, { reason: failureReason, completed: false,
+      constraintStatus: 'violated', constraintViolation: 'browser_acceptance_fixture' });
+    const failurePublication = await publish('simulation', failedPayload);
+    await page.getByRole('button', { name: 'Refresh simulation', exact: true }).click();
+    await loaded('simulation', failurePublication.resultId);
+    await page.locator('#simulation-result').evaluate(element => { element.open = true; });
+    await assertSimulationGeometry(failedPayload);
+    const unhandledLabel = page.locator('#simulation-result .simulation-outcome-unhandled');
+    check((await unhandledLabel.textContent()).startsWith('1 unhandled')
+      && (await unhandledLabel.evaluate(element => getComputedStyle(element).color)) === 'rgb(255, 59, 48)',
+    'An unhandled threat is visibly distinguished in red from intercepted threats');
+    await page.screenshot({ path: resolve(evidence, 'frozen-scenarios-and-unhandled.png'), fullPage: true });
+    const beforeBadReference = (await inspect()).simulation.resultId;
+    const badReferenceStatus = await page.evaluate(async () => (await fetch('/api/v1/runs', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ kind: 'simulation', scenarioRef: '../../suites.json',
+        policy: 'naive-launch-on-detection/1' }),
+    })).status);
+    check(badReferenceStatus === 400 && (await inspect()).simulation.resultId === beforeBadReference,
+      'A bad scenario reference is rejected and preserves the preceding snapshot');
     check((await inspect()).canvas.layerCount === baselineCount, 'Run completion leaves no duplicate layers');
     check(maximumPolls === 1, 'Run polls never overlap');
     for (let i = 1; i < polls.length; i++) {
@@ -276,6 +429,37 @@ try {
     await page.getByRole('button', { name: 'Run planning', exact: true }).click();
     await until(async () => (await page.locator('.run-controls[data-kind="planning"]').getAttribute('data-status')) === 'succeeded', 'Submission after failure succeeds');
     await until(async () => (await inspect()).planning.resultId !== previous, 'Successful rerun displays new result');
+    for (const kind of ['planning', 'simulation']) {
+      const preceding = (await inspect())[kind].resultId;
+      raced.delete(kind);
+      const failedIds = [];
+      const failExactOnce = route => {
+        const identity = new URL(route.request().url()).pathname.split('/').at(-1);
+        if (identity !== 'latest' && failedIds.length === 0) {
+          failedIds.push(identity);
+          return route.abort('failed');
+        }
+        return route.continue();
+      };
+      await page.route(`**/api/v1/${kind}-results/*`, failExactOnce);
+      try {
+        await page.getByRole('button', { name: `Run ${kind}`, exact: true }).click();
+        await until(async () => (await page.locator(`.run-controls[data-kind="${kind}"]`).getAttribute('data-status')) === 'succeeded', `${kind} succeeds before display failure`, 60000);
+        const status = page.locator(`.result-load-status[aria-label="${kind === 'planning' ? 'Planning' : 'Simulation'} result loading"]`);
+        await until(async () => (await status.textContent()).includes('Unavailable'), `${kind} exact result fails to load`);
+        const { record, another } = raced.get(kind);
+        check((await inspect())[kind].resultId === preceding, `${kind}: failed exact result fetch retains preceding view`);
+        check(failedIds[0] === record.resultId && record.resultId !== another.resultId, `${kind}: failed fetch belongs to job despite a competing latest`);
+        const beforeRetry = submissions.length;
+        await status.getByRole('button', { name: 'Retry', exact: true }).click();
+        await loaded(kind, record.resultId);
+        check(submissions.length === beforeRetry, `${kind}: display Retry does not submit another run`);
+        check((await inspect())[kind].resultId !== another.resultId, `${kind}: Retry loads the job exact ID rather than competing latest`);
+        await page.getByRole('button', { name: `Refresh ${kind}`, exact: true }).click();
+        await loaded(kind, another.resultId);
+        check((await inspect())[kind].resultId === another.resultId, `${kind}: explicit Refresh still selects latest`);
+      } finally { await page.unroute(`**/api/v1/${kind}-results/*`, failExactOnce); }
+    }
     await page.unroute('**/api/v1/runs/*', race);
     // Dispose while a real status HTTP response is held in transit.
     let held;

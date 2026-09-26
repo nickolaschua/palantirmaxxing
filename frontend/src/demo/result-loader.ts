@@ -33,8 +33,10 @@ export function mountResultLoader<T, V extends { dispose(): void }>(
   let view: V | undefined;
   let snapshot: Snapshot | undefined;
   let abort: AbortController | undefined;
+  let requestedIdentity: string | undefined;
   async function run(resultId?: string) {
     if (disposed) return;
+    requestedIdentity = resultId;
     const request = ++generation;
     abort?.abort();
     abort = new AbortController();
@@ -63,9 +65,11 @@ export function mountResultLoader<T, V extends { dispose(): void }>(
       retryButton.hidden = false;
     }
   }
-  const retry = () => { void run(); };
-  retryButton.onclick = refreshButton.onclick = retry;
-  retry();
+  const retry = () => { void run(requestedIdentity); };
+  const refresh = () => { void run(); };
+  retryButton.onclick = retry;
+  refreshButton.onclick = refresh;
+  refresh();
   return {
     retry,
     loadIdentity: (identity: string) => run(identity),

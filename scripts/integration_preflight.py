@@ -18,6 +18,12 @@ INPUTS = {
     'data/raw/boundaries.geojson': PREPARE,
     'data/scenarios/demo-singapore.json': 'Restore this source file from version control',
     'frontend/src/demo/military.json': 'Restore this source file from version control',
+    'data/results/rl/experiments/structured-imitation-512-seed7/pipeline/bc-artifact/model.pt':
+        'Restore or retrain the fixed structured-imitation demo artifact',
+    'data/results/rl/experiments/structured-imitation-512-seed7/pipeline/bc-artifact/normalization.npz':
+        'Restore or retrain the fixed structured-imitation demo artifact',
+    'data/results/rl/experiments/structured-imitation-512-seed7/pipeline/bc-artifact/policy-metadata.json':
+        'Restore or retrain the fixed structured-imitation demo artifact',
 }
 for folder, names in {
     'parks_civic': ('input_sites.csv', 'input_conditions.csv'),
@@ -60,10 +66,14 @@ def main():
     if errors:
         raise RuntimeError('\n'.join(errors))
     from scripts.benchmark_static_mvp import load_inputs
+    from backend.learning import load_imitation_policy
     from backend.simulation import SingaporeConsequenceProvider, SingaporeScenarioGenerator
     load_inputs(args.input_root / 'data/scenarios/demo-singapore.json')
     provider = SingaporeConsequenceProvider()
     SingaporeScenarioGenerator(consequence_provider=provider)
+    imitation = load_imitation_policy(
+        args.input_root / 'data/results/rl/experiments/structured-imitation-512-seed7/pipeline/bc-artifact')
+    imitation.close()
     result = subprocess.run(['node', '--experimental-strip-types', 'tests/preflight.mjs'],
                             cwd=ROOT / 'frontend', text=True, capture_output=True, timeout=45)
     if result.returncode:

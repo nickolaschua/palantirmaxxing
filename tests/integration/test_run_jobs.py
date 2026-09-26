@@ -3,6 +3,7 @@ from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
 import http.client
 import json
+import os
 from pathlib import Path
 import subprocess
 import sys
@@ -10,10 +11,11 @@ import tempfile
 import threading
 import time
 import unittest
+from unittest.mock import patch
 
 from backend.api.jobs import JobManager, validate_submission, InvalidSubmission, RunFailure
 from backend.api.server import make_server
-from backend.api.store import ResultStore
+from backend.api.store import ResultStore, atomic_json
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -67,6 +69,72 @@ class RunTests(unittest.TestCase):
             self.manager.close()
         self.store.close()
         self.temporary.cleanup()
+
+    def test_transient_run_state_write_failure_does_not_strand_later_jobs(self):
+        for failed_status in ('running', 'failed'):
+            with self.subTest(status=failed_status):
+                injected = threading.Event()
+                def write(path, record, *args, **kwargs):
+                    if record.get('status') == failed_status and not injected.is_set():
+                        injected.set()
+                        raise OSError('Transient run-state write failure')
+                    return atomic_json(path, record, *args, **kwargs)
+                def execute(*_):
+                    if failed_status == 'failed':
+                        raise RunFailure('INJECTED', 'Exporter failed')
+                    return self.payload
+                self.manager = JobManager(self.store, executor=execute)
+                with patch('backend.api.jobs.atomic_json', side_effect=write):
+                    first = self.manager.submit({'kind': 'planning'})
+                    self.assertTrue(injected.wait(5))
+                    final = completed(self.manager, first['runId'])
+                    self.assertEqual(final['status'], 'failed')
+                    self.assertEqual(final['error']['code'], 'STORAGE_FAILED')
+                    self.manager._executor = lambda *_: self.payload
+                    later = self.manager.submit({'kind': 'planning'})
+                    self.assertEqual(completed(self.manager, later['runId'])['status'], 'succeeded')
+                self.assertTrue(self.manager._worker.is_alive())
+                self.manager.close()
+                self.manager = JobManager(self.store)
+                self.assertEqual(self.manager.get(first['runId']), final)
+                self.manager.close()
+                self.manager = None
+
+    def test_persistent_state_write_failure_rejects_work_and_recovers_on_restart(self):
+        entered, release = threading.Event(), threading.Event()
+        def execute(*_):
+            entered.set()
+            self.assertTrue(release.wait(5))
+            raise RunFailure('INJECTED', 'Exporter failed')
+        self.manager = JobManager(self.store, executor=execute)
+        first = self.manager.submit({'kind': 'planning'})
+        self.assertTrue(entered.wait(5))
+        queued = self.manager.submit({'kind': 'planning'})
+        def write(path, record, *args, **kwargs):
+            if record.get('status') == 'failed':
+                raise OSError('Persistent run-state write failure')
+            return atomic_json(path, record, *args, **kwargs)
+        with patch('backend.api.jobs.atomic_json', side_effect=write):
+            release.set()
+            wait_for(lambda: not self.manager._worker.is_alive())
+            with host(self.manager) as request:
+                self.assertEqual(request('POST', body={'kind': 'planning'})[0], 503)
+                for identity in (first['runId'], queued['runId']):
+                    self.assertEqual(request('GET', '/api/v1/runs/' + identity)[0], 503)
+        self.manager.close()
+        self.manager = JobManager(self.store)
+        for identity in (first['runId'], queued['runId']):
+            self.assertEqual(self.manager.get(identity)['status'], 'failed')
+        next_run = self.manager.submit({'kind': 'planning'})
+        self.assertEqual(completed(self.manager, next_run['runId'])['status'], 'succeeded')
+
+    def test_submission_write_failure_returns_unavailable_without_queueing(self):
+        self.manager = JobManager(self.store, executor=lambda *_: self.payload)
+        with patch('backend.api.jobs.atomic_json', side_effect=OSError('Cannot save submission')):
+            with host(self.manager) as request:
+                self.assertEqual(request('POST', body={'kind': 'planning'})[0], 503)
+        self.assertTrue(self.manager._queue.empty())
+        self.assertEqual(self.manager._records, {})
 
     def test_real_jobs_are_serial_and_frontend_compatible(self):
         active = 0
@@ -237,3 +305,48 @@ time.sleep(60)
         # A mirror write failure did not kill the sole worker.
         next_run = self.manager.submit({'kind': 'planning'})
         self.assertEqual(completed(self.manager, next_run['runId'])['status'], 'succeeded')
+
+    def test_post_replace_directory_failure_keeps_run_success_consistent_on_restart(self):
+        real_replace, real_fsync = os.replace, os.fsync
+        index_replaced = threading.Event()
+        injected = threading.Event()
+        def replace(source, target):
+            real_replace(source, target)
+            if Path(target).name == 'index.json':
+                index_replaced.set()
+        def fsync(descriptor):
+            if index_replaced.is_set() and not injected.is_set():
+                injected.set()
+                raise OSError('Index directory flush failed after commit')
+            return real_fsync(descriptor)
+        self.manager = JobManager(self.store, executor=lambda *_: self.payload)
+        with patch('backend.api.store.os.replace', side_effect=replace), \
+                patch('backend.api.store.os.fsync', side_effect=fsync):
+            run = self.manager.submit({'kind': 'planning'})
+            final = completed(self.manager, run['runId'])
+        self.assertTrue(injected.is_set())
+        self.assertEqual(final['status'], 'succeeded')
+        self.assertEqual(self.store.get('planning')['resultId'], final['resultId'])
+        self.manager.close()
+        self.store.close()
+        self.store = ResultStore(Path(self.temporary.name) / 'store')
+        self.manager = JobManager(self.store, executor=lambda *_: self.payload)
+        self.assertEqual(self.manager.get(run['runId']), final)
+        self.assertEqual(self.store.get('planning', final['resultId'])['resultId'], final['resultId'])
+
+    def test_export_directory_cleanup_failure_cannot_reclassify_committed_success(self):
+        temporary_directory = tempfile.TemporaryDirectory
+        @contextmanager
+        def cleanup_failure(*args, **kwargs):
+            with temporary_directory(*args, **kwargs) as directory:
+                yield directory
+            raise OSError('Injected export-directory cleanup failure')
+        self.manager = JobManager(self.store, executor=lambda *_: self.payload)
+        with patch('backend.api.jobs.tempfile.TemporaryDirectory', cleanup_failure):
+            run = self.manager.submit({'kind': 'planning'})
+            final = completed(self.manager, run['runId'])
+        self.assertEqual(final['status'], 'succeeded')
+        self.assertEqual(self.store.get('planning')['resultId'], final['resultId'])
+        self.manager.close()
+        self.manager = JobManager(self.store)
+        self.assertEqual(self.manager.get(run['runId']), final)

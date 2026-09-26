@@ -932,6 +932,11 @@ body.at-edge::after {
 #simulation-result { margin-top: 10px; border-top: 1px solid var(--line); padding-top: 8px; }
 #simulation-result summary { cursor: pointer; font-size: 12px; font-weight: 700; }
 #simulation-result p, #simulation-result small { display: block; color: var(--muted); font-size: 10px; line-height: 1.4; }
+#simulation-result .scenario-badges { display: flex; gap: 5px; }
+#simulation-result .scenario-badges span { padding: 1px 5px; border: 1px solid #4b6380; border-radius: 999px; color: #d5e5f8; }
+#simulation-result .scenario-identities { overflow-wrap: anywhere; font-family: ui-monospace, monospace; }
+#simulation-result .simulation-outcome-intercepted { color: #06d6a0; font-weight: 700; }
+#simulation-result .simulation-outcome-unhandled { color: #ff3b30; font-weight: 700; }
 
 /* Planning loads before its tray exists; keep status above the canvas. */
 body > .result-load-status {
@@ -953,5 +958,8 @@ body > .result-load-status {
 body > .result-metadata { position: fixed; top: 12px; right: 12px; z-index: 20; max-width: 440px; }
 .run-controls { border-top: 1px solid #334155; margin-top: 8px; padding-top: 8px; }
 .run-controls input { width: 95px; margin: 4px; }
+.run-controls select { max-width: 100%; margin: 4px; }
+.run-controls .run-mode { display: flex; gap: 8px; align-items: center; }
+.run-controls .frozen-scenario-controls { display: grid; gap: 3px; margin: 5px 0; }
 .run-status { margin: 5px 0; }
 .result-metadata p { margin: 3px 0; }

@@ -246,14 +246,294 @@ def simulation(root):
     strings(root.get('limitations'), 'limitations')
 
 
+_V2_POLICIES = {
+    'naive-launch-on-detection/1': 'online-detected-only',
+    'feasible-immediate-matching/1': 'offline-full-episode',
+    'optimal-fixed-rank-assignment/1': 'offline-full-episode',
+    'structured-behavior-cloning/1': 'online-observation-only',
+}
+_V2_SPLITS = {
+    'validation', 'held-out', 'stress', 'ood-geography', 'ood-cadence',
+    'assignment-reference',
+}
+_V2_PROFILES = {
+    'warmup', 'balanced', 'full-standard', 'burst-contention', 'low-slack',
+    'consequence-contrast', 'geographic-shift', 'cadence-shift',
+}
+_HASH = re.compile(r'sha256:[0-9a-f]{64}', re.ASCII)
+_SCENARIO_REF = re.compile(
+    r'sg2:(validation|held-out|stress|ood-geography|ood-cadence|assignment-reference):[0-9]{6}',
+    re.ASCII)
+
+
+def _v2_trajectories(root):
+    trajectories = rows(root.get('trajectories'), 'trajectories')
+    threats = unique_ids(trajectories, 'threatId', 'trajectories')
+    require(2 <= len(trajectories) <= 8,
+            'simulation-result/2 requires two through eight trajectories')
+    for trajectory in trajectories:
+        number(trajectory.get('detectionTimeS'), 'detectionTimeS')
+        instant(trajectory.get('detectionTime'), 'detectionTime')
+        samples = rows(trajectory.get('samples'), 'samples')
+        require(len(samples) == 20, 'Expected 20 samples')
+        previous = None
+        for index, sample in enumerate(samples, 1):
+            require(type(sample.get('sampleIndex')) is int
+                    and sample['sampleIndex'] == index,
+                    'Unordered sample indices')
+            current = instant(sample.get('time'), 'sample.time')
+            require(previous is None or current > previous,
+                    'Unordered sample times')
+            previous = current
+            position(sample.get('position'), 'sample.position', 'heightM')
+            for key in ('timeFromDetectionS', 'timeFromEpisodeStartS',
+                        'verticalVelocityMps'):
+                number(sample.get(key), key)
+        require(samples[-1]['position']['heightM'] == 0,
+                'Trajectory must terminate at zero height')
+    return threats
+
+
+def _v2_policy_record(value, path, identity=None):
+    value = obj(value, path)
+    policy = text(value.get('policyIdentity'), path + '.policyIdentity')
+    require(policy in _V2_POLICIES, 'Unsupported policy identity')
+    if identity is not None:
+        require(policy == identity, path + ' policy identity mismatch')
+    require(value.get('informationScope') == _V2_POLICIES[policy],
+            path + ' information scope mismatch')
+    number(value.get('ordinalCost'), path + '.ordinalCost')
+    require(type(value.get('completed')) is bool,
+            path + '.completed must be boolean')
+    text(value.get('terminationReason'), path + '.terminationReason')
+    return value
+
+
+def simulation_v2(root):
+    require(root.get('episodeSchemaVersion') == 'simulation-episode/2',
+            'Wrong episode schema')
+    text(root.get('episodeId'), 'episodeId')
+    require(type(root.get('seed')) is int and 0 <= root['seed'] <= 2**31 - 1,
+            'Invalid seed')
+    obj(root.get('coordinateReferenceSystems'), 'coordinateReferenceSystems')
+    threats = _v2_trajectories(root)
+
+    assignments = rows(root.get('assignments'), 'assignments')
+    require(len(assignments) <= len(threats), 'Too many assignments')
+    assignment_threats = unique_ids(assignments, 'threat_id', 'assignments')
+    require(assignment_threats <= threats, 'Broken assignment threat reference')
+    unique_ids(assignments, 'interceptor_id', 'assignments')
+    assignment_opportunities = unique_ids(
+        assignments, 'opportunity_id', 'assignments')
+    require(all(row.get('status') == 'locked' for row in assignments),
+            'Version 2 publishes only locked assignments')
+
+    selected = rows(root.get('selectedFootprints'), 'selectedFootprints')
+    terminal = rows(root.get('terminalCounterfactualFootprints'),
+                    'terminalCounterfactualFootprints')
+    require(len(selected) == len(assignments),
+            'Selected footprint count must equal assignment count')
+    require(len(terminal) == len(threats),
+            'Terminal footprint count must equal trajectory count')
+    by_assignment = {
+        (row['threat_id'], row['opportunity_id']) for row in assignments}
+    for footprints, kind in ((selected, 'selected'),
+                             (terminal, 'terminal_counterfactual')):
+        unique_ids(footprints, 'id', kind + ' footprints')
+        footprint_threats = unique_ids(
+            footprints, 'threatId', kind + ' footprints')
+        require(footprint_threats <= threats,
+                'Broken footprint threat reference')
+        for footprint in footprints:
+            require(footprint.get('kind') == kind, 'Wrong footprint kind')
+            require(footprint.get('label') == 'supplied 100 m area',
+                    'Wrong supplied area label')
+            require(number(footprint.get('radiusM'), 'radiusM') == 100,
+                    'Mismatched simulation radius')
+            position(footprint.get('center'), 'footprint.center', 'heightM')
+            require('consequence' in footprint,
+                    'Missing footprint consequence')
+            if kind == 'selected':
+                opportunity = text(
+                    footprint.get('opportunityId'), 'opportunityId')
+                require((footprint['threatId'], opportunity) in by_assignment,
+                        'Broken selected footprint assignment reference')
+                require(opportunity in assignment_opportunities,
+                        'Unknown selected opportunity')
+    require({row['threatId'] for row in selected} == assignment_threats,
+            'Selected footprints must cover assignments exactly')
+    require({row['threatId'] for row in terminal} == threats,
+            'Terminal footprints must cover every threat')
+
+    outcomes = rows(root.get('outcomes'), 'outcomes')
+    require(len(outcomes) == len(threats),
+            'Outcome count must equal trajectory count')
+    require(unique_ids(outcomes, 'threatId', 'outcomes') == threats,
+            'Outcomes must cover every threat exactly once')
+    intercepted = set()
+    for outcome in outcomes:
+        value = outcome.get('outcome')
+        require(value in ('intercepted', 'unhandled'), 'Invalid outcome')
+        resolved_s = number(
+            outcome.get('resolvedTimeS'), 'resolvedTimeS', True)
+        resolved_at = outcome.get('resolvedTime')
+        require(resolved_at is None or resolved_s is not None,
+                'resolvedTime requires resolvedTimeS')
+        if resolved_at is not None:
+            instant(resolved_at, 'resolvedTime')
+        number(outcome.get('trainingCost'), 'trainingCost', True)
+        interceptor = outcome.get('interceptorId')
+        opportunity = outcome.get('opportunityId')
+        if value == 'intercepted':
+            intercepted.add(outcome['threatId'])
+            text(interceptor, 'interceptorId')
+            text(opportunity, 'opportunityId')
+            require((outcome['threatId'], opportunity) in by_assignment,
+                    'Intercepted outcome does not resolve to its assignment')
+            require(resolved_s is not None,
+                    'Intercepted outcome needs a resolution time')
+        else:
+            require(interceptor is None and opportunity is None,
+                    'Unhandled outcome cannot claim an assignment')
+    require(intercepted == assignment_threats,
+            'Intercepted outcomes must equal locked assignments')
+
+    rows(root.get('events'), 'events')
+    summary = obj(root.get('consequenceSummary'), 'consequenceSummary')
+    number(summary.get('ordinalObjectiveCost'), 'ordinalObjectiveCost')
+    for key, value in obj(
+            summary.get('physicalComponents'), 'physicalComponents').items():
+        number(value, 'physicalComponents.' + key)
+    wording = obj(summary.get('wording'), 'wording')
+    require(wording.get('area') == 'supplied 100 m area'
+            and wording.get('population') == 'people potentially exposed'
+            and wording.get('casualties')
+            == 'assumption-grade expected casualties',
+            'Wrong consequence wording')
+
+    policy = obj(root.get('policy'), 'policy')
+    policy_identity = text(policy.get('identity'), 'policy.identity')
+    require(policy_identity in _V2_POLICIES, 'Unsupported policy identity')
+    require(policy.get('informationScope') == _V2_POLICIES[policy_identity],
+            'Policy information scope mismatch')
+    if policy_identity == 'structured-behavior-cloning/1':
+        require(_HASH.fullmatch(text(
+            policy.get('artifactIdentity'), 'policy.artifactIdentity'))
+            is not None, 'Malformed policy artifact identity')
+        require(policy.get('deploymentStatus') == 'experimental-unpromoted',
+                'Structured imitation deployment status mismatch')
+    comparison = obj(root.get('policyComparison'), 'policyComparison')
+    active = _v2_policy_record(
+        comparison.get('active'), 'policyComparison.active', policy_identity)
+    naive = _v2_policy_record(
+        comparison.get('naive'), 'policyComparison.naive',
+        'naive-launch-on-detection/1')
+    exact = _v2_policy_record(
+        comparison.get('exactReference'), 'policyComparison.exactReference',
+        'optimal-fixed-rank-assignment/1')
+    require(exact.get('exact') is True and exact.get('completed') is True
+            and exact.get('predictedCostMatchesReplay') is True,
+            'Exact reference must be a completed proved replay')
+    predicted = number(
+        exact.get('predictedOrdinalCost'), 'predictedOrdinalCost')
+    require(math.isclose(predicted, exact['ordinalCost'],
+                         rel_tol=0.0, abs_tol=1e-12),
+            'Exact predicted cost does not match replay')
+    text(exact.get('proofScope'), 'proofScope')
+    active_minus_naive = number(
+        comparison.get('activeMinusNaiveCost'), 'activeMinusNaiveCost')
+    require(math.isclose(
+        active_minus_naive,
+        active['ordinalCost'] - naive['ordinalCost'],
+        rel_tol=0.0, abs_tol=1e-12),
+        'Active/naive comparison is inconsistent')
+    regret = comparison.get('exactRegret')
+    if active['completed']:
+        regret = number(regret, 'exactRegret')
+        require(math.isclose(
+            regret, active['ordinalCost'] - exact['ordinalCost'],
+            rel_tol=0.0, abs_tol=1e-12) and regret >= -1e-12,
+            'Exact regret is inconsistent')
+    else:
+        require(regret is None,
+                'Incomplete active policies cannot claim exact regret')
+
+    termination = obj(root.get('termination'), 'termination')
+    reason = text(termination.get('reason'), 'termination.reason')
+    require(type(termination.get('completed')) is bool,
+            'termination.completed must be boolean')
+    require(termination['completed'] == active['completed']
+            and reason == active['terminationReason'],
+            'Active policy and termination disagree')
+    number(termination.get('terminationTimeS'), 'terminationTimeS')
+    if termination['completed']:
+        require(reason == 'all_threats_resolved'
+                and termination.get('constraintStatus') == 'satisfied'
+                and termination.get('constraintViolation') is None
+                and intercepted == threats,
+                'Completed result has inconsistent constraint state')
+    else:
+        require(reason.startswith('constraint_violation:')
+                and termination.get('constraintStatus') == 'violated'
+                and isinstance(termination.get('constraintViolation'), str)
+                and bool(termination['constraintViolation'].strip())
+                and intercepted != threats,
+                'Recorded failure has inconsistent constraint state')
+
+    provenance = obj(root.get('provenance'), 'provenance')
+    scenario_ref = text(provenance.get('scenarioRef'),
+                        'provenance.scenarioRef')
+    require(_SCENARIO_REF.fullmatch(scenario_ref) is not None,
+            'Malformed scenario reference')
+    split = provenance.get('split')
+    profile = provenance.get('profile')
+    require(split in _V2_SPLITS, 'Unsupported scenario split')
+    require(profile in _V2_PROFILES, 'Unsupported scenario profile')
+    require(scenario_ref.startswith('sg2:' + split + ':'),
+            'Scenario reference/split mismatch')
+    require(provenance.get('seed') == root['seed'],
+            'Scenario provenance seed mismatch')
+    require(provenance.get('generatorVersion') == 'singapore-scenario/2'
+            and provenance.get('distributionVersion')
+            == 'singapore-scenario-distribution/1'
+            and provenance.get('providerIdentity') == 'singapore-demo-v2',
+            'Scenario provenance identity mismatch')
+    for key in ('distributionChecksum', 'providerConfigChecksum',
+                'providerDataChecksum', 'scenarioConfigChecksum',
+                'generatorConfigurationChecksum', 'boundarySourceChecksum',
+                'mainIslandGeometryChecksum', 'canonicalEpisodeHash'):
+        digest = provenance.get(key)
+        require(isinstance(digest, str) and _HASH.fullmatch(digest) is not None,
+                'Malformed provenance hash: ' + key)
+    for key in ('providerRuntimeIdentity', 'providerVersion',
+                'simulatorVersion'):
+        text(provenance.get(key), 'provenance.' + key)
+    require(provenance.get('hashVerified') is True,
+            'Scenario hash must be verified')
+    require(provenance.get('policyIdentity') == policy_identity,
+            'Policy provenance mismatch')
+    if policy_identity == 'structured-behavior-cloning/1':
+        require(provenance.get('policyArtifactIdentity')
+                == policy.get('artifactIdentity'),
+                'Policy artifact provenance mismatch')
+        require(provenance.get('policyDeploymentStatus')
+                == 'experimental-unpromoted',
+                'Policy deployment provenance mismatch')
+    strings(root.get('limitations'), 'limitations')
+
+
 def validate_result(kind, value):
     require(kind in ('planning', 'simulation'), 'Unsupported result kind')
     root = obj(value, 'result')
     json_values(root)
-    require(root.get('schemaVersion') == kind + '-result/1', 'Wrong result schema/kind')
+    schema = root.get('schemaVersion')
+    require(schema == kind + '-result/1'
+            or kind == 'simulation' and schema == 'simulation-result/2',
+            'Wrong result schema/kind')
     require(instant(root.get('start'), 'start') <= instant(root.get('end'), 'end'), 'Reversed result interval')
     try:
-        (planning if kind == 'planning' else simulation)(root)
+        (planning if kind == 'planning' else
+         simulation_v2 if schema == 'simulation-result/2' else simulation)(root)
     except (KeyError, TypeError, AttributeError) as exc:
         raise InvalidResult(f'Malformed {kind} result: {exc}') from exc
     return value

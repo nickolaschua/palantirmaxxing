@@ -185,22 +185,6 @@ export async function mountDecision(
       color: DIM, trailColor: DIM, width: 2, markerSize: 14, markerShape: "craft",
     });
   });
-  resources.use(() => inspector.dispose());
-  // Everything that belongs to this threat's flight. Once it is down, this goes
-  // and only the struck area stays, as a mark of where an intercept has been.
-  const setRouteVisible = (visible: boolean): void => {
-    path.setVisible(visible);
-    approach?.setVisible(visible);
-    approachLabel?.setVisible(visible);
-    descent?.setVisible(visible);
-    inspector.setRouteVisible(visible);
-  };
-  const setLayersVisible = (visible: boolean): void => {
-    setRouteVisible(visible);
-    markers.setVisible(visible);
-    circles.setVisible(visible);
-  };
-  setLayersVisible(false);
 
   const labels: LabelLayer = canvas.addLabels(threats.map(threat => ({
     position: threat.samples[0]!, text: threat.displayId,
@@ -635,32 +619,5 @@ export async function mountDecision(
       root.remove();
       restorePanel.remove();
     },
-  };
-}
-
-/** Returns immediately so navigation can dispose even a pending load. */
-export function mountDecision(
-  canvas: SingaporeCanvas,
-  setup: { ionToken?: string; googleApiKey?: string; lighting: LightingPreset },
-  loader: ResultLoader = loadPlanningResult,
-): Decision & { retry(): void; snapshot(): Snapshot | undefined } {
-  let basemap = canvas.scene.basemap;
-  let lighting = setup.lighting;
-  const loading = mountResultLoader(document.body, "Planning", loader, parseResult,
-    (parsed, snapshot) => {
-      const resources = new ResultResources(canvas);
-      try {
-        const view = renderDecision(resources.canvas, { ...setup, lighting }, parsed, resources, snapshot);
-        view.setBasemap(basemap);
-        return view;
-      } catch (error) { resources.dispose(); throw error; }
-    });
-  const runs = mountRunControls(loading.controls, "planning", loading.loadIdentity);
-  return {
-    retry: loading.retry,
-    snapshot: loading.snapshot,
-    setBasemap(kind) { basemap = kind; loading.current()?.setBasemap(kind); },
-    setLighting(preset) { lighting = preset; loading.current()?.setLighting(preset); },
-    dispose() { runs.dispose(); loading.dispose(); },
   };
 }

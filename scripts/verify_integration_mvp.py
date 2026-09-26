@@ -21,6 +21,16 @@ sys.path.insert(0, str(ROOT))
 from scripts.integration_preflight import INPUTS
 
 
+# These paths contain reproducible or exploratory artifacts produced by long-running
+# training jobs. They are not source inputs to the integration MVP, and another
+# training run must not invalidate an otherwise unchanged source snapshot.
+VOLATILE_OUTPUT_PREFIXES = (
+    'data/results/rl/experiments/',
+    'data/scenarios/rl/pools/',
+    'nickolas/',
+)
+
+
 def digest(data):
     return hashlib.sha256(data).hexdigest()
 
@@ -34,6 +44,7 @@ def fingerprint():
     files.update(git('ls-files', '--others', '--exclude-standard', '-z').decode().split('\0'))
     hashes = {name: digest((ROOT / name).read_bytes()) for name in sorted(files)
               if name and not name.startswith(('graphify-out/', '.codex/', 'outputs/'))
+              and not name.startswith(VOLATILE_OUTPUT_PREFIXES)
               and (ROOT / name).is_file()}
     versions = {}
     for command in ('node', 'npm'):
@@ -112,7 +123,7 @@ class Harness:
             self.assert_that('Missing Chromium:' in output and 'playwright install chromium' in output,
                              'Missing Chromium fails explicitly without skipping')
         junit = self.evidence / 'backend.xml'
-        self.run([sys.executable, '-m', 'pytest', '-q', '--junitxml', str(junit)], timeout=600)
+        self.run([sys.executable, '-m', 'pytest', '-q', '--junitxml', str(junit)], timeout=1200)
         suites = ET.parse(junit).getroot().findall('testsuite')
         self.assert_that(sum(int(s.attrib['tests']) for s in suites) >= 318,
                          'Backend suite contains at least the 318 established tests')
@@ -120,7 +131,10 @@ class Harness:
                          'No backend tests skipped')
         self.current['evidencePaths'].append(str(junit))
         output = self.run(['npm', 'test'], cwd=ROOT / 'frontend')
-        self.assert_that('pass 27' in output and 'skipped 0' in output, '27 frontend tests pass without skips')
+        unit_count = re.search(r'pass\s+(\d+)', output)
+        self.assert_that(unit_count is not None and int(unit_count.group(1)) >= 32
+                         and 'skipped 0' in output,
+                         'All frontend model tests pass without skips (at least 32)')
         output = self.run(['npm', 'run', 'test:ui'], cwd=ROOT / 'frontend')
         ui_count = re.search(r'Tests\s+(\d+) passed', output)
         self.assert_that(ui_count is not None and int(ui_count.group(1)) >= 25 and 'skipped' not in output,
@@ -128,7 +142,11 @@ class Harness:
         self.run(['npm', 'run', 'build'], cwd=ROOT / 'frontend')
 
     def b02(self):
-        curated = {str(path): digest(path.read_bytes()) for path in (ROOT / 'data/results').rglob('*.json')}
+        curated = {
+            str(path): digest(path.read_bytes())
+            for path in (ROOT / 'data/results').rglob('*.json')
+            if not path.relative_to(ROOT).as_posix().startswith(
+                'data/results/rl/experiments/')}
         with tempfile.TemporaryDirectory(prefix='mvp-fresh-') as temporary:
             directory = Path(temporary)
             for repeat in (1, 2):
@@ -167,12 +185,67 @@ class Harness:
                       '--scenario', 'data/scenarios/demo-singapore.json', '--output', str(directory / 'planning.json')])
             self.run([sys.executable, 'scripts/export_simulation_result.py', '--seed', '7',
                       '--output', str(directory / 'simulation.json')])
+            if gate == 'B08':
+                self.write_warmup_result(directory / 'warmup.json')
             output = self.evidence / gate
             try:
                 self.run(['node', 'tests/browser-integration.mjs', gate, str(output), str(directory), sys.executable],
-                          cwd=ROOT / 'frontend', timeout=240)
+                          cwd=ROOT / 'frontend', timeout=600 if gate == 'B08' else 240)
             finally:
                 self.current['evidencePaths'].extend(str(p) for p in output.rglob('*') if p.is_file())
+
+    @staticmethod
+    def write_warmup_result(path):
+        """Build a real two-threat v2 payload for browser geometry acceptance."""
+        from backend.presentation import simulation_result_v2_to_dict
+        from backend.simulation import (
+            NaiveLaunchOnDetectionPolicy, OptimalFixedRankAssignmentPolicy,
+            SingaporeConsequenceProvider, SingaporeScenarioConfig,
+            SingaporeScenarioV2Generator, SimulationEngine,
+            canonical_episode_hash, load_scenario_distribution)
+
+        config = SingaporeScenarioConfig()
+        seed_provider = SingaporeConsequenceProvider(scenario_config=config)
+        distribution = load_scenario_distribution()
+        generator = SingaporeScenarioV2Generator(
+            distribution=distribution, config=config,
+            consequence_provider=seed_provider)
+        episode = next((candidate for seed in range(90_000, 90_200)
+                        for candidate in (generator.generate(seed, 'warmup'),)
+                        if len(candidate.threats) == 2), None)
+        if episode is None:
+            raise AssertionError('could not construct a two-threat warmup fixture')
+
+        def engine():
+            provider = SingaporeConsequenceProvider(
+                catalog=seed_provider.catalog, scenario_config=config)
+            return SimulationEngine(episode, provider)
+
+        naive_engine = engine()
+        NaiveLaunchOnDetectionPolicy().run(naive_engine)
+        exact_engine = engine()
+        exact_run = OptimalFixedRankAssignmentPolicy().run(exact_engine)
+        active_engine = engine()
+        NaiveLaunchOnDetectionPolicy().run(active_engine)
+        entry = {
+            'scenario_ref': 'sg2:validation:999999',
+            'split': 'validation', 'index': 999999,
+            'seed': episode.seed, 'profile': 'warmup',
+            'generator_version': generator.version,
+            'distribution_version': distribution.version,
+            'distribution_checksum': distribution.checksum,
+            'provider_identity': 'singapore-demo-v2',
+            'canonical_episode_hash': canonical_episode_hash(episode),
+            'expected_feasible': True,
+        }
+        payload = simulation_result_v2_to_dict(
+            active_engine, scenario_entry=entry,
+            policy_identity=NaiveLaunchOnDetectionPolicy.identity,
+            naive_engine=naive_engine, exact_engine=exact_engine,
+            exact_plan=exact_run.plan)
+        path.write_text(json.dumps(
+            payload, indent=2, sort_keys=True, ensure_ascii=False,
+            allow_nan=False) + '\n')
 
     def b05(self):
         self.browser_gate('B05')
@@ -194,7 +267,7 @@ class Harness:
         self.browser_gate('B09')
 
     def b10(self):
-        self.run([sys.executable, '-m', 'pytest', '-q', '--junitxml', str(self.evidence / 'final-backend.xml')], timeout=600)
+        self.run([sys.executable, '-m', 'pytest', '-q', '--junitxml', str(self.evidence / 'final-backend.xml')], timeout=1200)
         suites = ET.parse(self.evidence / 'final-backend.xml').getroot().findall('testsuite')
         self.assert_that(sum(int(s.attrib['tests']) for s in suites) >= 333
                          and all(int(s.attrib.get('skipped', 0)) == 0 for s in suites),

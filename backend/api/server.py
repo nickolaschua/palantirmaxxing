@@ -10,6 +10,7 @@ from urllib.parse import unquote, urlsplit
 
 from .store import ResultNotFound, ResultStore, StoreUnavailable
 from .jobs import JobManager, InvalidSubmission, QueueFull, RunNotFound
+from backend.simulation.scenario_manifest import manifest_public_metadata
 
 
 class APIError(Exception):
@@ -40,7 +41,11 @@ def make_server(store, host='127.0.0.1', port=0, jobs=None):
 
         def do_GET(self):
             try:
-                segments = urlsplit(self.path).path.split('/')
+                path = urlsplit(self.path).path
+                if path == '/api/v1/scenario-manifest':
+                    self.respond(200, manifest_public_metadata())
+                    return
+                segments = path.split('/')
                 if len(segments) != 5 or segments[1:3] != ['api', 'v1']:
                     raise ResultNotFound()
                 if segments[3] == 'runs' and jobs is not None:
@@ -56,6 +61,9 @@ def make_server(store, host='127.0.0.1', port=0, jobs=None):
                 self.error(404, 'RUN_NOT_FOUND', 'No matching run.')
             except StoreUnavailable:
                 self.error(503, 'DELIVERY_UNAVAILABLE', 'Result delivery is temporarily unavailable.')
+            except ValueError:
+                self.error(503, 'MANIFEST_UNAVAILABLE',
+                           'The checked scenario manifest is unavailable.')
             except Exception:
                 self.log_error('Unexpected request failure')
                 self.error(500, 'INTERNAL_ERROR', 'Unexpected server failure.')
@@ -76,7 +84,11 @@ def make_server(store, host='127.0.0.1', port=0, jobs=None):
                 record = jobs.submit(json.loads(raw))
                 self.respond(202, record)
             except (InvalidSubmission, ValueError, UnicodeDecodeError):
-                self.error(400, 'INVALID_SUBMISSION', 'Expected planning kind only, or simulation kind with an integer seed from 0 through 2147483647; no unknown fields.')
+                self.error(400, 'INVALID_SUBMISSION',
+                           'Expected planning kind only; a legacy simulation '
+                           'with an integer seed; or a frozen simulation with '
+                           'a checked scenarioRef and supported policy. No '
+                           'unknown fields are accepted.')
             except QueueFull as exc:
                 self.error(429, 'QUEUE_FULL', str(exc))
             except StoreUnavailable:

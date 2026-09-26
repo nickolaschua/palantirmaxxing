@@ -3,6 +3,7 @@ from copy import deepcopy
 from datetime import datetime, timezone
 import fcntl
 import json
+import logging
 import os
 from pathlib import Path
 import threading
@@ -19,10 +20,15 @@ class ResultNotFound(LookupError):
     pass
 
 
+class AtomicWriteCommitted(OSError):
+    """Replacement is visible, but its directory durability is uncertain."""
+
+
 def atomic_json(path, value, before_replace=None):
     """Flush content before rename; publish only complete UTF-8 strict JSON."""
     path = Path(path)
     temporary = path.with_name('.' + path.name + '.' + uuid.uuid4().hex + '.tmp')
+    replaced = False
     try:
         with temporary.open('x', encoding='utf-8') as stream:
             json.dump(value, stream, ensure_ascii=False, allow_nan=False, separators=(',', ':'))
@@ -31,13 +37,19 @@ def atomic_json(path, value, before_replace=None):
         if before_replace:
             before_replace()
         os.replace(temporary, path)
+        replaced = True
         descriptor = os.open(str(path.parent), os.O_RDONLY)
         try:
             os.fsync(descriptor)
         finally:
             os.close(descriptor)
+    except OSError as exc:
+        if replaced:
+            raise AtomicWriteCommitted(f'{path} was replaced, but directory flush failed: {exc}') from exc
+        raise
     finally:
-        temporary.unlink(missing_ok=True)
+        if not replaced:
+            temporary.unlink(missing_ok=True)
 
 
 def canonical_id(identity):
@@ -134,7 +146,14 @@ class ResultStore:
                 index.setdefault('completedRuns', {})[finished['runId']] = finished
             try:
                 atomic_json(self.directory / (identity + '.json'), envelope)
-                atomic_json(self.directory / 'index.json', index, self.before_index_replace)
+                try:
+                    atomic_json(self.directory / 'index.json', index, self.before_index_replace)
+                except AtomicWriteCommitted:
+                    # The single-writer index rename already made both result
+                    # and successful run visible. Do not report that run failed
+                    # or retry publication under a different ID. A directory
+                    # flush error limits power-loss durability, not visibility.
+                    logging.exception('Publication %s committed; index directory durability is uncertain', identity)
             except OSError as exc:
                 raise StoreUnavailable(f'Cannot publish result: {exc}') from exc
             return envelope

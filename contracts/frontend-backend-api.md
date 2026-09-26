@@ -16,6 +16,7 @@ Result routes are same-origin, read-only GET requests:
 | `GET /api/v1/planning-results/{resultId}` | That immutable planning snapshot |
 | `GET /api/v1/simulation-results/latest` | Most recently published completed simulation result |
 | `GET /api/v1/simulation-results/{resultId}` | That immutable simulation snapshot |
+| `GET /api/v1/scenario-manifest` | Public metadata for the checked frozen-scenario manifest |
 
 Only completed, validated results are published. Partial, queued, running, and
 failed runs are never successful delivery results. Publication is atomic.
@@ -85,11 +86,32 @@ make requests or verify HTTP headers.
 
 ## Jobs
 
-`POST /api/v1/runs` accepts exactly `{"kind":"planning"}` or
-`{"kind":"simulation","seed":7}`. Simulation seed defaults to 7 and must be an
-integer in 0–2147483647. Unknown fields, unsupported kinds, booleans, fractional,
-negative, oversized and string seeds return 400. Input cannot specify commands,
-paths, policies or configuration. The baseline policy and existing exporters are fixed.
+`POST /api/v1/runs` retains the legacy forms `{"kind":"planning"}` and
+`{"kind":"simulation","seed":7}`. A legacy simulation seed defaults to 7 and
+must be an integer in 0–2147483647. A checked frozen run instead accepts exactly:
+
+```json
+{
+  "kind": "simulation",
+  "scenarioRef": "sg2:validation:000017",
+  "policy": "naive-launch-on-detection/1"
+}
+```
+
+`scenarioRef` and `policy` are required together, and `seed` is forbidden in
+this form. References must exist in the checked manifest. Accepted policies are
+`naive-launch-on-detection/1`, `feasible-immediate-matching/1`, and
+`optimal-fixed-rank-assignment/1`; each maps to a fixed internal implementation
+and argument list. Unknown fields, unsupported kinds or policies, malformed or
+unknown references, path-like input, booleans, fractional, negative, oversized,
+and string seeds return 400. Input cannot specify commands, paths, or arbitrary
+configuration.
+
+`GET /api/v1/scenario-manifest` is read-only and returns the public
+`rl-scenario-suites/5` identity plus generator, distribution, checksum and
+provider identities, followed by the 544 reference records needed by the
+browser: scenario reference, split, index, seed, profile, and canonical episode
+hash. It never accepts or exposes caller-selected filesystem paths.
 
 A submission returns 202 with a UUID `runId` and `status: "queued"`.
 `GET /api/v1/runs/{runId}` returns a persisted record with `queued`, `running`,
@@ -99,6 +121,9 @@ One background worker executes one isolated exporter subprocess at a time,
 with eight waiting jobs, a 120-second execution timeout, and separate output/logs.
 Overflow returns 429. Failed/invalid/timed-out exports do not change latest.
 Restart retains terminal records and marks interrupted queued/running jobs failed.
+Frozen-run records persist `scenarioRef` and `policy`. A reference that no
+longer regenerates its checked hash or provenance fails with
+`SCENARIO_IDENTITY_MISMATCH` and publishes no result.
 
 ## Client lifecycle and versioning
 
@@ -112,6 +137,8 @@ alone never replaces a displayed snapshot. Request generations and abort signals
 prevent stale/disposed requests from rendering. Failed fetching, validation, or
 render construction preserves the preceding snapshot and identity. Render attempts
 own their partial resources; successful replacement disposes old layers/listeners.
+Planning replacement constructs its layers and inspector before activating the
+shared clock, so a failed construction preserves the existing time and playback.
 Planning history retains its originating result ID and starts fresh per snapshot.
 Planning Restart is a presentation action and never submits a backend job.
 
@@ -120,6 +147,10 @@ one-second intervals without overlap. On success it loads the exact result ID,
 not latest. Polling stops at terminal state or disposal. A failed job leaves the
 preceding view intact and enables another submission. A polling transport failure
 offers Retry run status while keeping the existing job active.
+
+If an exact job-result fetch, validation, or render fails, the result Retry
+button repeats that exact result ID. Refresh remains a separate action that
+fetches latest. A newer competing publication cannot change Retry's target.
 
 Payload versions stay independent. Incompatible payload changes require a new
 schemaVersion and compatible parser; incompatible envelope/routes require `/api/v2`.
@@ -147,3 +178,8 @@ See [readiness](../nickolas/integration-readiness.md) for current evidence.
 Successful job status and its result identity commit in the same atomic publication
 index replacement. Per-run JSON files mirror that state; a failed mirror write
 cannot turn an already committed success into an interrupted job on restart.
+
+The index rename is the visibility commit point. A subsequent directory-flush
+failure is logged as uncertain power-loss durability, but does not reclassify the
+visible result/run as failed or change its identity on a normal service restart.
+Failures before the index rename leave latest unchanged.

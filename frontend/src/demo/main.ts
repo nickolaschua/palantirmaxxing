@@ -1,7 +1,7 @@
 import { createSingaporeCanvas, FlightCancelled, PRESETS } from "../lib/index.js";
 import { mountPopulation } from "./population.js";
 import { HOSPITALS, MILITARY, mountOsmAreas } from "./osm-areas.js";
-import { mountDecision } from "./decision.js";
+import { mountDecision, type Decision } from "./decision.js";
 import { mountSimulationResult } from "./simulation.js";
 import type { BasemapKind, LightingPreset } from "../lib/index.js";
 import "./style.css";
@@ -75,7 +75,7 @@ const VIEWS: readonly { id: View; label: string; basemap: BasemapKind }[] = [
 ];
 let view: View = "grey";
 // Mounted last; the panel can be used before it is ready.
-let decision: ReturnType<typeof mountDecision> | undefined;
+let decision: Decision | undefined;
 const viewButtons = new Map<View, HTMLButtonElement>();
 
 async function setView(next: (typeof VIEWS)[number]): Promise<void> {
@@ -175,5 +175,5 @@ if (import.meta.hot) import.meta.hot.dispose(() => {
 
 Object.assign(window, { __canvas: canvas });
 if (acceptance) Object.defineProperty(window, "__mvpAcceptance", { configurable: true, value: Object.freeze({
-  inspect: () => ({ canvas: canvas.inspect?.(), planning: decision?.snapshot(), simulation: simulation.snapshot() }),
+  inspect: () => ({ canvas: canvas.inspect?.(), simulation: simulation.snapshot() }),
 }) });

@@ -59,9 +59,9 @@ class SensitivityIntegrationTests(unittest.TestCase):
 
     def test_grid_parameters_and_recorded_counts(self):
         rows = self.study['rows']
-        self.assertEqual(len(rows), 36)
+        self.assertEqual(len(rows), 45)
         self.assertEqual([r['parameters'] for r in rows], parameter_grid())
-        self.assertEqual(len({tuple(r['parameters'].values()) for r in rows}), 36)
+        self.assertEqual(len({tuple(r['parameters'].values()) for r in rows}), 45)
         for row in rows:
             self.assertEqual(row['counts']['totalCandidates'], 50)
             self.assertTrue(row['reasons'])

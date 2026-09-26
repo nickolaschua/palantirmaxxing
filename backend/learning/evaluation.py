@@ -11,7 +11,7 @@ from typing import Any, Callable, List, Mapping, Optional, Sequence, Tuple
 import numpy as np
 
 from backend.simulation import (DeterministicToyProvider, EpisodeSpec,
-                                ImmediateInterceptionPolicy, ObjectiveDirection,
+                                FeasibleImmediateMatchingPolicy, ObjectiveDirection,
                                 SeededScenarioGenerator, SimulationEngine,
                                 canonical_episode_hash)
 
@@ -54,6 +54,8 @@ class EpisodeEvaluation:
     scenario_generator_version: str
     policy_inference_samples_ms: Tuple[float, ...]
     decision_path_samples_ms: Tuple[float, ...]
+    constraint_violation: bool
+    termination_reason: str
     oracle: Optional[OracleEvidence] = None
 
 
@@ -73,6 +75,8 @@ class ComparisonSummary:
     oracle_eligible_regret_count: int
     median_normalized_regret: Optional[float]
     oracle_enumerated_action_sequences: int
+    constraint_violation_count: int
+    constraint_violation_rate: float
 
 
 def _rollout_model(model: Any, env: CentralizedInterceptionEnv,
@@ -129,7 +133,7 @@ def evaluate_model(model: Any, seeds: Sequence[int],
         finally:
             env.close()
         baseline_engine = SimulationEngine(spec, provider_factory())
-        baseline = ImmediateInterceptionPolicy().run(baseline_engine)
+        baseline = FeasibleImmediateMatchingPolicy().run(baseline_engine)
         if baseline.truncated or baseline.raw_score is None:
             raise RuntimeError('baseline episode did not terminate normally')
         oracle_evidence = None
@@ -170,9 +174,12 @@ def evaluate_model(model: Any, seeds: Sequence[int],
             decision_path_p95_ms=float(np.percentile(decision_samples, 95)),
             policy_inference_samples_ms=inference_samples,
             decision_path_samples_ms=decision_samples,
+            constraint_violation=str(info['termination_reason']).startswith(
+                'constraint_violation:'),
+            termination_reason=str(info['termination_reason']),
             oracle=oracle_evidence,
             model_version=getattr(model, 'model_version', model.__class__.__name__),
-            baseline_version=ImmediateInterceptionPolicy.identity,
+            baseline_version=FeasibleImmediateMatchingPolicy.identity,
             provider_identity=info['provider']['identity'],
             provider_version=info['provider']['version'],
             score_direction=info['score_direction'],
@@ -258,6 +265,9 @@ def summarize_comparison(rows: Sequence[EpisodeEvaluation]) -> ComparisonSummary
         oracle_eligible_regret_count=len(regrets),
         median_normalized_regret=statistics.median(regrets) if regrets else None,
         oracle_enumerated_action_sequences=sum(item.enumerated_action_sequences for item in oracles),
+        constraint_violation_count=sum(row.constraint_violation for row in rows),
+        constraint_violation_rate=(sum(row.constraint_violation for row in rows)
+                                   / len(rows)),
     )
 
 
@@ -283,6 +293,7 @@ def normalized_regret(policy_score: float, baseline_score: float,
 def acceptance_evidence(summary: ComparisonSummary,
                         median_oracle_regret: Optional[float] = None) -> Mapping[str, bool]:
     return {
+        'zero_constraint_violations': summary.constraint_violation_count == 0,
         'win_rate_at_least_60_percent': summary.win_rate >= 0.60,
         'mean_improvement_at_least_5_percent': summary.relative_mean_improvement >= 0.05,
         'bootstrap_ci_excludes_zero': summary.favorable_mean_difference_ci95[0] > 0,

@@ -7,7 +7,7 @@ exists) artifact reload plus masked inference. It writes
 `data/results/singapore-simulation-benchmark.json`.
 
 `export_simulation_result.py` deterministically generates a Singapore episode,
-runs the immediate-interception baseline, and writes the independent
+runs the feasible full-episode matching baseline, and writes the independent
 `simulation-result/1` frontend artifact. The output deliberately uses supplied-
 area and assumption-grade language.
 

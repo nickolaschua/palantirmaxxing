@@ -133,6 +133,27 @@ export function parseSimulationResult(value: unknown): SimulationResult {
   if (selectedFootprints.length !== 8 || terminalCounterfactualFootprints.length !== 8 || assignments.length !== 8) {
     throw new Error("simulation-result/1 requires eight assignments and both eight-footprint sets");
   }
+  const threatIds = new Set(trajectories.map(row => row.threatId));
+  const assignmentThreats = new Set<string>(), assignmentInterceptors = new Set<string>();
+  const assignmentOpportunities = new Set<string>();
+  for (const [i, row] of assignments.entries()) {
+    const threatId = text(row.threat_id, `assignments[${i}].threat_id`);
+    const interceptorId = text(row.interceptor_id, `assignments[${i}].interceptor_id`);
+    const opportunityId = text(row.opportunity_id, `assignments[${i}].opportunity_id`);
+    if (!threatIds.has(threatId) || row.status !== "locked") throw new Error(`assignments[${i}] is not a locked known threat`);
+    if (assignmentThreats.has(threatId) || assignmentInterceptors.has(interceptorId)
+        || assignmentOpportunities.has(opportunityId)) throw new Error("assignment IDs must resolve uniquely");
+    assignmentThreats.add(threatId); assignmentInterceptors.add(interceptorId);
+    assignmentOpportunities.add(opportunityId);
+  }
+  for (const [i, row] of selectedFootprints.entries()) {
+    if (!assignmentThreats.has(row.threatId) || !row.opportunityId
+        || !assignmentOpportunities.has(row.opportunityId)) throw new Error(`selectedFootprints[${i}] does not resolve to an assignment`);
+  }
+  if (new Set(terminalCounterfactualFootprints.map(row => row.threatId)).size !== 8
+      || terminalCounterfactualFootprints.some(row => !threatIds.has(row.threatId))) {
+    throw new Error("terminal footprint threat IDs must resolve uniquely");
+  }
   const consequence = object(root.consequenceSummary, "consequenceSummary");
   const physical = object(consequence.physicalComponents, "physicalComponents");
   for (const [key, number] of Object.entries(physical)) finite(number, `physicalComponents.${key}`);
@@ -140,6 +161,10 @@ export function parseSimulationResult(value: unknown): SimulationResult {
   if (wording.area !== "supplied 100 m area" || wording.population !== "people potentially exposed"
       || wording.casualties !== "assumption-grade expected casualties") throw new Error("simulation consequence wording is not compliant");
   const comparison = object(root.policyVersusBaseline, "policyVersusBaseline");
+  const policyIdentity = text(comparison.policyIdentity, "policyIdentity");
+  const baselineIdentity = text(comparison.baselineIdentity, "baselineIdentity");
+  if (!["feasible-immediate-matching/1", "optimal-fixed-rank-assignment/1"].includes(policyIdentity)
+      || baselineIdentity !== "feasible-immediate-matching/1") throw new Error("unknown policy identity/version");
   const measured = comparison.measuredRelativeImprovement;
   if (measured !== null) finite(measured, "measuredRelativeImprovement");
   return {
@@ -153,9 +178,9 @@ export function parseSimulationResult(value: unknown): SimulationResult {
       wording: wording as SimulationResult["consequenceSummary"]["wording"],
     },
     policyVersusBaseline: {
-      policyIdentity: text(comparison.policyIdentity, "policyIdentity"),
+      policyIdentity,
       policyOrdinalCost: finite(comparison.policyOrdinalCost, "policyOrdinalCost"),
-      baselineIdentity: text(comparison.baselineIdentity, "baselineIdentity"),
+      baselineIdentity,
       baselineOrdinalCost: finite(comparison.baselineOrdinalCost, "baselineOrdinalCost"),
       measuredRelativeImprovement: measured as number | null,
       claim: text(comparison.claim, "claim"),

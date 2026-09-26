@@ -28,6 +28,7 @@ from .models import (AbsoluteCandidate, EpisodeSpec, InterceptorResource,
 
 SINGAPORE_SCENARIO_VERSION = 'singapore-scenario/1'
 SINGAPORE_EPISODE_SCHEMA_VERSION = 'simulation-episode/2'
+SINGAPORE_OBJECTIVE_REFERENCE_VERSION = 'full-candidate-universe/1'
 _REPO = Path(__file__).resolve().parents[2]
 DEFAULT_BOUNDARIES_PATH = _REPO / 'data' / 'raw' / 'boundaries.geojson'
 _TO_SVY21 = Transformer.from_crs('EPSG:4326', 'EPSG:3414', always_xy=True)
@@ -67,6 +68,8 @@ class SingaporeScenarioConfig:
             raise ValueError('singapore-scenario/1 fixes EPSG:3414')
         if self.consequence_condition != 'weekday_midday':
             raise ValueError('singapore-scenario/1 fixes weekday_midday')
+        if self.supplied_footprint_radius_m != 100.0:
+            raise ValueError('singapore-scenario/1 fixes the supplied footprint radius at 100 m')
         for name in (
                 'detection_boundary_offset_m', 'altitude_min_m', 'altitude_mode_m',
                 'altitude_max_m', 'threat_horizontal_speed_mps', 'gravity_mps2',
@@ -197,14 +200,33 @@ class SingaporeScenarioGenerator:
 
     version = SINGAPORE_SCENARIO_VERSION
 
-    def __init__(self, config: SingaporeScenarioConfig = SingaporeScenarioConfig(),
+    def __init__(self, config: Optional[SingaporeScenarioConfig] = None,
                  boundaries_path: Path = DEFAULT_BOUNDARIES_PATH,
                  consequence_provider: Optional[Any] = None,
                  eligibility_checker: Optional[Callable[[ScheduledThreat, AbsoluteCandidate], bool]] = None):
+        if config is None:
+            config = (getattr(consequence_provider, 'scenario_config', None)
+                      or SingaporeScenarioConfig())
+        if not isinstance(config, SingaporeScenarioConfig):
+            raise ValueError('config must be a SingaporeScenarioConfig')
         self.config = config
         self.main_island = load_main_island(boundaries_path)
         self.consequence_provider = consequence_provider
         self.eligibility_checker = eligibility_checker
+        if consequence_provider is not None:
+            self._validate_provider_contract(consequence_provider)
+
+    def _validate_provider_contract(self, provider: Any) -> None:
+        if getattr(provider, 'scenario_config', None) is not self.config:
+            raise ValueError('Singapore generator and provider must share the same config object')
+        if float(getattr(provider, 'footprint_radius_m', math.nan)) != 100.0:
+            raise ValueError('Singapore provider radius must equal the scenario 100 m radius')
+        if getattr(provider, 'condition_id', None) != self.config.consequence_condition:
+            raise ValueError('Singapore provider consequence condition must equal the scenario condition')
+        geometry = getattr(getattr(provider, 'catalog', None), 'main_island', None)
+        if (geometry is None
+                or geometry.geometry_checksum != self.main_island.geometry_checksum):
+            raise ValueError('Singapore provider and scenario must use the same main-island geometry')
 
     @property
     def configuration_checksum(self) -> str:
@@ -288,9 +310,11 @@ class SingaporeScenarioGenerator:
         if self.consequence_provider is None:
             from .singapore_provider import SingaporeConsequenceProvider
             self.consequence_provider = SingaporeConsequenceProvider(
+                scenario_config=self.config,
                 main_island=self.main_island,
                 footprint_radius_m=self.config.supplied_footprint_radius_m,
                 condition_id=self.config.consequence_condition)
+        self._validate_provider_contract(self.consequence_provider)
         return self.consequence_provider
 
     def _edges(self, threats: Sequence[ScheduledThreat],
@@ -373,6 +397,7 @@ class SingaporeScenarioGenerator:
                 'generator_configuration_checksum': self.configuration_checksum,
                 'boundary_source_checksum': self.main_island.source_checksum,
                 'main_island_geometry_checksum': self.main_island.geometry_checksum,
+                'objective_reference': SINGAPORE_OBJECTIVE_REFERENCE_VERSION,
                 'matching': dict(sorted(matching.items())),
                 'generation_attempts_by_threat': dict(
                     (row.state.threat_id, attempts[index])

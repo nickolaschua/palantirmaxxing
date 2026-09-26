@@ -31,10 +31,12 @@ from backend.exposure.calculator import coverage, footprint, zone_exposure
 
 from .models import AbsoluteCandidate, ScheduledThreat
 from .provider import ObjectiveDirection, ProviderEvaluation
-from .singapore_scenario import (MainIslandGeometry, load_main_island)
+from .singapore_scenario import (MainIslandGeometry, SingaporeScenarioConfig,
+                                 SINGAPORE_OBJECTIVE_REFERENCE_VERSION,
+                                 load_main_island)
 
 
-SINGAPORE_PROVIDER_VERSION = 'singapore-demo-v2/1'
+SINGAPORE_PROVIDER_VERSION = 'singapore-demo-v2-fixed-rank/2'
 CONSEQUENCE_CATALOG_VERSION = 'singapore-consequence-catalog/1'
 _REPO = Path(__file__).resolve().parents[2]
 _POPULATION = _REPO / 'data' / 'processed' / 'population-projected.json'
@@ -42,6 +44,26 @@ _MILITARY = _REPO / 'frontend' / 'src' / 'demo' / 'military.json'
 _PARKS = _REPO / 'backend' / 'data_sources' / 'consequence' / 'parks_civic'
 _CRITICAL = _REPO / 'backend' / 'data_sources' / 'consequence' / 'critical_sectors'
 _TO_SVY21 = Transformer.from_crs('EPSG:4326', 'EPSG:3414', always_xy=True)
+
+
+class FrozenDict(dict):
+    """JSON-compatible mapping that cannot be changed after construction."""
+
+    def _immutable(self, *_args, **_kwargs):
+        raise TypeError('candidate assessment evidence is immutable')
+
+    __setitem__ = __delitem__ = clear = pop = popitem = setdefault = update = _immutable
+
+    def __deepcopy__(self, _memo):
+        return self
+
+
+def _freeze(value: Any) -> Any:
+    if isinstance(value, Mapping):
+        return FrozenDict((key, _freeze(item)) for key, item in value.items())
+    if isinstance(value, (list, tuple)):
+        return tuple(_freeze(item) for item in value)
+    return value
 
 
 def _sha256_bytes(value: bytes) -> str:
@@ -121,6 +143,7 @@ class CandidateAssessment:
     veto_status: str
     veto_reasons: Tuple[str, ...]
     training_cost: float
+    footprint_radius_m: float
     C: Tuple[float, float, float]
     secondary: Optional[Tuple[float, float, float]]
     population_exposure: Mapping[str, Any]
@@ -132,6 +155,17 @@ class CandidateAssessment:
     config_identity: str
     cache_identity: str
     rank_context: Mapping[str, Any]
+
+    def __post_init__(self) -> None:
+        if not math.isfinite(self.training_cost):
+            raise ValueError('candidate training_cost must be finite')
+        if self.footprint_radius_m != 100.0:
+            raise ValueError('candidate assessment radius must be 100 m')
+        object.__setattr__(self, 'population_exposure',
+                           _freeze(self.population_exposure))
+        object.__setattr__(self, 'intersected_sites',
+                           _freeze(self.intersected_sites))
+        object.__setattr__(self, 'rank_context', _freeze(self.rank_context))
 
     def as_dict(self) -> Mapping[str, Any]:
         value = asdict(self)
@@ -311,14 +345,29 @@ class SingaporeConsequenceProvider:
     identity = 'singapore-consequence-provider'
     version = SINGAPORE_PROVIDER_VERSION
     objective_direction = ObjectiveDirection.MINIMIZE
+    fixed_candidate_costs = True
+    additive_training_costs = True
+    operational_updates_affect_costs = False
+    objective_reference_version = SINGAPORE_OBJECTIVE_REFERENCE_VERSION
 
     def __init__(self, catalog: Optional[ConsequenceCatalog] = None,
                  main_island: Optional[MainIslandGeometry] = None,
                  footprint_radius_m: float = 100.0,
-                 condition_id: str = 'weekday_midday'):
+                 condition_id: str = 'weekday_midday',
+                 scenario_config: Optional[SingaporeScenarioConfig] = None):
+        if scenario_config is not None:
+            if not isinstance(scenario_config, SingaporeScenarioConfig):
+                raise ValueError('scenario_config must be a SingaporeScenarioConfig')
+            footprint_radius_m = scenario_config.supplied_footprint_radius_m
+            condition_id = scenario_config.consequence_condition
         if type(footprint_radius_m) not in (int, float) or not math.isfinite(
-                footprint_radius_m) or footprint_radius_m <= 0:
-            raise ValueError('footprint_radius_m must be finite and positive')
+                footprint_radius_m) or footprint_radius_m != 100.0:
+            raise ValueError('Singapore provider fixes footprint_radius_m at 100 m')
+        if condition_id != 'weekday_midday':
+            raise ValueError('Singapore provider fixes weekday_midday')
+        if scenario_config is None:
+            scenario_config = SingaporeScenarioConfig()
+        self.scenario_config = scenario_config
         self.catalog = catalog or build_consequence_catalog(main_island, condition_id)
         self.footprint_radius_m = float(footprint_radius_m)
         self.condition_id = condition_id
@@ -330,9 +379,11 @@ class SingaporeConsequenceProvider:
             'condition_id': self.condition_id,
             'policy': POLICY_DEMO_V2,
             'circle_edges': self.settings.circle_edges,
+            'objective_reference': self.objective_reference_version,
+            'scenario_config_checksum': self.scenario_config.checksum,
         })
         self.cache_identity = _json_identity({
-            'schema': 'candidate-assessment-cache/1',
+            'schema': 'candidate-assessment-cache/2',
             'config_identity': self.config_identity})
         self._spatial_cache: Dict[Tuple[float, float, float], Mapping[str, Any]] = {}
         self._assessments: Dict[str, CandidateAssessment] = {}
@@ -498,6 +549,9 @@ class SingaporeConsequenceProvider:
         rank_context = {
             'threat_id': threat.state.threat_id,
             'eligible_candidate_count': len(ordered),
+            'candidate_universe_count': len(raw),
+            'objective_reference': self.objective_reference_version,
+            'objective_scope': 'full_candidate_universe',
             'ordered_opportunity_ids': [
                 row['candidate'].opportunity.opportunity_id for row in ordered],
             'policy_version': POLICY_DEMO_V2['version'],
@@ -523,6 +577,7 @@ class SingaporeConsequenceProvider:
             assessment = CandidateAssessment(
                 opportunity_id, eligible, row['veto_status'],
                 tuple(spatial['veto_reasons']), training_cost,
+                self.footprint_radius_m,
                 (C.low, C.central, C.high),
                 None if secondary is None else tuple(secondary),
                 dict(spatial['population']), tuple(spatial['sites']), features,
@@ -635,10 +690,16 @@ class SingaporeConsequenceProvider:
                            operational_state: Mapping[str, Any]) -> ProviderEvaluation:
         del operational_state
         return ProviderEvaluation(
-            None,
-            failure_status='constraint_failure:unhandled_threat',
+            9.0,
+            training_cost=9.0,
+            components={'constraint_violation_penalty': 9.0},
+            constraint_violation='unhandled_threat',
+            provenance={
+                'provider': self.identity, 'version': self.version,
+                'objective_reference': self.objective_reference_version,
+            },
             evidence={'threat_id': threat.state.threat_id,
-                      'constraint': 'all generated threats require interception'})
+                      'constraint': 'all-threats-intercepted'})
 
     def aggregate(self, outcomes: Iterable[ProviderEvaluation],
                   operational_state: Mapping[str, Any]) -> ProviderEvaluation:
@@ -661,6 +722,7 @@ class SingaporeConsequenceProvider:
                 'catalog_identity': self.catalog.identity,
                 'config_identity': self.config_identity,
                 'aggregation': 'sum of eight normalized ordinal event costs',
+                'objective_reference': self.objective_reference_version,
             },
             evidence={
                 'outcome_count': len(rows),

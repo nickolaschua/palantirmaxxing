@@ -329,7 +329,7 @@ Some residential sites are areas, not buildings: merged landed lots (`private_la
 N_effective = N_site * overlap_area / site_area
 ```
 
-This is assumption-grade: density is taken as uniform over the site geometry (roads, gardens and void decks included). Site-level scoring has no interception candidate, so the footprint is a placeholder circle on the site's representative point with the static scenario's supplied radius (`footprint_radius_m`, 500 m, in `data/scenarios/demo-singapore.json`). It is not debris physics, and it must be replaced by the candidate's own footprint once the candidate bridge exists. Buildings and parcels are `direct`.
+This is assumption-grade: density is taken as uniform over the site geometry (roads, gardens and void decks included). Site-level scoring has no interception candidate, so the footprint is a placeholder circle on the site's representative point with the static scenario's supplied radius (`footprint_radius_m`, 100 m, in `data/scenarios/demo-singapore.json`). It is not debris physics, and it must be replaced by the candidate's own footprint once the candidate bridge exists. Buildings and parcels are `direct`.
 
 Tier 2 (`building_level`: weighting by residential floor area within the footprint) is the named follow-up. It is deferred because it needs a building layer with residential floor area that is not yet integrated.
 

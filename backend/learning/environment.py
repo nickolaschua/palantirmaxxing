@@ -153,6 +153,7 @@ class CentralizedInterceptionEnv(gym.Env):
         self.interceptor_slots: Tuple[Optional[str], ...] = (None,) * MAX_INTERCEPTORS
         self._episode_counter = 0
         self._decision_counter = 0
+        self._episode_reward = 0.0
 
     @staticmethod
     def encode_assignment_action(threat_slot: int, interceptor_slot: int,
@@ -215,6 +216,7 @@ class CentralizedInterceptionEnv(gym.Env):
             [item.state.interceptor_id for item in ordered_interceptors]
             + [None] * (MAX_INTERCEPTORS - len(ordered_interceptors)))
         self._decision_counter = 0
+        self._episode_reward = 0.0
         observation = self._observation()
         return observation, self._info(())
 
@@ -273,13 +275,25 @@ class CentralizedInterceptionEnv(gym.Env):
         timing_ms = (time.perf_counter() - started) * 1000.0
         observation = self._observation()
         after = self.engine.snapshot()
-        reward = 0.0
-        if self.engine.terminated and self.engine.raw_score is not None:
-            reward = float(self.engine.raw_score)
+        step_training_costs = tuple(
+            float(record.details['training_cost'])
+            for record in processed_events
+            if record.kind in ('interception_outcome', 'threat_expiry')
+            and record.details.get('training_cost') is not None)
+        reward = math.fsum(step_training_costs)
+        if self.engine.objective_direction == ObjectiveDirection.MINIMIZE:
+            reward = -reward
+        self._episode_reward = math.fsum((self._episode_reward, reward))
+        if (self.engine.terminated and self.engine.aggregate_result is not None
+                and self.engine.aggregate_result.training_cost is not None):
+            expected = float(self.engine.aggregate_result.training_cost)
             if self.engine.objective_direction == ObjectiveDirection.MINIMIZE:
-                reward = -reward
+                expected = -expected
+            if not math.isclose(self._episode_reward, expected,
+                                rel_tol=0.0, abs_tol=1e-12):
+                self.engine.truncate('malformed_state:reward_cost_mismatch')
         self._decision_counter += 1
-        info = self._info(processed_events)
+        info = self._info(processed_events, step_training_costs)
         if self.recorder is not None:
             event_id = '%s:d%06d' % (
                 self.episode_spec.episode_id, self._decision_counter)
@@ -298,12 +312,15 @@ class CentralizedInterceptionEnv(gym.Env):
                 provider_provenance=self.engine.provider_audit(),
                 model_version=self.policy_version,
                 termination_reason=self.engine.termination_reason,
+                reward=reward,
+                step_training_costs=step_training_costs,
                 timing_ms=timing_ms,
             ))
         return (observation, reward, self.engine.terminated,
                 self.engine.truncated, info)
 
-    def _info(self, processed_events: Sequence[Any]) -> Dict[str, Any]:
+    def _info(self, processed_events: Sequence[Any],
+              step_training_costs: Sequence[float] = ()) -> Dict[str, Any]:
         return {
             'episode_id': self.episode_spec.episode_id,
             'seed': self.episode_spec.seed,
@@ -313,6 +330,8 @@ class CentralizedInterceptionEnv(gym.Env):
             'simulator_version': self.engine.snapshot()['simulator_version'],
             'termination_reason': self.engine.termination_reason,
             'processed_events': [item.as_dict() for item in processed_events],
+            'step_training_costs': list(step_training_costs),
+            'episode_reward': self._episode_reward,
         }
 
     @staticmethod

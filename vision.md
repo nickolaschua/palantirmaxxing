@@ -20,10 +20,11 @@ evidence, uncertainty, provenance, and comparison with a simple fixed baseline.
 It is not the scientific or physical model itself.
 
 The eventual demo claim is that the team trained an agent on many reproducible
-Singapore-specific simulations and measured how its choices compare with an
-immediate-interception baseline. “Optimal” is not part of the current claim. It
-requires a frozen objective, held-out evaluation, constraint compliance,
-bounded-oracle evidence, and measured end-to-end inference time.
+Singapore-specific simulations and measured how its choices compare with a
+feasible full-episode baseline. The backend now has an exact fixed-rank
+assignment reference, but that exactness is deliberately limited to immutable
+additive ordinal costs, one-use interceptors, and complete coverage. It is not
+a claim that a learned policy or the physical system is globally optimal.
 
 ## What is implemented now
 
@@ -35,6 +36,7 @@ bounded-oracle evidence, and measured end-to-end inference time.
 | Singapore scenario generator | `singapore-scenario/1` generates exactly eight threats and eight one-use synthetic interceptors, 3D parabolic threat trajectories, 20 samples per pair, and a complete feasible assignment in EPSG:3414. |
 | Consequence bridge | Candidate-centered supplied 100 m circles are intersected with population and available site geometries, then passed through Emmanuel's existing demo-v2 scoring and ordering. |
 | Event simulator | A deterministic continuous-event engine handles detection, tentative assignment, assignment lock, resource consumption, interception, and defensive failure paths. |
+| Offline references | `feasible-immediate-matching/1` produces a complete earliest-interception matching; `optimal-fixed-rank-assignment/1` exactly minimizes the frozen additive assignment objective and is replay-checked. |
 | Learning system | A centralized masked Gymnasium environment, MaskablePPO training/loading, normalization persistence, evaluation utilities, fixed seed suites, and bounded-oracle plumbing are implemented. |
 | Result and frontend | A separate `simulation-result/1` contract, seed-7 baseline artifact, parser, and frontend view display eight trajectories, events, footprints, consequences, provenance, and limitations. |
 | Live API | Not implemented. The frontend consumes checked result artifacts. |
@@ -66,13 +68,15 @@ threat speed, and supplied 100 m circular footprints. Interceptor reachability
 remains two-dimensional even though threat altitude is preserved.
 
 Each generated episode must admit a complete matching between all eight threats
-and eight distinct interceptors. The immediate-interception baseline chooses
-the earliest eligible interception, with stable reachability-margin and ID
-tie-breaks.
+and eight distinct interceptors. The feasible baseline selects the earliest
+eligible candidate per pair, with stable reachability-margin and ID tie-breaks,
+then minimizes total interception time over a complete one-to-one matching.
 
 The consequence adapter preserves Emmanuel's vetoes, expected-casualty ordering,
 10% / 0.5 casualty tie band, and secondary score. Valid candidates receive a
-normalized ordinal rank cost from 0 to 1. Eight event costs are summed. Expected
+normalized ordinal rank cost from 0 to 1 against the threat's complete
+160-candidate universe. Costs and evidence are frozen before reservations.
+Eight event costs are summed. Expected
 casualties, people potentially exposed, site effects, and the ordinal learning
 objective remain separate outputs.
 
@@ -80,8 +84,8 @@ objective remain separate outputs.
 
 The current local state has passed:
 
-- 308 backend tests;
-- 14 frontend tests; and
+- 318 backend tests;
+- 19 frontend tests; and
 - the TypeScript/Vite production build, with the existing bundle-size advisory.
 
 A 16-step Singapore MaskablePPO run trained, saved, reloaded with normalization
@@ -90,13 +94,18 @@ measures scenario generation, cold and warm consequence evaluation, a complete
 baseline episode, environment steps, smoke-policy inference, and memory.
 
 This demonstrates working plumbing and reproducibility. The checked frontend
-result remains the immediate-interception baseline on both sides of the
+result remains the feasible full-episode baseline on both sides of the
 comparison.
+
+The backend acceptance sweep completed all 64 validation and 32 stress seeds
+for both the feasible baseline and exact fixed-rank assignment reference:
+96/96 normal terminations per policy, zero constraint violations, predicted and
+actual optimizer equality, and optimizer cost no worse than baseline in 96/96.
 
 ## What has not been demonstrated
 
-The versioned Singapore validation, held-out, stress, and bounded-oracle suites
-have not been completed for a trained policy. The project therefore does not yet
+The versioned held-out suite and policy evaluation gates have not been completed
+for a trained policy. The project therefore does not yet
 have evidence of learned-policy improvement or optimality.
 
 The current model also does not establish a validated physical blast or debris
@@ -131,8 +140,8 @@ clearly.
 2. Commit the intended local integration so the demonstrated state is
    reproducible outside the current working tree.
 3. Train a non-smoke Singapore policy under a recorded budget.
-4. Run validation, held-out, stress, bounded-oracle, and constraint gates.
-5. Compare the learned policy with the exact same immediate-interception
+4. Run validation, held-out, stress, fixed-rank reference, bounded-oracle, and constraint gates.
+5. Compare the learned policy with the exact same feasible full-episode
    baseline and simulator configuration.
 6. If the evidence supports it, update the checked result and frontend with the
    measured improvement, uncertainty, failure rate, and latency.

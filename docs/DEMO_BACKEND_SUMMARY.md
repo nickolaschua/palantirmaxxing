@@ -8,7 +8,7 @@ Supplied threat state → 50 future trajectory samples → bounded-curvature rea
 
 Calculated by the backend: trajectory samples from supplied motion, reachability, geographic population exposure, Pareto membership, representative categories and factual comparison deltas. All 50 opportunities remain in the handoff; unreachable and dominated candidates are excluded from the decision frontier, not erased.
 
-Synthetic/supplied: fictional threat path and launch origin, 225 m/s threat speed, 500 m/s interceptor speed, 15 deg/s turn limit, 500 m consequence radius and linear success profile (0.97 initial, 0.004/s decay, 0.70 floor). The UTC start 2026-09-15T00:00:00Z and 1000 m visualization height have no model significance. No physical debris trajectory or operational calibration is claimed.
+Synthetic/supplied: fictional threat path and launch origin, 225 m/s threat speed, 500 m/s interceptor speed, 15 deg/s turn limit, 100 m consequence radius and linear success profile (0.97 initial, 0.004/s decay, 0.70 floor). The UTC start 2026-09-15T00:00:00Z and 1000 m visualization height have no model significance. No physical debris trajectory or operational calibration is claimed.
 
 ## Separate Singapore demo
 
@@ -16,15 +16,15 @@ The fictional eastbound Ang Mo Kio–Serangoon path runs from EPSG:3414 (27300,3
 
 | Candidate/category | Time (s) | Supplied success | People potentially exposed | Exposure change vs early |
 |---|---:|---:|---:|---:|
-| Early / highest supplied success (`k11`) | 4.4000 | 0.9524 | 15,251.8400 | 0.0000% |
-| Middle / dominated high exposure (`k32`) | 12.8000 | 0.9188 | 19,465.8221 | 27.6293% |
-| Lowest exposure (`k46`) | 18.4000 | 0.8964 | 1,643.1006 | -89.2269% |
+| Early / highest supplied success (`k11`) | 4.4000 | 0.9524 | 678.8335 | 0.0000% |
+| Middle / dominated high exposure (`k28`) | 11.2000 | 0.9252 | 922.3413 | 35.8715% |
+| Lowest exposure (`k42`) | 16.8000 | 0.9028 | 0.3408 | -99.9498% |
 
 A middle candidate is shown only when computed exposure exceeds both endpoint representatives and backend dominance evidence exists. Exposure means estimated people potentially within the supplied area, not casualties or identified people saved. The human retains go/no-go authority.
 
 ## Sensitivity evidence
 
-The qualitative trade-off persisted in 36/36 tested synthetic configurations; 36/36 met the reporting criterion of at least 20% and 100 fewer people potentially exposed. This is sensitivity within a small synthetic parameter grid on one selected corridor, not operational or real-world robustness. See [the generated study](specifications/mvp-sensitivity.md) for coverage effects, outcome reasons and limitations.
+The qualitative trade-off persisted in 45/45 tested synthetic configurations; 45/45 met the reporting criterion of at least 20% and 100 fewer people potentially exposed. This is sensitivity within a small synthetic parameter grid on one selected corridor, not operational or real-world robustness. See [the generated study](specifications/mvp-sensitivity.md) for coverage effects, outcome reasons and limitations.
 
 ## Reproduce the handoff
 

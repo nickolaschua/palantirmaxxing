@@ -1,6 +1,7 @@
 # Emmanuel consequence integration implementation plan
 
-Status: implemented as `singapore-demo-v2/1`; retained as the historical plan
+Status: originally implemented as `singapore-demo-v2/1`, now superseded by
+`singapore-demo-v2-fixed-rank/2`; retained as the historical plan
 and acceptance-gate record.
 
 This document starts **after** the evidence-gathering checklist in
@@ -379,7 +380,7 @@ Known limitations:
 
 ## Implemented MVP status — 2026-09-26
 
-The additive implementation now uses adapter version `singapore-demo-v2/1`,
+The additive implementation now uses adapter version `singapore-demo-v2-fixed-rank/2`,
 provider identity `singapore-consequence-provider`, minimize direction,
 `simulation-episode/2`, `centralized-observation/2`, and `simulation-result/1`.
 Unhandled threats are explicit constraint failures and persistent operational

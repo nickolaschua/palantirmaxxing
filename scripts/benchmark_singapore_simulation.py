@@ -15,7 +15,7 @@ sys.path.insert(0, str(ROOT))
 
 from backend.learning import (ADVANCE_ACTION, CentralizedInterceptionEnv,
                               load_normalized_policy)
-from backend.simulation import (ImmediateInterceptionPolicy,
+from backend.simulation import (FeasibleImmediateMatchingPolicy,
                                 SingaporeConsequenceProvider,
                                 SingaporeScenarioGenerator, SimulationEngine)
 
@@ -52,7 +52,7 @@ def main() -> int:
     rollout_provider = SingaporeConsequenceProvider(catalog=provider.catalog)
     rollout_engine = SimulationEngine(spec, rollout_provider)
     baseline, baseline_ms = elapsed(
-        lambda: ImmediateInterceptionPolicy().run(rollout_engine))
+        lambda: FeasibleImmediateMatchingPolicy().run(rollout_engine))
 
     env = CentralizedInterceptionEnv(
         SingaporeConsequenceProvider(catalog=provider.catalog), episode_spec=spec)

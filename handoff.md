@@ -21,7 +21,8 @@ evidence, uncertainty, and comparison with a fixed baseline inspectable.
 That is the target, not the present evidence claim. The current implementation
 proves an end-to-end simulator, consequence adapter, masked-RL training path,
 result contract, frontend view, and smoke-model reload. It does not yet prove
-that a trained policy improves on the baseline or is optimal.
+that a trained policy improves on the baseline. The exact optimizer is only an
+assignment-model reference, not a global physical or learned-policy claim.
 
 ## 2. Source of truth and repository state
 
@@ -156,10 +157,11 @@ casualty calculations remain diagnostics and are not added to it.
 The adapter calls Emmanuel's existing `score_profile`, `flag_table`, `veto`,
 and `rank_sites` functions. It preserves the demo-v2 casualty ordering, 10% / 0.5
 casualty tie band, secondary score, veto evidence, and low/central/high values.
-Currently valid candidates are ordered after veto filtering. Their ordered
-positions are normalized to `[0, 1]`; this ordinal value is the per-threat
-training cost. The eight event costs are summed and minimized. No second set of
-consequence weights was introduced.
+All 160 candidates for a threat are ordered once after veto filtering. Their
+positions are normalized to `[0, 1]`; this immutable ordinal value is the
+per-threat training cost. Reservations and time can invalidate actions without
+renormalizing survivors. The eight event costs are summed and minimized. No
+second set of consequence weights was introduced.
 
 No persistent operational consequence update exists in v1. Interceptor
 inventory is the only persistent state change.
@@ -186,11 +188,20 @@ and observation-layout identities when loaded. Runtime CLI choices are:
 --generator synthetic|singapore-v1
 ```
 
-The fixed baseline chooses the earliest eligible interception time, then the
-greatest reachability margin, interceptor ID, and opportunity ID.
+`feasible-immediate-matching/1` is an offline full-episode comparator. It
+chooses the earliest eligible candidate per pair (then greatest margin and
+stable IDs) and finds a complete one-to-one assignment minimizing total time.
+`optimal-fixed-rank-assignment/1` minimizes immutable additive ordinal cost by
+bitmask DP and replays the plan through the real engine. Its exactness scope is
+explicitly limited to this fixed-rank assignment model.
 
-The suite manifest is `rl-scenario-suites/3`, with non-overlapping seed ranges
-for training, validation, held-out, stress, and bounded-oracle work. The full
+Assign and cancel return zero reward. Advance emits signed resolved costs;
+constraint violations emit the signed 9.0 penalty once. Rollout replay verifies
+per-step costs and rewards, and evaluation reports violation count/rate.
+
+The suite manifest is `rl-scenario-suites/4`, with non-overlapping seed ranges
+for training, validation, held-out, stress, generic bounded-oracle work, and a
+separate full-size Singapore assignment reference. The full
 Singapore policy gates have not been run. The checked 16-step PPO artifact only
 verifies training, persistence, normalization reload, and valid masked
 inference.
@@ -214,7 +225,7 @@ counterfactual footprints, consequence summaries, raw evidence, summed ordinal
 cost, policy-versus-baseline comparison, provenance, and limitations.
 
 The frontend has a separate parser and view for this schema. The checked seed-7
-result is the immediate-interception baseline on both sides of the comparison.
+result is the feasible full-episode baseline on both sides of the comparison.
 The UI deliberately says:
 
 - “supplied 100 m area”;
@@ -239,12 +250,15 @@ Primary files:
 
 Current verified checks:
 
-- backend: **308 passed**;
-- frontend: **18 passed**;
+- backend: **318 passed**;
+- frontend: **19 passed**;
 - TypeScript/Vite production build: passed with the existing large-bundle
   advisory;
 - seed-7 baseline and deterministic environment: terminated normally with all
   eight threats resolved;
+- baseline and optimizer: **96/96** validation-plus-stress episodes terminated
+  normally, with zero constraint violations and optimizer cost no worse on all
+  96 episodes;
 - smoke artifact: reloaded with normalization statistics and produced a valid
   masked action.
 
@@ -268,8 +282,8 @@ performance guarantees.
 
 Do not claim any of the following from the current evidence:
 
-- learned-policy improvement over the immediate-interception baseline;
-- optimal interception decisions;
+- learned-policy improvement over the feasible full-episode baseline;
+- physical/global optimal interception decisions beyond the fixed-rank scope;
 - calibrated casualty prediction;
 - a validated blast or debris radius;
 - interceptor-altitude behavior;
@@ -296,7 +310,7 @@ versioned but have not been completed for a trained Singapore policy.
    and constraint gates without changing scenario semantics between policies.
 6. Replace the checked frontend baseline comparison only if the trained policy
    passes those gates. Report measured improvement, uncertainty, failures, and
-   latency; use “optimal” only with exact bounded-oracle evidence.
+   latency; qualify any exact wording with the fixed-rank assignment scope.
 
 ## 11. Collaboration and evidence discipline
 

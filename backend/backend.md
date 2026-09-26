@@ -2,7 +2,7 @@
 
 `simulation/` provides the isolated continuous-event episode engine,
 replaceable consequence-provider contract, seeded scenarios, replay records and
-immediate-interception baseline. `learning/` is the optional fixed-shape
+feasible full-episode matching baseline. `learning/` is the optional fixed-shape
 Gymnasium/MaskablePPO adapter and evaluation tooling. Neither layer changes the
 static evaluator or the `planning-result/1` presentation contract.
 

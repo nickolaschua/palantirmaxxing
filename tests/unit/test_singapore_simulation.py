@@ -12,8 +12,11 @@ from backend.domain import CandidateOpportunity
 from backend.planning import sample_threat_trajectory
 from backend.presentation import simulation_result_to_dict
 from backend.simulation import (AbsoluteCandidate, ImmediateInterceptionPolicy,
+                                FeasibleImmediateMatchingPolicy,
+                                OptimalFixedRankAssignmentPolicy,
                                 SingaporeConsequenceProvider,
                                 SingaporeGenerationError,
+                                SingaporeScenarioConfig,
                                 SingaporeScenarioGenerator, SimulationEngine,
                                 canonical_episode_hash, episode_to_dict)
 
@@ -35,6 +38,7 @@ class SingaporeSimulationTests(unittest.TestCase):
 
     def test_contract_counts_detection_window_and_checksums(self):
         spec = self.spec
+        self.assertIs(self.generator.config, self.provider.scenario_config)
         self.assertEqual(spec.schema_version, 'simulation-episode/2')
         self.assertEqual((len(spec.threats), len(spec.interceptors), spec.candidate_count),
                          (8, 8, 20))
@@ -45,6 +49,12 @@ class SingaporeSimulationTests(unittest.TestCase):
         self.assertTrue(spec.metadata['main_island_geometry_checksum'].startswith('sha256:'))
         self.assertEqual(spec.metadata['canonical_episode_hash'],
                          canonical_episode_hash(spec))
+        self.assertEqual(spec.metadata['objective_reference'],
+                         'full-candidate-universe/1')
+
+    def test_schema_v1_rejects_non_100_m_radius(self):
+        with self.assertRaisesRegex(ValueError, '100 m'):
+            SingaporeScenarioConfig(supplied_footprint_radius_m=120.0)
 
     def test_boundary_terminal_altitude_and_parabolic_endpoint(self):
         island = self.generator.main_island.geometry
@@ -164,7 +174,9 @@ class SingaporeSimulationTests(unittest.TestCase):
         self.assertEqual(rows['a'].rank_context['tie_floor'],
                          POLICY_DEMO_V2['tie_floor'])
         self.assertEqual(rows['a'].rank_context['ordered_opportunity_ids'],
-                         ['b', 'a', 'c'])
+                         ('b', 'a', 'c'))
+        with self.assertRaisesRegex(TypeError, 'immutable'):
+            rows['a'].rank_context['eligible_candidate_count'] = 99
         self.assertEqual((rows['b'].training_cost, rows['a'].training_cost,
                           rows['c'].training_cost), (0.0, 0.5, 1.0))
         self.assertFalse(rows['d'].eligible)
@@ -179,11 +191,11 @@ class SingaporeSimulationTests(unittest.TestCase):
 
     def test_cache_identity_and_identity_changes(self):
         same = SingaporeConsequenceProvider(catalog=self.provider.catalog)
-        changed = SingaporeConsequenceProvider(
-            catalog=self.provider.catalog, footprint_radius_m=101)
         self.assertEqual(same.config_identity, self.provider.config_identity)
-        self.assertNotEqual(changed.config_identity, self.provider.config_identity)
         self.assertEqual(same.cache_identity, self.provider.cache_identity)
+        with self.assertRaisesRegex(ValueError, '100 m'):
+            SingaporeConsequenceProvider(
+                catalog=self.provider.catalog, footprint_radius_m=101)
 
     def test_engine_masks_vetoes_and_baseline_handles_every_threat(self):
         provider = SingaporeConsequenceProvider(catalog=self.provider.catalog)
@@ -198,11 +210,94 @@ class SingaporeSimulationTests(unittest.TestCase):
         self.assertTrue(all(assignment.consequence_snapshot is not None
                             for assignment in engine.assignments.values()))
 
+    def test_frozen_full_universe_costs_survive_resource_reservation(self):
+        provider = SingaporeConsequenceProvider(catalog=self.provider.catalog)
+        engine = SimulationEngine(self.spec, provider)
+        while len(engine.visible_threat_ids()) < 2:
+            engine.advance()
+        target, blocker = engine.visible_threat_ids()[:2]
+        runtime = engine.threats[target]
+        before = {key: value.as_dict()
+                  for key, value in runtime.candidate_assessments.items()}
+        ordered = sorted(
+            (assessment.training_cost, opportunity_id, interceptor_id, index)
+            for interceptor_id, rows in runtime.candidates.items()
+            for index, candidate in enumerate(rows)
+            for opportunity_id, assessment in ((
+                candidate.opportunity.opportunity_id,
+                runtime.candidate_assessments[candidate.opportunity.opportunity_id]),)
+            if engine.is_assignment_valid(target, interceptor_id, index))
+        self.assertEqual(ordered[0][0], 0.0)
+        _, _, interceptor_id, _ = ordered[0]
+        blocker_index = next(
+            index for index in range(len(engine.threats[blocker].candidates[interceptor_id]))
+            if engine.is_assignment_valid(blocker, interceptor_id, index))
+        engine.assign(blocker, interceptor_id, blocker_index)
+        engine.refresh_candidate_assessments((target,))
+        after = {key: value.as_dict()
+                 for key, value in runtime.candidate_assessments.items()}
+        self.assertEqual(before, after)
+        remaining = [
+            runtime.candidate_assessments[candidate.opportunity.opportunity_id].training_cost
+            for available_interceptor, rows in runtime.candidates.items()
+            for index, candidate in enumerate(rows)
+            if engine.is_assignment_valid(target, available_interceptor, index)]
+        self.assertGreater(min(remaining), 0.0)
+
+    def test_baseline_and_optimizer_regression_seeds(self):
+        for seed in (7, 17, 10020):
+            spec = self.generator.generate(seed)
+            frozen_episode = episode_to_dict(spec)
+            baseline_provider = SingaporeConsequenceProvider(catalog=self.provider.catalog)
+            baseline_engine = SimulationEngine(spec, baseline_provider)
+            baseline = FeasibleImmediateMatchingPolicy().run(baseline_engine)
+            optimal_provider = SingaporeConsequenceProvider(catalog=self.provider.catalog)
+            optimal_engine = SimulationEngine(spec, optimal_provider)
+            optimal = OptimalFixedRankAssignmentPolicy().run(optimal_engine)
+            self.assertEqual((len(baseline_engine.assignments),
+                              len(baseline_engine.consumed_interceptors)), (8, 8))
+            self.assertEqual(optimal.plan.predicted_cost, optimal.raw_score)
+            self.assertTrue(optimal.plan.exact)
+            self.assertLessEqual(optimal.raw_score, baseline.raw_score)
+            self.assertEqual(episode_to_dict(spec), frozen_episode)
+
+    def test_unhandled_engine_is_terminal_constraint_penalty(self):
+        provider = SingaporeConsequenceProvider(catalog=self.provider.catalog)
+        engine = SimulationEngine(self.spec, provider)
+        while not engine.terminated and not engine.truncated:
+            engine.advance()
+        self.assertTrue(engine.terminated)
+        self.assertFalse(engine.truncated)
+        self.assertEqual(engine.termination_reason,
+                         'constraint_violation:unhandled_threat')
+        self.assertGreater(engine.raw_score, 8.0)
+
+    def test_unhandled_environment_emits_penalty_once(self):
+        try:
+            from backend.learning import ADVANCE_ACTION, CentralizedInterceptionEnv
+        except ImportError:
+            self.skipTest('requires RL dependencies')
+        provider = SingaporeConsequenceProvider(catalog=self.provider.catalog)
+        env = CentralizedInterceptionEnv(provider, episode_spec=self.spec)
+        env.reset()
+        total = 0.0
+        while True:
+            _, reward, terminated, truncated, info = env.step(ADVANCE_ACTION)
+            total += reward
+            if terminated or truncated:
+                break
+        self.assertTrue(terminated)
+        self.assertFalse(truncated)
+        self.assertLess(total, -8.0)
+        self.assertEqual(total, -info['raw_score'])
+        self.assertEqual(info['step_training_costs'], [9.0])
+
     def test_unhandled_is_constraint_failure(self):
         result = self.provider.evaluate_unhandled(self.spec.threats[0], {})
-        self.assertIsNone(result.raw_score)
-        self.assertEqual(result.failure_status,
-                         'constraint_failure:unhandled_threat')
+        self.assertEqual(result.raw_score, 9.0)
+        self.assertEqual(result.training_cost, 9.0)
+        self.assertEqual(result.constraint_violation, 'unhandled_threat')
+        self.assertIsNone(result.failure_status)
 
     def test_simulation_result_has_3d_trajectories_and_required_wording(self):
         provider = SingaporeConsequenceProvider(catalog=self.provider.catalog)
@@ -220,6 +315,43 @@ class SingaporeSimulationTests(unittest.TestCase):
             'casualties': 'assumption-grade expected casualties',
         })
         self.assertNotIn('optimal', payload['policyVersusBaseline']['claim'])
+
+    def test_checked_export_is_canonical_and_runtime_free(self):
+        provider = SingaporeConsequenceProvider(catalog=self.provider.catalog)
+        engine = SimulationEngine(self.spec, provider)
+        baseline = FeasibleImmediateMatchingPolicy().run(engine)
+        payload = simulation_result_to_dict(
+            engine, baseline_raw_score=baseline.raw_score,
+            policy_identity=baseline.plan.policy_identity,
+            assignment_plan=baseline.plan)
+        checked = json.loads(Path(
+            'data/results/demo-simulation-result.json').read_text(encoding='utf-8'))
+        canonical = json.loads(json.dumps(
+            payload, sort_keys=True, allow_nan=False))
+        self.assertEqual(canonical, checked)
+        self.assertNotIn('runtime_ms', json.dumps(payload))
+        self.assertEqual(payload['provenance']['objectiveReference'],
+                         'full-candidate-universe/1')
+
+    def test_export_rejects_candidate_radius_drift(self):
+        provider = SingaporeConsequenceProvider(catalog=self.provider.catalog)
+        engine = SimulationEngine(self.spec, provider)
+        baseline = FeasibleImmediateMatchingPolicy().run(engine)
+        runtime = next(iter(engine.threats.values()))
+        opportunity_id, assessment = next(iter(
+            runtime.candidate_assessments.items()))
+        with self.assertRaisesRegex(ValueError, 'assessment radius'):
+            replace(assessment, footprint_radius_m=101.0)
+        metadata = engine.spec.threats[0].metadata
+        original = metadata['supplied_footprint_radius_m']
+        metadata['supplied_footprint_radius_m'] = 101.0
+        try:
+            with self.assertRaisesRegex(ValueError, 'threat footprint radius'):
+                simulation_result_to_dict(
+                    engine, baseline_raw_score=baseline.raw_score,
+                    assignment_plan=baseline.plan)
+        finally:
+            metadata['supplied_footprint_radius_m'] = original
 
 
 if __name__ == '__main__':

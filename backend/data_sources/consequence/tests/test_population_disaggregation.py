@@ -41,9 +41,9 @@ class ArealDensity(unittest.TestCase):
             building_level_occupancy()
 
     def test_placeholder_circle_uses_the_scenario_radius(self):
-        self.assertEqual(PLACEHOLDER_FOOTPRINT_RADIUS_M, 500)
+        self.assertEqual(PLACEHOLDER_FOOTPRINT_RADIUS_M, 100)
         overlap = placeholder_overlap_km2(shapely.from_wkt(SQUARE_4KM2))
-        self.assertAlmostEqual(overlap, 3.14159 * 0.25, places=2)  # the whole 500 m circle fits in the square
+        self.assertAlmostEqual(overlap, 3.14159 * 0.01, places=3)  # the whole 100 m circle fits in the square
 
 
 class ResidentialRows(unittest.TestCase):
@@ -51,7 +51,7 @@ class ResidentialRows(unittest.TestCase):
         p = residential.residential_profiles(site(role='private_landed', method='floor_area_share', residents=18850.0,
                                                   geometry_wkt=SQUARE_4KM2, max_floor=None))[0]
         self.assertEqual(p.population_method, 'areal_density')
-        self.assertAlmostEqual(p.overlap_area_km2, 0.785, places=2)
+        self.assertAlmostEqual(p.overlap_area_km2, 0.0314, places=3)
         self.assertAlmostEqual(p.beneficiaries_per_hour.central, 18850 * p.overlap_area_km2 / 4.0, places=6)
         self.assertIn('placeholder footprint', p.beneficiaries_per_hour.method)
         self.assertTrue(validate(p))

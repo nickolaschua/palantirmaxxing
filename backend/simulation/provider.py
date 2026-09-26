@@ -24,6 +24,7 @@ class ProviderEvaluation:
     failure_status: Optional[str] = None
     training_cost: Optional[float] = None
     evidence: Mapping[str, Any] = field(default_factory=dict)
+    constraint_violation: Optional[str] = None
 
     def __post_init__(self) -> None:
         if self.raw_score is not None and (
@@ -38,6 +39,14 @@ class ProviderEvaluation:
         if self.failure_status is not None and (
                 not isinstance(self.failure_status, str) or not self.failure_status.strip()):
             raise ValueError('failure_status must be a nonempty string when present')
+        if self.constraint_violation is not None and (
+                not isinstance(self.constraint_violation, str)
+                or not self.constraint_violation.strip()):
+            raise ValueError('constraint_violation must be a nonempty string when present')
+        if self.failure_status is not None and self.constraint_violation is not None:
+            raise ValueError('provider failure and constraint violation are distinct states')
+        if self.constraint_violation is not None and self.training_cost is None:
+            raise ValueError('constraint violations require a finite training_cost')
         for name, value in self.components.items():
             if not isinstance(name, str) or type(value) not in (int, float) or not math.isfinite(value):
                 raise ValueError('provider components must have string keys and finite values')
@@ -106,6 +115,9 @@ class DeterministicToyProvider:
     identity = 'deterministic-toy-provider'
     version = 'toy-plumbing-validation/1'
     objective_direction = ObjectiveDirection.MINIMIZE
+    fixed_candidate_costs = True
+    additive_training_costs = True
+    operational_updates_affect_costs = False
 
     @staticmethod
     def _priority(threat: ScheduledThreat) -> float:
@@ -139,6 +151,7 @@ class DeterministicToyProvider:
         score = self._priority(threat) * distance
         return ProviderEvaluation(
             raw_score=score,
+            training_cost=score,
             components={'preference_distance_cost': score},
             operational_state_update={
                 'handled_count': int(operational_state.get('handled_count', 0)) + 1,
@@ -155,6 +168,7 @@ class DeterministicToyProvider:
         score = self._priority(threat) * 1.25
         return ProviderEvaluation(
             raw_score=score,
+            training_cost=score,
             components={'unhandled_cost': score},
             operational_state_update={
                 'unhandled_count': int(operational_state.get('unhandled_count', 0)) + 1,
@@ -172,6 +186,7 @@ class DeterministicToyProvider:
         score = sum(float(item.raw_score) for item in rows if item.raw_score is not None)
         return ProviderEvaluation(
             raw_score=score,
+            training_cost=score,
             components={
                 'toy_total_cost': score,
                 'resolved_outcomes': float(len(rows)),

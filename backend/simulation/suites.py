@@ -6,7 +6,7 @@ from .singapore_scenario import canonical_episode_hash
 
 
 SMOKE_TRAINING_STEPS = 10_000
-SUITE_MANIFEST_VERSION = 'rl-scenario-suites/3'
+SUITE_MANIFEST_VERSION = 'rl-scenario-suites/4'
 # Generated training episodes occupy a separate, unbounded upper partition.
 TRAINING_SEED_OFFSET = 1_000_000_000
 VALIDATION_SEEDS = tuple(range(10_000, 10_064))
@@ -17,6 +17,7 @@ ORACLE_MAX_THREATS = 3
 ORACLE_MAX_INTERCEPTORS = 3
 ORACLE_CANDIDATES_PER_PAIR = 5
 ORACLE_MAX_ACTION_SEQUENCES = 100_000
+SINGAPORE_REFERENCE_SEEDS = tuple(range(50_000, 50_064))
 
 
 @dataclass(frozen=True)
@@ -45,10 +46,14 @@ STRESS_SUITE = SuiteDefinition('stress', STRESS_SEEDS, 8, 8, 20, full_capacity=T
 ORACLE_SUITE = SuiteDefinition(
     'bounded-oracle', ORACLE_SEEDS, ORACLE_MAX_THREATS,
     ORACLE_MAX_INTERCEPTORS, ORACLE_CANDIDATES_PER_PAIR)
+SINGAPORE_ASSIGNMENT_REFERENCE_SUITE = SuiteDefinition(
+    'singapore-assignment-reference', SINGAPORE_REFERENCE_SEEDS, 8, 8, 20,
+    full_capacity=True)
 
 SUITES = {
     item.name: item for item in (
-        VALIDATION_SUITE, HELD_OUT_TEST_SUITE, STRESS_SUITE, ORACLE_SUITE)
+        VALIDATION_SUITE, HELD_OUT_TEST_SUITE, STRESS_SUITE, ORACLE_SUITE,
+        SINGAPORE_ASSIGNMENT_REFERENCE_SUITE)
 }
 
 

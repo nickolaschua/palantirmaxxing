@@ -8,8 +8,8 @@ from typing import Any, Mapping, Optional
 from pyproj import Transformer
 
 from backend.planning import sample_threat_trajectory
-from backend.simulation import (ImmediateInterceptionPolicy, SimulationEngine,
-                                canonical_episode_hash)
+from backend.simulation import (AssignmentPlan, FeasibleImmediateMatchingPolicy,
+                                SimulationEngine, canonical_episode_hash)
 
 
 SIMULATION_RESULT_SCHEMA_VERSION = 'simulation-result/1'
@@ -32,15 +32,26 @@ def _position(x: float, y: float, z: float) -> Mapping[str, float]:
 def simulation_result_to_dict(
         engine: SimulationEngine,
         start_time: str = '2026-09-26T04:00:00Z',
-        policy_identity: str = ImmediateInterceptionPolicy.identity,
+        policy_identity: str = FeasibleImmediateMatchingPolicy.identity,
         baseline_raw_score: Optional[float] = None,
-        exact_oracle: Optional[Mapping[str, Any]] = None) -> Mapping[str, Any]:
+        assignment_plan: Optional[AssignmentPlan] = None) -> Mapping[str, Any]:
     if not isinstance(engine, SimulationEngine):
         raise ValueError('engine must be a SimulationEngine')
     if engine.spec.schema_version != 'simulation-episode/2':
         raise ValueError('simulation-result/1 requires simulation-episode/2')
     if not engine.terminated or engine.truncated or engine.aggregate_result is None:
         raise ValueError('simulation must terminate successfully before export')
+    if engine.termination_reason != 'all_threats_resolved':
+        raise ValueError('constraint-violating episodes cannot be exported')
+    if (len(engine.spec.threats) != 8 or len(engine.spec.interceptors) != 8
+            or engine.spec.candidate_count != 20):
+        raise ValueError('simulation-result/1 requires the fixed 8x8x20 scenario')
+    if (len(engine.assignments) != 8 or len(engine.consumed_interceptors) != 8
+            or len({row.interceptor_id for row in engine.assignments.values()}) != 8
+            or any(runtime.resolution is None
+                   or runtime.resolution.value != 'intercepted'
+                   for runtime in engine.threats.values())):
+        raise ValueError('export requires eight intercepted threats and distinct assignments')
     try:
         start = datetime.fromisoformat(start_time.replace('Z', '+00:00'))
     except (TypeError, ValueError) as exc:
@@ -50,6 +61,25 @@ def simulation_result_to_dict(
     start = start.astimezone(timezone.utc)
     radius = float(engine.spec.metadata['scenario_contract'][
         'supplied_footprint_radius_m'])
+    if (radius != 100.0 or getattr(engine.provider, 'footprint_radius_m', None) != radius
+            or engine.spec.metadata.get('objective_reference')
+            != 'full-candidate-universe/1'):
+        raise ValueError('export radius/objective contract disagrees with the episode')
+    if any(float(row.metadata.get('supplied_footprint_radius_m', math.nan)) != radius
+           for row in engine.spec.threats):
+        raise ValueError('threat footprint radius disagrees with the scenario')
+    for runtime in engine.threats.values():
+        for assessment in runtime.candidate_assessments.values():
+            assessment_radius = (assessment.footprint_radius_m
+                                 if hasattr(assessment, 'footprint_radius_m')
+                                 else assessment.get('footprint_radius_m'))
+            if assessment_radius != radius:
+                raise ValueError('candidate footprint radius disagrees with the scenario')
+    provider_island = getattr(getattr(engine.provider, 'catalog', None),
+                              'main_island', None)
+    if (provider_island is None or provider_island.geometry_checksum
+            != engine.spec.metadata.get('main_island_geometry_checksum')):
+        raise ValueError('export provider/scenario geometry checksum mismatch')
 
     trajectories = []
     terminal_footprints = []
@@ -129,14 +159,27 @@ def simulation_result_to_dict(
     comparison = {
         'policyIdentity': policy_identity,
         'policyOrdinalCost': engine.raw_score,
-        'baselineIdentity': ImmediateInterceptionPolicy.identity,
+        'baselineIdentity': FeasibleImmediateMatchingPolicy.identity,
         'baselineOrdinalCost': baseline,
         'measuredRelativeImprovement': improvement,
-        'claim': ('optimal with exact bounded-oracle evidence'
-                  if exact_oracle and exact_oracle.get('exact') is True
-                  and exact_oracle.get('raw_score') == engine.raw_score
-                  else 'measured comparison with the immediate-interception baseline'),
-        'exactOracleEvidence': exact_oracle,
+        'claim': (
+            'exact within the immutable additive fixed-rank assignment-model scope'
+            if assignment_plan is not None and assignment_plan.exact
+            and assignment_plan.predicted_cost == engine.raw_score
+            else 'measured comparison with the feasible full-episode baseline'),
+        'assignmentPlan': (None if assignment_plan is None else {
+            'policyIdentity': assignment_plan.policy_identity,
+            'predictedOrdinalCost': assignment_plan.predicted_cost,
+            'exact': assignment_plan.exact,
+            'proofScope': assignment_plan.proof_scope,
+            'orderedDecisions': [{
+                'threatId': row.threat_id,
+                'interceptorId': row.interceptor_id,
+                'opportunityId': row.opportunity_id,
+                'candidateIndex': row.candidate_index,
+                'trainingCost': row.training_cost,
+            } for row in assignment_plan.decisions],
+        }),
     }
     aggregate = engine.aggregate_result
     result = {
@@ -170,7 +213,7 @@ def simulation_result_to_dict(
         'policyVersusBaseline': comparison,
         'provenance': {
             'simulatorVersion': engine.snapshot()['simulator_version'],
-            'provider': engine.provider_audit(),
+            'provider': engine.provider_audit(include_runtime=False),
             'generatorVersion': engine.spec.metadata['generator'],
             'scenarioConfigChecksum': engine.spec.metadata[
                 'scenario_config_checksum'],
@@ -181,6 +224,8 @@ def simulation_result_to_dict(
             'mainIslandGeometryChecksum': engine.spec.metadata[
                 'main_island_geometry_checksum'],
             'canonicalEpisodeHash': canonical_episode_hash(engine.spec),
+            'objectiveReference': engine.spec.metadata['objective_reference'],
+            'policyIdentity': policy_identity,
         },
         'limitations': [
             'The supplied 100 m area is a scenario input, not a validated blast radius.',

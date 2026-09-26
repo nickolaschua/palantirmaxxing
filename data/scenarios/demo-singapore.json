@@ -35,14 +35,14 @@
     "minimum_success_probability": 0.70,
     "maximum_success_probability": 1.00
   },
-  "footprint_radius_m": 500,
+  "footprint_radius_m": 100,
   "synthetic_assumptions": {
     "threat_trajectory": "fictional straight eastbound path; not an observed or predicted real threat",
     "threat_speed": "225 m/s supplied synthetic constant",
     "interceptor_speed": "500 m/s supplied synthetic constant",
     "turn_rate": "15 deg/s supplied synthetic limit",
     "launch_origin": "fictional supplied point; not an operational site",
-    "footprint_radius": "500 m supplied consequence circle; not calculated debris physics",
+    "footprint_radius": "100 m supplied consequence circle; not calculated debris physics",
     "success_profile": "supplied linear decay; not a validated success estimate",
     "scenario_time": "fixed presentation-only clock; no model significance",
     "visualization_height": "1000 m presentation only; backend model is 2D"

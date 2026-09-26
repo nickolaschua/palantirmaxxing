@@ -114,8 +114,11 @@ class SimulationTests(unittest.TestCase):
     def test_unhandled_and_provider_failure(self):
         empty = EpisodeSpec('empty-resource', 3, (threat(),), (), 20)
         engine = SimulationEngine(empty, DeterministicToyProvider())
-        run = ImmediateInterceptionPolicy().run(engine)
-        self.assertTrue(run.terminated)
+        with self.assertRaisesRegex(ValueError, 'no complete'):
+            ImmediateInterceptionPolicy().run(engine)
+        while not engine.terminated and not engine.truncated:
+            engine.advance()
+        self.assertTrue(engine.terminated)
         self.assertEqual(engine.threats['threat-1'].resolution.value, 'unhandled')
 
         class FailedProvider(DeterministicToyProvider):
@@ -123,7 +126,8 @@ class SimulationTests(unittest.TestCase):
                 return ProviderEvaluation(None, failure_status='deliberate')
 
         failed = SimulationEngine(empty, FailedProvider())
-        failed.advance()
+        while not failed.terminated and not failed.truncated:
+            failed.advance()
         self.assertTrue(failed.truncated)
         self.assertIn('provider_failure', failed.termination_reason)
 

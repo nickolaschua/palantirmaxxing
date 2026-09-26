@@ -56,14 +56,16 @@ class LearningEnvironmentTests(unittest.TestCase):
         check_env(env, skip_render_check=True)
         observation, _ = env.reset(seed=9)
         reward = 0.0
+        episode_reward = 0.0
         while True:
             valid = np.flatnonzero(env.action_masks())
             observation, reward, terminated, truncated, info = env.step(int(valid[-1]))
+            episode_reward += reward
             if terminated or truncated:
                 break
         self.assertTrue(terminated)
         self.assertFalse(truncated)
-        self.assertEqual(reward, -info['raw_score'])
+        self.assertEqual(episode_reward, -info['raw_score'])
 
     def test_jsonl_round_trip_and_replay(self):
         from backend.simulation import JsonlRolloutRecorder, replay_rollout
@@ -79,8 +81,20 @@ class LearningEnvironmentTests(unittest.TestCase):
                     break
             records = recorder.read()
             self.assertTrue(records)
+            self.assertAlmostEqual(sum(row.reward for row in records),
+                                   -records[-1].raw_score)
+            self.assertTrue(all(row.reward == 0 for row in records
+                                if not row.step_training_costs))
             replay_env = self.Env(self.Provider(), scenario_generator=self.Generator())
             self.assertTrue(replay_rollout(records, replay_env))
+
+    def test_assignment_and_cancel_have_zero_reward(self):
+        env = self.Env(self.Provider(), scenario_generator=self.Generator())
+        env.reset(seed=19)
+        assignment = int(np.flatnonzero(env.action_masks()[:64 * 20])[0])
+        _, reward, _, _, info = env.step(assignment)
+        self.assertEqual(reward, 0.0)
+        self.assertEqual(info['step_training_costs'], [])
 
     def test_maximize_direction_returns_positive_raw_terminal_reward(self):
         from backend.simulation import ObjectiveDirection
@@ -90,13 +104,15 @@ class LearningEnvironmentTests(unittest.TestCase):
 
         env = self.Env(MaximizingProvider(), scenario_generator=self.Generator())
         env.reset(seed=23)
+        episode_reward = 0.0
         while True:
             action = int(np.flatnonzero(env.action_masks())[-1])
             _, reward, terminated, truncated, info = env.step(action)
+            episode_reward += reward
             if terminated or truncated:
                 break
         self.assertTrue(terminated)
-        self.assertEqual(reward, info['raw_score'])
+        self.assertEqual(episode_reward, info['raw_score'])
 
     def test_bounded_oracle_and_fixed_suite_sizes(self):
         from backend.learning import bounded_oracle

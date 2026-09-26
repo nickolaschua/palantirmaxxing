@@ -17,7 +17,12 @@ population-coverage state. Model version `maskable-ppo-centralized/2` records
 and validates observation, provider, generator, data/config/cache, dependency,
 and geometry identities. Older normalization/model artifacts are rejected.
 
-Provider aggregate scores are preserved raw in `info` and rollout records. The
-environment applies only the declared objective direction when producing the
-terminal RL reward: maximize uses the raw score and minimize uses its negation.
+Provider aggregate scores are preserved raw in `info` and rollout records.
+Assign and cancel actions return zero. An advance step returns the signed sum of
+the immutable `training_cost` values for interception/constraint outcomes at
+that timestamp (negative for minimize, positive for maximize). A 9.0 Singapore
+constraint penalty is emitted once, without replaying earlier costs. At normal
+or constraint termination the accumulated reward must equal the signed
+aggregate cost. Rollout schema `rl-rollout/2` records reward and per-step costs,
+and replay verifies them with masks, observations, assignments, and reasons.
 Any reward/observation normalization is an external training concern.

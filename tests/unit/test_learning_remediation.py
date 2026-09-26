@@ -21,6 +21,36 @@ class AdvancePolicy:
 
 @unittest.skipIf(gymnasium is None, 'requires backend/learning/requirements-rl.txt')
 class RemediationTests(unittest.TestCase):
+    def test_fixed_rank_optimizer_matches_small_bounded_oracle(self):
+        from backend.learning import bounded_oracle
+        from backend.simulation import (DeterministicToyProvider,
+                                        OptimalFixedRankAssignmentPolicy,
+                                        SeededScenarioGenerator,
+                                        SimulationEngine)
+        generator = SeededScenarioGenerator(
+            max_threats=1, max_interceptors=1, candidate_count=3)
+        spec = generator.generate(40003, full_capacity=True)
+        oracle = bounded_oracle(
+            SimulationEngine(spec, DeterministicToyProvider()))
+        engine = SimulationEngine(spec, DeterministicToyProvider())
+        run = OptimalFixedRankAssignmentPolicy().run(engine)
+        self.assertTrue(oracle.exact)
+        self.assertEqual(run.raw_score, oracle.raw_score)
+        self.assertTrue(run.plan.exact)
+
+    def test_optimizer_refuses_exactness_for_cost_changing_provider(self):
+        from backend.simulation import (DeterministicToyProvider,
+                                        SeededScenarioGenerator,
+                                        optimal_fixed_rank_plan)
+        class CostChangingProvider(DeterministicToyProvider):
+            operational_updates_affect_costs = True
+        spec = SeededScenarioGenerator(
+            max_threats=1, max_interceptors=1,
+            candidate_count=3).generate(40004, full_capacity=True)
+        plan = optimal_fixed_rank_plan(spec, CostChangingProvider())
+        self.assertFalse(plan.exact)
+        self.assertIn('inexact', plan.proof_scope)
+
     def setUp(self):
         from backend.learning import CentralizedInterceptionEnv
         from backend.simulation import DeterministicToyProvider, SeededScenarioGenerator
@@ -132,6 +162,7 @@ class RemediationTests(unittest.TestCase):
             'assignments_before': ({'wrong': 1},),
             'assignments_after': ({'wrong': 1},), 'raw_score': -123,
             'termination_reason': 'wrong', 'schema_version': 'unknown',
+            'reward': 123.0, 'step_training_costs': (123.0,),
         }
         for field, value in changes.items():
             with self.subTest(field=field), self.assertRaises(ValueError):

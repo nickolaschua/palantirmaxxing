@@ -7,7 +7,7 @@ from .provider import DeterministicToyProvider
 from .scenarios import SeededScenarioGenerator
 from .singapore_provider import (SingaporeConsequenceProvider,
                                  build_consequence_catalog)
-from .singapore_scenario import SingaporeScenarioGenerator
+from .singapore_scenario import SingaporeScenarioConfig, SingaporeScenarioGenerator
 
 
 PROVIDER_CHOICES = ('toy', 'singapore-demo-v2')
@@ -21,12 +21,16 @@ def runtime_factories(
         raise ValueError('unknown provider selection: ' + str(provider_name))
     if generator_name not in GENERATOR_CHOICES:
         raise ValueError('unknown generator selection: ' + str(generator_name))
+    if generator_name == 'singapore-v1' and provider_name != 'singapore-demo-v2':
+        raise ValueError('Singapore generator and provider must share one scenario config')
+    config = SingaporeScenarioConfig()
     if provider_name == 'toy':
         provider_factory = DeterministicToyProvider
         catalog = None
     else:
         catalog = build_consequence_catalog()
-        provider_factory = lambda: SingaporeConsequenceProvider(catalog=catalog)
+        provider_factory = lambda: SingaporeConsequenceProvider(
+            catalog=catalog, scenario_config=config)
     if generator_name == 'synthetic':
         generator_factory = SeededScenarioGenerator
     else:
@@ -34,6 +38,7 @@ def runtime_factories(
         # deliberately selects the toy training objective.
         singapore_catalog = catalog or build_consequence_catalog()
         generator_factory = lambda: SingaporeScenarioGenerator(
+            config=config,
             consequence_provider=SingaporeConsequenceProvider(
-                catalog=singapore_catalog))
+                catalog=singapore_catalog, scenario_config=config))
     return provider_factory, generator_factory

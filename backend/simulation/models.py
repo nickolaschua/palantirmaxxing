@@ -7,7 +7,7 @@ from typing import Any, Dict, Mapping, Optional, Tuple
 from backend.domain import CandidateOpportunity, InterceptorState, ThreatState
 
 
-SIMULATOR_VERSION = 'centralized-event-simulator/1'
+SIMULATOR_VERSION = 'centralized-event-simulator/2'
 EPISODE_SCHEMA_VERSIONS = ('simulation-episode/1', 'simulation-episode/2')
 MAX_THREATS = 8
 MAX_INTERCEPTORS = 8

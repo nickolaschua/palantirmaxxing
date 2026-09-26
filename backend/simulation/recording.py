@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any, Iterable, Mapping, Optional, Sequence, Tuple
 
 
-ROLLOUT_SCHEMA_VERSION = 'rl-rollout/1'
+ROLLOUT_SCHEMA_VERSION = 'rl-rollout/2'
 
 
 def observation_reference(observation: Any) -> str:
@@ -35,6 +35,8 @@ class RolloutRecord:
     provider_provenance: Mapping[str, Any]
     model_version: str
     termination_reason: Optional[str]
+    reward: float
+    step_training_costs: Tuple[float, ...]
     timing_ms: float
     schema_version: str = ROLLOUT_SCHEMA_VERSION
 
@@ -64,6 +66,8 @@ class RolloutRecord:
             provider_provenance=value['provider_provenance'],
             model_version=value['model_version'],
             termination_reason=value.get('termination_reason'),
+            reward=value['reward'],
+            step_training_costs=tuple(value['step_training_costs']),
             timing_ms=value['timing_ms'],
             schema_version=value['schema_version'],
         )
@@ -151,12 +155,15 @@ def replay_rollout(records: Iterable[RolloutRecord], env: Any,
         if (type(expected.action) is not int or not 0 <= expected.action < len(mask)
                 or not mask[expected.action]):
             raise ValueError('invalid recorded action at ' + expected.event_id)
-        observation, _, terminated, truncated, info = env.step(expected.action)
+        observation, reward, terminated, truncated, info = env.step(expected.action)
         after = env.engine.snapshot()
         verify(after, expected.state_after, 'post-state')
         verify(tuple(after['assignments']), expected.assignments_after, 'assignments after')
         verify(info['raw_score'], expected.raw_score, 'raw score')
         verify(info['termination_reason'], expected.termination_reason, 'termination reason')
+        verify(float(reward), expected.reward, 'reward')
+        verify(tuple(info['step_training_costs']), expected.step_training_costs,
+               'step training costs')
         complete = terminated or truncated
     if not seen:
         raise ValueError('at least one rollout record is required')

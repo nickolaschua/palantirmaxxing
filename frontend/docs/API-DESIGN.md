@@ -320,14 +320,14 @@ reduces it. Decide the Standby framing in step 8.
 
 **Data: `data/results/demo-planning-result.json`.** A fictional eastbound Ang Mo
 Kio → Serangoon path: 20 s, 4.5 km at 225 m/s, a synthetic 1,000 m display
-height, supplied 500 m footprints and real Census 2020 population. 50 candidates,
-40 reachable, 10 on the frontier. Do **not** use `static-mvp-planning-result.json`
+height, supplied 100 m footprints and real Census 2020 population. 50 candidates,
+40 reachable, 6 on the frontier. Do **not** use `static-mvp-planning-result.json`
 on stage — its population is synthetic.
 
 | Option | Categories | Threat at circle | Window closes | People potentially exposed | Supplied success |
 |---|---|---:|---:|---:|---:|
-| `k11` | earliest viable, highest success | T+4.4 s | T+0.29 s | 15,252 | 0.9524 |
-| `k46` | lowest exposure | T+18.4 s | T+8.51 s | 1,643 | 0.8964 |
+| `k11` | earliest viable, highest success | T+4.4 s | T+0.29 s | 679 | 0.9524 |
+| `k42` | lowest exposure | T+16.8 s | T+7.61 s | 0.34 | 0.9028 |
 
 ```
 STANDBY ──[Space: threat detected]──▶ LIVE ──[Enter: FIRE]──▶ FIRED ──(clock reaches intercept)──▶ OUTCOME
@@ -357,10 +357,10 @@ STANDBY ──[Space: threat detected]──▶ LIVE ──[Enter: FIRE]──�
 - **Deadline marks.** Each option gets a mark on the path where the threat will be
   when that option's window closes; the threat crossing the mark is the option
   expiring. An option does **not** expire when the threat reaches its circle
-  (`k46`'s window closes about 10 s of flight before that). A close time before
+  (`k42`'s window closes about 9.2 s of flight before that). A close time before
   the first sample (`k11`, T+0.29 s) pins the mark to the start of the path,
   shown expired.
-- **Option areas in red.** Each option's supplied 500 m area is highlighted red
+- **Option areas in red.** Each option's supplied 100 m area is highlighted red
   from the start of Live. The selected option's area is emphasised; an expired
   option's area fades. See open question 1.
 - **Side window.** Hovering a red area opens a side window with a live, zoomed-in
@@ -369,20 +369,20 @@ STANDBY ──[Space: threat detected]──▶ LIVE ──[Enter: FIRE]──�
   Clicking pins it, like the population details card. See open questions 2–3.
 - **Cards come from `representativeCandidateIds`,** in backend order, with badges
   from each candidate's `categories`. Unknown future categories get a readable
-  fallback label. Nothing else is selectable, so the dominated `k32` contrast is
+  fallback label. Nothing else is selectable, so the dominated `k28` contrast is
   not shown.
 - **Wording comes from `assumptions`:** "people potentially exposed", "supplied
-  success (synthetic)", "supplied 500 m area". Never "damage", "casualties" or
+  success (synthetic)", "supplied 100 m area". Never "damage", "casualties" or
   "destroyed". The areas may be red and informally called the blast radius, but
-  on-screen labels say "supplied 500 m area" — the backend does not calculate a
+  on-screen labels say "supplied 100 m area" — the backend does not calculate a
   blast radius. Labels are read from `assumptions.footprintModel` and
   `footprintRadiusM`, never hard-coded, so a new radius shows automatically. If
   the backend later calculates footprints, its new `footprintModel` value gets
   its own wording, and unknown values fall back to a neutral label. A
   non-circular footprint would need a contract change.
 - **Outcome summary:** intercept time, people potentially exposed, supplied
-  success, and deltas against the other options from `comparisons` — e.g. `k46`
-  vs `k11`: −13,609 people potentially exposed (−89.2%), −5.6 pp supplied success.
+  success, and deltas against the other options from `comparisons` — e.g. `k42`
+  vs `k11`: −678.49 people potentially exposed (−99.95%), −4.96 pp supplied success.
   The threat is held at the intercept point; success is a supplied probability,
   not a result.
 - **Missile path only.** The payload has no interceptor path or launch origin,
@@ -458,8 +458,9 @@ These supersede the matching bullets in section 3.
 - **Playback starts at T+0.**
 - **Loading:** the demo imports `data/results/demo-planning-result.json` into
   the bundle; the Vite dev server is allowed to read the parent folder.
-- **Camera:** Standby frames the corridor at about −70° pitch, so the route at
-  1,000 m appears ~360 m from its circles — inside the 500 m radius.
+- **Camera:** Standby frames the corridor at about −70° pitch. Because the route
+  is drawn at 1,000 m while the 100 m circles drape on the ground, perspective can
+  make their screen positions appear offset even though their horizontal coordinates match.
 - **Temporary presenter buttons,** bottom-right: Play (= Space, detect) and
   Restart (= R). Removed in the polish pass.
 
@@ -478,7 +479,7 @@ under `npm test`. Two Cesium problems surfaced once the second canvas existed:
   grey. Google tiles are unaffected.
 - **Slow circle builds.** Ground geometry builds on Cesium's shared web workers;
   with the side window also building its road layer, the areas took ~9.6 s after
-  Standby to become drawable — longer than `k46`'s whole window. `CircleLayer`
+  Standby to become drawable — longer than `k42`'s whole 7.61 s window. `CircleLayer`
   gained `ready: Promise<void>`, and Standby shows "Preparing map layers…" and
   refuses detection until both canvases' areas are ready (~14 s after load
   here). A `display:none` canvas never renders and so never builds, so the side
@@ -621,7 +622,7 @@ through it.
    missile appearing about 0.5 s before the first circle. Starting at the
    backend's T+0 keeps every window whole — the first sample (T+0.4 s) is 400 m
    before `k11`'s circle edge, about 1.8 s of flight. Starting later, e.g.
-   T+3.9 s, cuts `k46`'s window from 8.51 s to 4.61 s. Still wanted?
+   T+3.9 s, cuts `k42`'s window from 7.61 s to 3.71 s. Still wanted?
 5. **Result loading:** bundle import or a copy in `public/`.
 6. **For the partner:** objectives beyond the three categories need a contract
    change, since `CandidateCategory` lists exactly three values.
@@ -951,7 +952,7 @@ delegated call; they are in `decision-model.ts` (`successGrade`,
 - **Every building in the side window.** Cesium picks tile detail from
   screen-space error, which scales with canvas height, so the 300 px window
   only loaded the coarse OSM tiles and the smaller buildings were missing until
-  you zoomed in. Measured at the k46 pose: threshold 16 selects 5,064 building
+  you zoomed in. Measured at the former k46 pose: threshold 16 selects 5,064 building
   features, 4 selects 6,475, 2 selects 13,163 and 1 saturates at 13,179, for
   14 MB. New `CanvasOptions.maximumScreenSpaceError` (applied to whichever
   city tileset the canvas shows); the side window passes 2. Not yet measured
@@ -1028,7 +1029,7 @@ marks on both canvases; the other option's area is hidden; the struck area
 drops to a 12 % fill with a soft white edge and its marker reads
 "Intercepted · T+…". Detection after a Restart brings the route back. The
 on-screen word is "intercepted", never "damage": the area is still the
-supplied 500 m footprint, not a calculated effect.
+supplied 100 m footprint, not a calculated effect.
 
 ### History — 2026-09-17
 

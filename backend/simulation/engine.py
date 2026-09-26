@@ -30,6 +30,7 @@ class SimulationEngine:
         self._objective_direction = ObjectiveDirection(
             self.provider_provenance['objective_direction'])
         self.event_limit = event_limit
+        self._validate_scenario_provider_contract()
         self.current_time_s = 0.0
         self.threats: Dict[str, ThreatRuntime] = {
             item.state.threat_id: ThreatRuntime(item) for item in spec.threats
@@ -43,6 +44,7 @@ class SimulationEngine:
         self.operational_state: Dict[str, Any] = {'candidate_count': spec.candidate_count}
         self.outcomes: List[ProviderEvaluation] = []
         self.provider_failures: List[ProviderEvaluation] = []
+        self.constraint_violations: List[ProviderEvaluation] = []
         self.aggregate_result: Optional[ProviderEvaluation] = None
         self.event_records: List[EventRecord] = []
         self.terminated = False
@@ -77,6 +79,35 @@ class SimulationEngine:
     @property
     def processed_event_count(self) -> int:
         return self._processed_event_count
+
+    def _validate_scenario_provider_contract(self) -> None:
+        if self.spec.schema_version != 'simulation-episode/2':
+            return
+        contract = self.spec.metadata.get('scenario_contract')
+        if not isinstance(contract, Mapping):
+            raise ValueError('Singapore episode requires a scenario_contract')
+        radius = contract.get('supplied_footprint_radius_m')
+        if radius != 100.0:
+            raise ValueError('Singapore scenario radius must be exactly 100 m')
+        if getattr(self.provider, 'footprint_radius_m', None) != radius:
+            raise ValueError('Singapore provider radius must equal the scenario radius')
+        condition = contract.get('consequence_condition')
+        if getattr(self.provider, 'condition_id', None) != condition:
+            raise ValueError('Singapore provider consequence condition disagrees with the scenario')
+        if (getattr(getattr(self.provider, 'scenario_config', None), 'checksum', None)
+                != self.spec.metadata.get('scenario_config_checksum')):
+            raise ValueError('Singapore provider configuration disagrees with the scenario')
+        provider_island = getattr(getattr(self.provider, 'catalog', None),
+                                  'main_island', None)
+        expected_checksum = self.spec.metadata.get('main_island_geometry_checksum')
+        if (provider_island is None
+                or provider_island.geometry_checksum != expected_checksum):
+            raise ValueError('Singapore provider and scenario geometry checksums disagree')
+        expected_objective = self.spec.metadata.get('objective_reference')
+        if (expected_objective != 'full-candidate-universe/1'
+                or getattr(self.provider, 'objective_reference_version', None)
+                != expected_objective):
+            raise ValueError('Singapore provider objective reference disagrees with the episode')
 
     def _push_event(self, event: QueueEvent) -> None:
         if not math.isfinite(event.time_s) or event.time_s < -_TIME_TOLERANCE_S:
@@ -178,64 +209,23 @@ class SimulationEngine:
 
     def refresh_candidate_assessments(
             self, threat_ids: Optional[Sequence[str]] = None) -> None:
-        """Rank consequence evidence over candidates valid in the current state.
+        """Validate frozen assessments without re-ranking the surviving actions.
 
-        Spatial assessment is provider-cached, while the ordinal rank must be
-        recomputed after time, reservation, or inventory changes. Invalid rows
-        keep their earlier physical diagnostics for observation/audit purposes,
-        but only the current subset participates in the new rank context.
+        Candidate eligibility, evidence and ordinal cost are created once over a
+        threat's complete candidate universe at detection. Time and reservations
+        may invalidate actions, but they never change those frozen assessments.
         """
-        assessor = getattr(self.provider, 'assess_candidates', None)
-        if not callable(assessor) or self.terminated or self.truncated:
+        if self.terminated or self.truncated:
             return
-        selected = (self.visible_threat_ids() if threat_ids is None
-                    else tuple(threat_ids))
-        assignment_signature = tuple(sorted(
-            (threat_id, row.interceptor_id,
-             row.candidate.opportunity.opportunity_id, row.status.value)
-            for threat_id, row in self.assignments.items()))
-        shared_context = (
-            self.current_time_s, tuple(sorted(self.consumed_interceptors)),
-            assignment_signature, tuple(sorted(self.modified_threats)))
+        selected = self.visible_threat_ids() if threat_ids is None else tuple(threat_ids)
         for threat_id in selected:
             runtime = self.threats.get(threat_id)
-            if (runtime is None or runtime.status != ThreatStatus.ACTIVE
-                    or threat_id in self.modified_threats):
+            if runtime is None or runtime.status != ThreatStatus.ACTIVE:
                 continue
-            context = shared_context + (threat_id,)
-            if self._assessment_contexts.get(threat_id) == context:
-                continue
-            current = self.assignments.get(threat_id)
-            if current is not None and current.status == AssignmentStatus.LOCKED:
-                continue
-            candidates = []
-            for interceptor_id in sorted(runtime.candidates):
-                if interceptor_id in self.consumed_interceptors:
-                    continue
-                reservation = self.assignment_for_interceptor(interceptor_id)
-                if reservation is not None and reservation.threat_id != threat_id:
-                    continue
-                for candidate in runtime.candidates[interceptor_id]:
-                    if not candidate.opportunity.reachable:
-                        continue
-                    if candidate.lock_time_s + _TIME_TOLERANCE_S < self.current_time_s:
-                        continue
-                    if (current is not None
-                            and current.interceptor_id == interceptor_id
-                            and current.candidate.opportunity.opportunity_id
-                            == candidate.opportunity.opportunity_id):
-                        continue
-                    candidates.append(candidate)
-            assessments = assessor(
-                runtime.scheduled, tuple(candidates), dict(self.operational_state))
-            if not isinstance(assessments, Mapping):
-                raise ValueError('provider candidate assessments must be a mapping')
-            for candidate in candidates:
-                opportunity_id = candidate.opportunity.opportunity_id
-                if opportunity_id not in assessments:
-                    raise ValueError('provider omitted a current candidate assessment')
-            runtime.candidate_assessments.update(assessments)
-            self._assessment_contexts[threat_id] = context
+            expected = sum(len(rows) for rows in runtime.candidates.values())
+            if callable(getattr(self.provider, 'assess_candidates', None)):
+                if len(runtime.candidate_assessments) != expected:
+                    raise ValueError('frozen candidate assessment universe is incomplete')
 
     def assign(self, threat_id: str, interceptor_id: str,
                candidate_index: int) -> Assignment:
@@ -310,7 +300,7 @@ class SimulationEngine:
                 self._processed_event_count += 1
                 self.event_records.append(record)
                 epoch_records.append(record)
-                if self.truncated:
+                if self.truncated or self.terminated:
                     break
             self.modified_threats.clear()
             if not self.truncated:
@@ -345,7 +335,6 @@ class SimulationEngine:
                 details['training_cost'] = result.training_cost
                 details['components'] = dict(result.components)
                 details['evidence'] = dict(result.evidence)
-                details['provider_runtime_ms'] = result.runtime_ms
         elif event.kind == EventKind.THREAT_EXPIRY:
             result = self._evaluate_unhandled(event.entity_id)
             if result is None:
@@ -356,7 +345,9 @@ class SimulationEngine:
                 details['training_cost'] = result.training_cost
                 details['components'] = dict(result.components)
                 details['evidence'] = dict(result.evidence)
-                details['provider_runtime_ms'] = result.runtime_ms
+                if result.constraint_violation is not None:
+                    details['constraint_violation'] = result.constraint_violation
+                    self._terminate_constraint_violation(result)
         elif event.kind == EventKind.EPISODE_END:
             unresolved = [key for key, value in self.threats.items()
                           if value.status != ThreatStatus.RESOLVED]
@@ -392,8 +383,12 @@ class SimulationEngine:
                 candidate
                 for interceptor_id in sorted(runtime.candidates)
                 for candidate in runtime.candidates[interceptor_id])
-            assessments = assessor(
-                runtime.scheduled, all_candidates, dict(self.operational_state))
+            try:
+                assessments = assessor(
+                    runtime.scheduled, all_candidates, dict(self.operational_state))
+            except Exception as exc:
+                self._truncate('provider_failure:%s' % exc)
+                return
             if not isinstance(assessments, Mapping):
                 raise ValueError('provider candidate assessments must be a mapping')
             for candidate in all_candidates:
@@ -401,6 +396,17 @@ class SimulationEngine:
                 if opportunity_id not in assessments:
                     raise ValueError('provider omitted a candidate assessment')
             runtime.candidate_assessments = dict(assessments)
+            if self.spec.schema_version == 'simulation-episode/2':
+                expected = (len(self.interceptor_resources)
+                            * self.spec.candidate_count)
+                if len(all_candidates) != 160 or expected != 160:
+                    raise ValueError('Singapore objective requires a 160-candidate universe per threat')
+                for assessment in assessments.values():
+                    context = (assessment.rank_context if hasattr(assessment, 'rank_context')
+                               else assessment.get('rank_context', {}))
+                    if (context.get('objective_scope') != 'full_candidate_universe'
+                            or context.get('candidate_universe_count') != 160):
+                        raise ValueError('Singapore candidate rank context is not full-universe')
             self._assessment_contexts.pop(threat_id, None)
         self._push_event(QueueEvent(
             runtime.scheduled.expiry_time_s, EventKind.THREAT_EXPIRY, threat_id))
@@ -413,12 +419,15 @@ class SimulationEngine:
                 or current['version'] != self.provider_provenance['version']):
             raise ValueError('provider identity or version changed during the episode')
 
-    def _validate_provider_result(self, result: Any) -> ProviderEvaluation:
+    def _validate_provider_result(self, result: Any,
+                                  require_training_cost: bool = False) -> ProviderEvaluation:
         if not isinstance(result, ProviderEvaluation):
             raise ValueError('provider returned a malformed result')
         if result.failure_status is not None:
             self.provider_failures.append(result)
             self._truncate('provider_failure:' + result.failure_status)
+        elif require_training_cost and result.training_cost is None:
+            raise ValueError('RL-compatible provider results require additive training_cost')
         return result
 
     def _apply_operational_update(self, result: ProviderEvaluation) -> None:
@@ -438,7 +447,8 @@ class SimulationEngine:
                 evaluated = self.provider.evaluate_assigned(
                     self.threats[assignment.threat_id].scheduled,
                     assignment.candidate, dict(self.operational_state))
-            result = self._validate_provider_result(evaluated)
+            result = self._validate_provider_result(
+                evaluated, require_training_cost=True)
             if result.failure_status is not None:
                 return None
             self._apply_operational_update(result)
@@ -451,7 +461,8 @@ class SimulationEngine:
         try:
             self._check_provider_identity()
             result = self._validate_provider_result(self.provider.evaluate_unhandled(
-                self.threats[threat_id].scheduled, dict(self.operational_state)))
+                self.threats[threat_id].scheduled, dict(self.operational_state)),
+                require_training_cost=True)
             if result.failure_status is not None:
                 return None
             self._apply_operational_update(result)
@@ -475,6 +486,23 @@ class SimulationEngine:
             self.assignments.pop(threat_id)
         self.outcomes.append(result)
 
+    def _terminate_constraint_violation(self, violation: ProviderEvaluation) -> None:
+        self.constraint_violations.append(violation)
+        try:
+            aggregate = self._validate_provider_result(
+                self.provider.aggregate(tuple(self.outcomes), dict(self.operational_state)),
+                require_training_cost=True)
+            if aggregate.failure_status is not None:
+                return
+            self._apply_operational_update(aggregate)
+            self.aggregate_result = aggregate
+            self.terminated = True
+            self.truncated = False
+            self.termination_reason = 'constraint_violation:' + str(
+                violation.constraint_violation)
+        except Exception as exc:
+            self._truncate('provider_failure:%s' % exc)
+
     def _finish_if_resolved(self) -> None:
         if self.terminated or self.truncated:
             return
@@ -483,7 +511,8 @@ class SimulationEngine:
         try:
             self._check_provider_identity()
             result = self._validate_provider_result(
-                self.provider.aggregate(tuple(self.outcomes), dict(self.operational_state)))
+                self.provider.aggregate(tuple(self.outcomes), dict(self.operational_state)),
+                require_training_cost=True)
             if result.failure_status is not None:
                 return
             self._apply_operational_update(result)
@@ -559,27 +588,39 @@ class SimulationEngine:
             'truncated': self.truncated,
             'termination_reason': self.termination_reason,
             'raw_score': self.raw_score,
+            'training_cost': (None if self.aggregate_result is None
+                              else self.aggregate_result.training_cost),
+            'constraint_violation_count': len(self.constraint_violations),
         }
 
     @staticmethod
-    def _provider_result_audit(result: ProviderEvaluation) -> Mapping[str, Any]:
-        return {
+    def _provider_result_audit(result: ProviderEvaluation,
+                               include_runtime: bool = True) -> Mapping[str, Any]:
+        audit = {
             'raw_score': result.raw_score,
             'training_cost': result.training_cost,
             'components': dict(result.components),
             'provenance': dict(result.provenance),
             'evidence': dict(result.evidence),
-            'runtime_ms': result.runtime_ms,
             'failure_status': result.failure_status,
+            'constraint_violation': result.constraint_violation,
         }
+        if include_runtime:
+            audit['runtime_ms'] = result.runtime_ms
+        return audit
 
-    def provider_audit(self) -> Mapping[str, Any]:
+    def provider_audit(self, include_runtime: bool = True) -> Mapping[str, Any]:
         """Provider identity plus all result-level provenance retained raw."""
         return {
             **self.provider_provenance,
-            'outcomes': [self._provider_result_audit(item) for item in self.outcomes],
-            'failures': [self._provider_result_audit(item)
+            'outcomes': [self._provider_result_audit(item, include_runtime)
+                         for item in self.outcomes],
+            'failures': [self._provider_result_audit(item, include_runtime)
                          for item in self.provider_failures],
+            'constraint_violations': [
+                self._provider_result_audit(item, include_runtime)
+                for item in self.constraint_violations],
             'aggregate': (None if self.aggregate_result is None
-                          else self._provider_result_audit(self.aggregate_result)),
+                          else self._provider_result_audit(
+                              self.aggregate_result, include_runtime)),
         }

@@ -1,6 +1,8 @@
 export type Stage = "baseline" | "optimised" | "improvement";
 export type DimensionCode = "H" | "E" | "D" | "X" | "R" | "A";
 export type MetricUnit = "people" | "person-hours" | "days" | "minutes";
+export type ExplanationKind = "benefit" | "tradeoff" | "constraint";
+export type ExplanationReferenceType = "metric" | "dimension" | "success_probability" | "intercept_time" | "category" | "constraint";
 
 export interface RangeValue {
   low: number;
@@ -11,6 +13,7 @@ export interface RangeValue {
 export interface OutcomeMetric extends RangeValue {
   id: string;
   label: string;
+  description: string;
   unit: MetricUnit;
 }
 
@@ -27,6 +30,25 @@ export interface Outcome {
   assumedPercent: number;
 }
 
+export interface ExplanationReference {
+  type: ExplanationReferenceType;
+  id?: string;
+}
+
+export interface ComparisonExplanation {
+  code: string;
+  kind: ExplanationKind;
+  references: readonly ExplanationReference[];
+  sourceIds: readonly string[];
+}
+
+export interface RobustnessEvidence {
+  lowerConsequenceSamples: number;
+  sampleCount: number;
+  method: string;
+  sourceIds: readonly string[];
+}
+
 export interface ThreatComparison {
   id: string;
   displayId: string;
@@ -34,14 +56,12 @@ export interface ThreatComparison {
   samples: readonly { seconds: number; lon: number; lat: number; height: number }[];
   baseline: Outcome;
   optimised: Outcome;
-  reasons: readonly string[];
-  tradeoffs: readonly string[];
-  robustnessPercent: number;
-  simulationCount: number;
+  explanations: readonly ComparisonExplanation[];
+  robustness: RobustnessEvidence;
 }
 
 export interface MultiThreatComparisonResult {
-  schemaVersion: "multi-threat-comparison/1";
+  schemaVersion: "multi-threat-comparison/2";
   scenarioId: string;
   generatedAt: string;
   dataMode: "fixture" | "simulation";
@@ -56,12 +76,51 @@ export const DIMENSIONS: readonly { code: DimensionCode; label: string }[] = [
   { code: "E", label: "Essential services" },
   { code: "D", label: "Capability continuity" },
   { code: "X", label: "Cascading effects" },
-  { code: "R", label: "Recovery burden" },
+  { code: "R", label: "Recovery effort" },
   { code: "A", label: "Additional hazards" },
 ];
 
+export const DIMENSION_DESCRIPTIONS: Readonly<Record<DimensionCode, string>> = {
+  H: "Potential harm to people in the affected area.",
+  E: "Loss of healthcare, water, power, transport or other essential services.",
+  D: "Reduction in the ability to continue defence and emergency operations.",
+  X: "Knock-on disruption caused through connected systems and dependencies.",
+  R: "Difficulty and resources required to restore normal operations.",
+  A: "Fire, hazardous materials and other secondary dangers.",
+};
+
 const finite = (value: unknown): value is number => typeof value === "number" && Number.isFinite(value);
 const object = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null;
+const referenceTypes: readonly ExplanationReferenceType[] = ["metric", "dimension", "success_probability", "intercept_time", "category", "constraint"];
+const knownExplanationKinds: Readonly<Record<string, ExplanationKind>> = {
+  human_exposure_reduced: "benefit",
+  essential_service_avoided: "benefit",
+  capability_continuity_preserved: "benefit",
+  capability_continuity_tradeoff: "tradeoff",
+  cascade_reduced: "benefit",
+  recovery_shortened: "benefit",
+  recovery_effort_reduced: "benefit",
+  additional_hazard_avoided: "benefit",
+  additional_hazard_tradeoff: "tradeoff",
+  success_probability_tradeoff: "tradeoff",
+  intercept_time_tradeoff: "tradeoff",
+  hard_constraint_applied: "constraint",
+  uncertainty_preference: "benefit",
+};
+const requiredExplanationReferences: Readonly<Record<string, readonly ExplanationReferenceType[]>> = {
+  human_exposure_reduced: ["metric"],
+  essential_service_avoided: ["dimension"],
+  capability_continuity_preserved: ["dimension"],
+  capability_continuity_tradeoff: ["dimension"],
+  cascade_reduced: ["dimension"],
+  recovery_shortened: ["metric"],
+  recovery_effort_reduced: ["dimension"],
+  additional_hazard_avoided: ["dimension"],
+  additional_hazard_tradeoff: ["dimension"],
+  success_probability_tradeoff: ["success_probability"],
+  intercept_time_tradeoff: ["intercept_time"],
+  hard_constraint_applied: ["constraint"],
+};
 
 function validateRange(value: unknown, path: string, score = false): asserts value is RangeValue {
   if (!object(value) || !finite(value.low) || !finite(value.central) || !finite(value.high)) {
@@ -80,7 +139,7 @@ function validateOutcome(value: unknown, path: string): asserts value is Outcome
   if (!Array.isArray(value.metrics) || !value.metrics.length) throw new Error(`${path}.metrics must not be empty`);
   const metricIds = new Set<string>();
   for (const [index, metric] of value.metrics.entries()) {
-    if (!object(metric) || typeof metric.id !== "string" || !metric.id || typeof metric.label !== "string") throw new Error(`${path}.metrics[${index}] is invalid`);
+    if (!object(metric) || typeof metric.id !== "string" || !metric.id || typeof metric.label !== "string" || !metric.label || typeof metric.description !== "string" || !metric.description) throw new Error(`${path}.metrics[${index}] is invalid`);
     if (!["people", "person-hours", "days", "minutes"].includes(String(metric.unit))) throw new Error(`${path}.metrics[${index}].unit is unsupported`);
     if (metricIds.has(metric.id)) throw new Error(`${path} has duplicate metric id ${metric.id}`);
     metricIds.add(metric.id);
@@ -100,7 +159,7 @@ function validateOutcome(value: unknown, path: string): asserts value is Outcome
 }
 
 export function parseComparisonResult(value: unknown): MultiThreatComparisonResult {
-  if (!object(value) || value.schemaVersion !== "multi-threat-comparison/1") throw new Error("Expected multi-threat-comparison/1");
+  if (!object(value) || value.schemaVersion !== "multi-threat-comparison/2") throw new Error("Expected multi-threat-comparison/2");
   if (typeof value.scenarioId !== "string" || !value.scenarioId) throw new Error("scenarioId is required");
   if (typeof value.generatedAt !== "string" || !Number.isFinite(Date.parse(value.generatedAt))) throw new Error("generatedAt is invalid");
   if (value.dataMode !== "fixture" && value.dataMode !== "simulation") throw new Error("dataMode must be fixture or simulation");
@@ -116,6 +175,7 @@ export function parseComparisonResult(value: unknown): MultiThreatComparisonResu
   if (!object(value.provenance) || !Array.isArray(value.provenance.sourceIds) || !value.provenance.sourceIds.every(item => typeof item === "string") || !Array.isArray(value.provenance.limitations) || !value.provenance.limitations.every(item => typeof item === "string")) {
     throw new Error("provenance is invalid");
   }
+  const provenanceSourceIds = new Set(value.provenance.sourceIds as string[]);
   if (!Array.isArray(value.threats) || !value.threats.length) throw new Error("threats must not be empty");
   const ids = new Set<string>();
   let expectedMetricSignature: string | undefined;
@@ -132,16 +192,50 @@ export function parseComparisonResult(value: unknown): MultiThreatComparisonResu
     }
     validateOutcome(threat.baseline, `${path}.baseline`);
     validateOutcome(threat.optimised, `${path}.optimised`);
-    const baselineIds = (threat.baseline as Outcome).metrics.map(metric => metric.id).join("|");
-    const optimisedIds = (threat.optimised as Outcome).metrics.map(metric => metric.id).join("|");
-    if (baselineIds !== optimisedIds) throw new Error(`${path} outcomes must contain matching metrics in the same order`);
-    const signature = (threat.baseline as Outcome).metrics.map(metric => `${metric.id}:${metric.unit}`).join("|");
+    const metricSignature = (outcome: Outcome): string => outcome.metrics.map(metric => `${metric.id}:${metric.unit}:${metric.label}:${metric.description}`).join("|");
+    const baselineSignature = metricSignature(threat.baseline as Outcome);
+    const optimisedSignature = metricSignature(threat.optimised as Outcome);
+    if (baselineSignature !== optimisedSignature) throw new Error(`${path} outcomes must contain matching metrics in the same order`);
+    const signature = baselineSignature;
     if (expectedMetricSignature === undefined) expectedMetricSignature = signature;
     else if (signature !== expectedMetricSignature) throw new Error(`${path} metrics must match the other threats for scenario aggregation`);
-    if (!Array.isArray(threat.reasons) || !threat.reasons.every(item => typeof item === "string")) throw new Error(`${path}.reasons is invalid`);
-    if (!Array.isArray(threat.tradeoffs) || !threat.tradeoffs.every(item => typeof item === "string")) throw new Error(`${path}.tradeoffs is invalid`);
-    if (!finite(threat.robustnessPercent) || threat.robustnessPercent < 0 || threat.robustnessPercent > 100) throw new Error(`${path}.robustnessPercent is invalid`);
-    if (!Number.isInteger(threat.simulationCount) || (threat.simulationCount as number) < 1) throw new Error(`${path}.simulationCount is invalid`);
+    if (!Array.isArray(threat.explanations) || !threat.explanations.length) throw new Error(`${path}.explanations must not be empty`);
+    for (const [explanationIndex, explanation] of threat.explanations.entries()) {
+      const explanationPath = `${path}.explanations[${explanationIndex}]`;
+      if (!object(explanation) || typeof explanation.code !== "string" || !explanation.code || !["benefit", "tradeoff", "constraint"].includes(String(explanation.kind))) {
+        throw new Error(`${explanationPath} identity is invalid`);
+      }
+      const expectedKind = knownExplanationKinds[explanation.code];
+      if (expectedKind && explanation.kind !== expectedKind) throw new Error(`${explanationPath}.kind must be ${expectedKind} for ${explanation.code}`);
+      if (!Array.isArray(explanation.references) || !explanation.references.length) throw new Error(`${explanationPath}.references must not be empty`);
+      for (const [referenceIndex, reference] of explanation.references.entries()) {
+        const referencePath = `${explanationPath}.references[${referenceIndex}]`;
+        if (!object(reference) || !referenceTypes.includes(reference.type as ExplanationReferenceType)) throw new Error(`${referencePath} is invalid`);
+        if (["metric", "dimension", "category", "constraint"].includes(String(reference.type)) && (typeof reference.id !== "string" || !reference.id)) {
+          throw new Error(`${referencePath}.id is required`);
+        }
+        if (reference.type === "metric" && !(threat.baseline as Outcome).metrics.some(metric => metric.id === reference.id)) throw new Error(`${referencePath} names an unknown metric`);
+        if (reference.type === "dimension" && !DIMENSIONS.some(item => item.code === reference.id)) throw new Error(`${referencePath} names an unknown dimension`);
+        if (reference.type === "category") {
+          const categoryLabels = [...(threat.baseline as Outcome).categories, ...(threat.optimised as Outcome).categories].map(category => category.label);
+          if (!categoryLabels.includes(String(reference.id))) throw new Error(`${referencePath} names an unknown category`);
+        }
+      }
+      const presentReferenceTypes = new Set((explanation.references as ExplanationReference[]).map(reference => reference.type));
+      for (const requiredType of requiredExplanationReferences[explanation.code] ?? []) {
+        if (!presentReferenceTypes.has(requiredType)) throw new Error(`${explanationPath} requires a ${requiredType} reference`);
+      }
+      if (!Array.isArray(explanation.sourceIds) || !explanation.sourceIds.length || !explanation.sourceIds.every(sourceId => typeof sourceId === "string" && provenanceSourceIds.has(sourceId))) {
+        throw new Error(`${explanationPath}.sourceIds must reference provenance.sourceIds`);
+      }
+    }
+    if (!object(threat.robustness) || !Number.isInteger(threat.robustness.lowerConsequenceSamples) || !Number.isInteger(threat.robustness.sampleCount)
+      || (threat.robustness.sampleCount as number) < 1 || (threat.robustness.lowerConsequenceSamples as number) < 0
+      || (threat.robustness.lowerConsequenceSamples as number) > (threat.robustness.sampleCount as number)
+      || typeof threat.robustness.method !== "string" || !threat.robustness.method) throw new Error(`${path}.robustness is invalid`);
+    if (!Array.isArray(threat.robustness.sourceIds) || !threat.robustness.sourceIds.length || !threat.robustness.sourceIds.every(sourceId => typeof sourceId === "string" && provenanceSourceIds.has(sourceId))) {
+      throw new Error(`${path}.robustness.sourceIds must reference provenance.sourceIds`);
+    }
   }
   return value as unknown as MultiThreatComparisonResult;
 }

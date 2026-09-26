@@ -6,7 +6,7 @@ statement of real defence capability.
 
 ## Implemented data handoff
 
-The frontend now accepts a validated `multi-threat-comparison/1` result with any
+The frontend now accepts a validated `multi-threat-comparison/2` result with any
 positive number of threats. Data is selected in this order:
 
 1. `?comparisonResult=/path/to/result.json` for a one-off run;
@@ -26,7 +26,7 @@ entire batch.
 The `All missiles` view provides a scenario-wide comparison and per-missile
 drill-down. Until the backend supplies overlap-adjusted aggregate values, it
 uses explicit presentation methods: sums for exposure, fatalities and service
-person-hours; maxima for recovery and delay; means for success and H/E/D/X/R/A.
+service-hours lost; a maximum for response delay; and means for success and H/E/D/X/R/A.
 The UI states that exposure totals are not deduplicated across overlapping
 outcome areas.
 
@@ -153,10 +153,9 @@ this stage is full-screen by default. The table is the primary content:
 | Measure | Baseline | Optimised | Improvement | Interpretation |
 |---|---:|---:|---:|---|
 | People potentially exposed | 10,400 | 4,000 | 6,400 fewer (61%) | Lower residential occupancy exposure |
-| Essential service disruption | 830k person-hours | 240k person-hours | 71% lower | Avoids major water dependency |
+| Essential-service disruption | 830k service-hours | 240k service-hours | 71% lower | Avoids major water dependency |
 | `H` Human exposure | 78 | 42 | 36 lower | Improvement remains under high estimate |
 | `D` Capability continuity | 35 | 41 | 6 worse | Accepted capability trade-off |
-| Time to 90% function | 15 days | 5 days | 10 days shorter | Faster functional recovery |
 
 Use two table groups: **Outcome metrics** followed by **H/E/D/X/R/A**. Directly
 below the table, add two clearly separated sections in this order:
@@ -192,9 +191,8 @@ Display four to six metrics by default. Recommended order:
 | People potentially exposed | Low-central-high people; always show coverage status |
 | Simulated estimated fatalities | Show only when explicitly supplied by a versioned casualty model; use a range, never a single certain count |
 | Serious injuries | Same rule as fatalities |
-| Essential service disruption | Effective service-person-hours, with top service type visible |
+| Essential-service disruption | Service-hours lost: people affected multiplied by hours without the service |
 | Capability continuity | `D` score; optionally a supplied synthetic response-delay range |
-| Time to 90% function | Hours or days, with low-central-high range |
 
 The frontend must not estimate fatalities from `peoplePotentiallyExposed` or
 turn a `D` score into delay minutes. If those fields are unavailable, show
@@ -218,10 +216,10 @@ Use the existing 0-100 consequence-vector definitions:
 | Code | Label | What the panel should reveal |
 |---|---|---|
 | `H` | Human exposure | People present, vulnerability, and occupancy condition |
-| `E` | Essential services | Service-person-hours and alternative capacity |
+| `E` | Essential services | Loss of healthcare, water, power, transport or other essential services |
 | `D` | Capability continuity | Authorised abstract value; never infer sensitive capacity in the frontend |
 | `X` | Cascading effects | Top dependency contributions and double-counting status |
-| `R` | Recovery | Time to 30%, 60%, and 90% function |
+| `R` | Recovery effort | Relative difficulty and resources required to restore normal operations |
 | `A` | Additional hazards | Hazard bands and whether each value is sourced or assumed |
 
 Each row should contain:
@@ -281,8 +279,10 @@ The category is an explanation, not a permanent priority rank.
 
 ## 7. Why-this-changed section
 
-Generate this section from structured backend reasons, not from frontend score
-guessing. A good result contains both benefits and costs:
+Generate this section from structured backend explanation codes and evidence
+references. The frontend resolves each reference against the supplied baseline
+and optimised values, calculates the difference, and writes consistent display
+text. A good result contains both benefits and costs:
 
 ```text
 Why the optimised outcome was selected
@@ -355,6 +355,13 @@ interface RangeValue {
   modelVersion?: string;
 }
 
+interface OutcomeMetric extends RangeValue {
+  id: string;
+  label: string;
+  description: string;
+  unit: "people" | "person-hours" | "days" | "minutes";
+}
+
 interface DimensionValue {
   low: number | null;
   central: number | null;
@@ -383,7 +390,6 @@ interface Outcome {
     seriousInjuries?: RangeValue;
     essentialServicePersonHours?: RangeValue;
     simulatedCapabilityDelayMinutes?: RangeValue;
-    recoveryHours90?: RangeValue;
   };
   vector: Record<DimensionCode, DimensionValue>;
   weightedTotal?: DimensionValue;
@@ -407,20 +413,25 @@ interface ThreatComparison {
   samples: Array<{ time: string; lon: number; lat: number; height: number }>;
   baseline: Outcome;
   optimised: Outcome;
-  reasons: Array<{
+  explanations: Array<{
     code: string;
     kind: "benefit" | "tradeoff" | "constraint";
-    text: string;
-    evidenceMetricIds: string[];
+    references: Array<{
+      type: "metric" | "dimension" | "success_probability" | "intercept_time" | "category" | "constraint";
+      id?: string;
+    }>;
+    sourceIds: string[];
   }>;
-  robustness?: {
-    lowerConsequenceSampleFraction: number;
+  robustness: {
+    lowerConsequenceSamples: number;
     sampleCount: number;
+    method: string;
+    sourceIds: string[];
   };
 }
 
 interface MultiThreatComparisonResult {
-  schemaVersion: "multi-threat-comparison/1";
+  schemaVersion: "multi-threat-comparison/2";
   scenarioId: string;
   generatedAt: string;
   synthetic: true;

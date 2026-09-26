@@ -584,6 +584,7 @@ dd[data-grade="poor"] { color: var(--poor); }
 }
 
 .outcome-metrics dl { margin: 0; }
+.metric-guide { margin: -2px 0 8px; color: var(--muted); font-size: 11px; }
 .metric-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(135px, auto);
@@ -593,6 +594,10 @@ dd[data-grade="poor"] { color: var(--poor); }
 }
 
 .metric-row dt { color: #c3cad3; }
+.metric-row dt strong,
+.metric-row dt small { display: block; }
+.metric-row dt strong { font-weight: 600; }
+.metric-row .metric-description { max-width: 34ch; margin-top: 2px; color: var(--muted); font-size: 10px; line-height: 1.35; }
 .metric-row dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
 .metric-row dd strong,
 .metric-row dd small { display: block; }

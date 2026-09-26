@@ -6,7 +6,7 @@ from .singapore_scenario import canonical_episode_hash
 
 
 SMOKE_TRAINING_STEPS = 10_000
-SUITE_MANIFEST_VERSION = 'rl-scenario-suites/4'
+SUITE_MANIFEST_VERSION = 'rl-scenario-suites/5'
 # Generated training episodes occupy a separate, unbounded upper partition.
 TRAINING_SEED_OFFSET = 1_000_000_000
 VALIDATION_SEEDS = tuple(range(10_000, 10_064))
@@ -18,6 +18,31 @@ ORACLE_MAX_INTERCEPTORS = 3
 ORACLE_CANDIDATES_PER_PAIR = 5
 ORACLE_MAX_ACTION_SEQUENCES = 100_000
 SINGAPORE_REFERENCE_SEEDS = tuple(range(50_000, 50_064))
+OOD_GEOGRAPHY_SEEDS = tuple(range(60_000, 60_064))
+OOD_CADENCE_SEEDS = tuple(range(70_000, 70_064))
+
+FROZEN_SPLIT_PROFILES = {
+    'validation': (
+        ('balanced', 16), ('full-standard', 16),
+        ('burst-contention', 12), ('low-slack', 10),
+        ('consequence-contrast', 10)),
+    'held-out': (
+        ('balanced', 64), ('full-standard', 64),
+        ('burst-contention', 48), ('low-slack', 40),
+        ('consequence-contrast', 40)),
+    'stress': (('burst-contention', 16), ('low-slack', 16)),
+    'ood-geography': (('geographic-shift', 64),),
+    'ood-cadence': (('cadence-shift', 64),),
+    'assignment-reference': (('full-standard', 64),),
+}
+FROZEN_SPLIT_SEEDS = {
+    'validation': VALIDATION_SEEDS,
+    'held-out': HELD_OUT_TEST_SEEDS,
+    'stress': STRESS_SEEDS,
+    'ood-geography': OOD_GEOGRAPHY_SEEDS,
+    'ood-cadence': OOD_CADENCE_SEEDS,
+    'assignment-reference': SINGAPORE_REFERENCE_SEEDS,
+}
 
 
 @dataclass(frozen=True)
@@ -82,3 +107,21 @@ def build_suite_manifest(generator: Any, suite: SuiteDefinition,
         'canonical_hash_algorithm': 'sha256 of canonical simulation episode JSON',
         'episodes': episodes,
     }
+
+
+def frozen_scenario_plan() -> Tuple[Mapping[str, object], ...]:
+    """Return the immutable 544-reference split/profile/seed plan."""
+    rows = []
+    for split, quotas in FROZEN_SPLIT_PROFILES.items():
+        profiles = tuple(
+            profile for profile, count in quotas for _ in range(count))
+        seeds = FROZEN_SPLIT_SEEDS[split]
+        if len(profiles) != len(seeds):
+            raise RuntimeError('frozen split quota and seed range disagree')
+        for index, (seed, profile) in enumerate(zip(seeds, profiles)):
+            rows.append({
+                'scenario_ref': 'sg2:%s:%06d' % (split, index),
+                'split': split, 'index': index,
+                'seed': seed, 'profile': profile,
+            })
+    return tuple(rows)

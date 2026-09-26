@@ -592,11 +592,18 @@ export function mountDecision(
   const loading = mountResultLoader(document.body, "Planning", loader, parseResult,
     (parsed, snapshot) => {
       const resources = new ResultResources(canvas);
+      const clock = { range: canvas.time.range, current: canvas.time.current, playing: canvas.time.playing };
       try {
         const view = renderDecision(resources.canvas, { ...setup, lighting }, parsed, resources, snapshot);
         view.setBasemap(basemap);
         return view;
-      } catch (error) { resources.dispose(); throw error; }
+      } catch (error) {
+        resources.dispose();
+        canvas.time.setRange(clock.range.start, clock.range.stop);
+        canvas.time.seek(clock.current);
+        if (clock.playing) canvas.time.play();
+        throw error;
+      }
     });
   const runs = mountRunControls(loading.controls, "planning", loading.loadIdentity);
   return {

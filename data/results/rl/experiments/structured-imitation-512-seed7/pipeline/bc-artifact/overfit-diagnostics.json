@@ -1,0 +1,208 @@
+{
+  "fixed_acceptable_action_agreement": 1.0,
+  "fixed_scenario_count": 16,
+  "fixed_scenario_gate_passed": true,
+  "fixed_scenarios": [
+    {
+      "acceptable_action_agreement": 1.0,
+      "constraint_violation": false,
+      "decision_count": 32,
+      "episode_id": "singapore-v2-burst-contention-1000000001",
+      "identical_teacher_score": true,
+      "invalid_action_count": 0,
+      "normal_termination": true,
+      "student_raw_score": 1.642164170762632,
+      "teacher_raw_score": 1.642164170762632
+    },
+    {
+      "acceptable_action_agreement": 1.0,
+      "constraint_violation": false,
+      "decision_count": 24,
+      "episode_id": "singapore-v2-consequence-contrast-1000000002",
+      "identical_teacher_score": true,
+      "invalid_action_count": 0,
+      "normal_termination": true,
+      "student_raw_score": 0.8189203354297694,
+      "teacher_raw_score": 0.8189203354297694
+    },
+    {
+      "acceptable_action_agreement": 1.0,
+      "constraint_violation": false,
+      "decision_count": 32,
+      "episode_id": "singapore-v2-full-standard-1000000003",
+      "identical_teacher_score": true,
+      "invalid_action_count": 0,
+      "normal_termination": true,
+      "student_raw_score": 1.0075206860187969,
+      "teacher_raw_score": 1.0075206860187969
+    },
+    {
+      "acceptable_action_agreement": 1.0,
+      "constraint_violation": false,
+      "decision_count": 32,
+      "episode_id": "singapore-v2-low-slack-1000000004",
+      "identical_teacher_score": true,
+      "invalid_action_count": 0,
+      "normal_termination": true,
+      "student_raw_score": 1.728125,
+      "teacher_raw_score": 1.728125
+    },
+    {
+      "acceptable_action_agreement": 1.0,
+      "constraint_violation": false,
+      "decision_count": 12,
+      "episode_id": "singapore-v2-warmup-1000000005",
+      "identical_teacher_score": true,
+      "invalid_action_count": 0,
+      "normal_termination": true,
+      "student_raw_score": 0.23864406779661018,
+      "teacher_raw_score": 0.23864406779661018
+    },
+    {
+      "acceptable_action_agreement": 1.0,
+      "constraint_violation": false,
+      "decision_count": 24,
+      "episode_id": "singapore-v2-burst-contention-1000000007",
+      "identical_teacher_score": true,
+      "invalid_action_count": 0,
+      "normal_termination": true,
+      "student_raw_score": 1.2746153846153847,
+      "teacher_raw_score": 1.2746153846153847
+    },
+    {
+      "acceptable_action_agreement": 1.0,
+      "constraint_violation": false,
+      "decision_count": 28,
+      "episode_id": "singapore-v2-consequence-contrast-1000000008",
+      "identical_teacher_score": true,
+      "invalid_action_count": 0,
+      "normal_termination": true,
+      "student_raw_score": 0.969713752563654,
+      "teacher_raw_score": 0.969713752563654
+    },
+    {
+      "acceptable_action_agreement": 1.0,
+      "constraint_violation": false,
+      "decision_count": 32,
+      "episode_id": "singapore-v2-full-standard-1000000009",
+      "identical_teacher_score": true,
+      "invalid_action_count": 0,
+      "normal_termination": true,
+      "student_raw_score": 0.6778311821006318,
+      "teacher_raw_score": 0.6778311821006318
+    },
+    {
+      "acceptable_action_agreement": 1.0,
+      "constraint_violation": false,
+      "decision_count": 32,
+      "episode_id": "singapore-v2-low-slack-1000000010",
+      "identical_teacher_score": true,
+      "invalid_action_count": 0,
+      "normal_termination": true,
+      "student_raw_score": 1.8546729611384785,
+      "teacher_raw_score": 1.8546729611384785
+    },
+    {
+      "acceptable_action_agreement": 1.0,
+      "constraint_violation": false,
+      "decision_count": 28,
+      "episode_id": "singapore-v2-burst-contention-1000000012",
+      "identical_teacher_score": true,
+      "invalid_action_count": 0,
+      "normal_termination": true,
+      "student_raw_score": 1.5353083593205172,
+      "teacher_raw_score": 1.5353083593205172
+    },
+    {
+      "acceptable_action_agreement": 1.0,
+      "constraint_violation": false,
+      "decision_count": 28,
+      "episode_id": "singapore-v2-consequence-contrast-1000000013",
+      "identical_teacher_score": true,
+      "invalid_action_count": 0,
+      "normal_termination": true,
+      "student_raw_score": 1.1665829862773835,
+      "teacher_raw_score": 1.1665829862773835
+    },
+    {
+      "acceptable_action_agreement": 1.0,
+      "constraint_violation": false,
+      "decision_count": 32,
+      "episode_id": "singapore-v2-full-standard-1000000014",
+      "identical_teacher_score": true,
+      "invalid_action_count": 0,
+      "normal_termination": true,
+      "student_raw_score": 1.1623803971720341,
+      "teacher_raw_score": 1.1623803971720341
+    },
+    {
+      "acceptable_action_agreement": 1.0,
+      "constraint_violation": false,
+      "decision_count": 32,
+      "episode_id": "singapore-v2-low-slack-1000000015",
+      "identical_teacher_score": true,
+      "invalid_action_count": 0,
+      "normal_termination": true,
+      "student_raw_score": 1.815177154944474,
+      "teacher_raw_score": 1.815177154944474
+    },
+    {
+      "acceptable_action_agreement": 1.0,
+      "constraint_violation": false,
+      "decision_count": 8,
+      "episode_id": "singapore-v2-warmup-1000000016",
+      "identical_teacher_score": true,
+      "invalid_action_count": 0,
+      "normal_termination": true,
+      "student_raw_score": 0.05555555555555555,
+      "teacher_raw_score": 0.05555555555555555
+    },
+    {
+      "acceptable_action_agreement": 1.0,
+      "constraint_violation": false,
+      "decision_count": 24,
+      "episode_id": "singapore-v2-burst-contention-1000000018",
+      "identical_teacher_score": true,
+      "invalid_action_count": 0,
+      "normal_termination": true,
+      "student_raw_score": 1.1786347517730495,
+      "teacher_raw_score": 1.1786347517730495
+    },
+    {
+      "acceptable_action_agreement": 1.0,
+      "constraint_violation": false,
+      "decision_count": 24,
+      "episode_id": "singapore-v2-consequence-contrast-1000000019",
+      "identical_teacher_score": true,
+      "invalid_action_count": 0,
+      "normal_termination": true,
+      "student_raw_score": 0.8591201873810569,
+      "teacher_raw_score": 0.8591201873810569
+    }
+  ],
+  "fixed_training": {
+    "epochs": 110,
+    "final_loss": 0.024228742346167564,
+    "learning_rate": 0.001,
+    "teacher_path_acceptable_action_agreement": 1.0
+  },
+  "passed": true,
+  "single_scenario": {
+    "acceptable_action_agreement": 1.0,
+    "constraint_violation": false,
+    "decision_count": 32,
+    "episode_id": "singapore-v2-burst-contention-1000000001",
+    "identical_teacher_score": true,
+    "invalid_action_count": 0,
+    "normal_termination": true,
+    "student_raw_score": 1.642164170762632,
+    "teacher_raw_score": 1.642164170762632
+  },
+  "single_scenario_passed": true,
+  "single_training": {
+    "epochs": 115,
+    "final_loss": 0.05029929429292679,
+    "learning_rate": 0.001,
+    "teacher_path_acceptable_action_agreement": 1.0
+  }
+}

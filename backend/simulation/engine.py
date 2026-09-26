@@ -399,13 +399,15 @@ class SimulationEngine:
             if self.spec.schema_version == 'simulation-episode/2':
                 expected = (len(self.interceptor_resources)
                             * self.spec.candidate_count)
-                if len(all_candidates) != 160 or expected != 160:
-                    raise ValueError('Singapore objective requires a 160-candidate universe per threat')
+                if len(all_candidates) != expected:
+                    raise ValueError(
+                        'Singapore objective requires the complete active '
+                        'interceptor/candidate universe per threat')
                 for assessment in assessments.values():
                     context = (assessment.rank_context if hasattr(assessment, 'rank_context')
                                else assessment.get('rank_context', {}))
                     if (context.get('objective_scope') != 'full_candidate_universe'
-                            or context.get('candidate_universe_count') != 160):
+                            or context.get('candidate_universe_count') != expected):
                         raise ValueError('Singapore candidate rank context is not full-universe')
             self._assessment_contexts.pop(threat_id, None)
         self._push_event(QueueEvent(

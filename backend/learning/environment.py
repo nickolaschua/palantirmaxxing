@@ -15,7 +15,7 @@ from backend.simulation import (MAX_CANDIDATES_PER_PAIR, MAX_INTERCEPTORS,
                                 ConsequenceProvider, EpisodeSpec,
                                 JsonlRolloutRecorder, ObjectiveDirection,
                                 RolloutRecord, SeededScenarioGenerator,
-                                SimulationEngine, ThreatStatus,
+                                SIMULATOR_VERSION, SimulationEngine, ThreatStatus,
                                 observation_reference)
 
 
@@ -119,7 +119,8 @@ class CentralizedInterceptionEnv(gym.Env):
                  event_limit: int = 10000,
                  recorder: Optional[JsonlRolloutRecorder] = None,
                  policy_version: str = 'policy-not-specified',
-                 scenario_seed_offset: int = 0):
+                 scenario_seed_offset: int = 0,
+                 episode_seed_stride: int = 1):
         super().__init__()
         if episode_spec is None and scenario_generator is None:
             scenario_generator = SeededScenarioGenerator()
@@ -129,6 +130,8 @@ class CentralizedInterceptionEnv(gym.Env):
             raise ValueError('base_seed must be an integer')
         if type(scenario_seed_offset) is not int or scenario_seed_offset < 0:
             raise ValueError('scenario_seed_offset must be a nonnegative integer')
+        if type(episode_seed_stride) is not int or episode_seed_stride <= 0:
+            raise ValueError('episode_seed_stride must be a positive integer')
         if scenario_seed_offset and base_seed < 0:
             raise ValueError('base_seed must be nonnegative when using a seed offset')
         self.provider = provider
@@ -136,6 +139,7 @@ class CentralizedInterceptionEnv(gym.Env):
         self.scenario_generator = scenario_generator
         self.base_seed = base_seed
         self.scenario_seed_offset = scenario_seed_offset
+        self.episode_seed_stride = episode_seed_stride
         self.event_limit = event_limit
         self.recorder = recorder
         if not isinstance(policy_version, str) or not policy_version.strip():
@@ -154,6 +158,9 @@ class CentralizedInterceptionEnv(gym.Env):
         self._episode_counter = 0
         self._decision_counter = 0
         self._episode_reward = 0.0
+        self._state_revision = 0
+        self._mask_cache_revision = -1
+        self._mask_cache: Optional[np.ndarray] = None
 
     @staticmethod
     def encode_assignment_action(threat_slot: int, interceptor_slot: int,
@@ -185,7 +192,8 @@ class CentralizedInterceptionEnv(gym.Env):
         if self._fixed_episode_spec is not None:
             return self._fixed_episode_spec
         if seed is None:
-            selected_seed = self.base_seed + self._episode_counter
+            selected_seed = (self.base_seed
+                             + self._episode_counter * self.episode_seed_stride)
         else:
             selected_seed = seed
         if type(selected_seed) is not int or (self.scenario_seed_offset and selected_seed < 0):
@@ -217,10 +225,19 @@ class CentralizedInterceptionEnv(gym.Env):
             + [None] * (MAX_INTERCEPTORS - len(ordered_interceptors)))
         self._decision_counter = 0
         self._episode_reward = 0.0
+        self._invalidate_state_cache()
         observation = self._observation()
         return observation, self._info(())
 
+    def _invalidate_state_cache(self) -> None:
+        self._state_revision += 1
+        self._mask_cache_revision = -1
+        self._mask_cache = None
+
     def action_masks(self) -> np.ndarray:
+        if (self._mask_cache is not None
+                and self._mask_cache_revision == self._state_revision):
+            return self._mask_cache.copy()
         mask = np.zeros(ACTION_COUNT, dtype=np.int8)
         if self.engine is None or self.engine.terminated or self.engine.truncated:
             return mask
@@ -245,7 +262,10 @@ class CentralizedInterceptionEnv(gym.Env):
                 mask[self.cancel_action(threat_slot)] = 1
         if self.engine.can_advance():
             mask[ADVANCE_ACTION] = 1
-        return mask
+        mask.setflags(write=False)
+        self._mask_cache = mask
+        self._mask_cache_revision = self._state_revision
+        return mask.copy()
 
     def step(self, action):
         if self.engine is None:
@@ -257,8 +277,10 @@ class CentralizedInterceptionEnv(gym.Env):
         mask = self.action_masks()
         if not bool(mask[action]):
             raise ValueError('action is invalid in the current state')
-        before = self.engine.snapshot()
-        before_observation = self._observation()
+        before = before_observation = None
+        if self.recorder is not None:
+            before = self.engine.snapshot()
+            before_observation = self._observation()
         started = time.perf_counter()
         processed_events = ()
         if action < ASSIGNMENT_ACTIONS:
@@ -273,8 +295,9 @@ class CentralizedInterceptionEnv(gym.Env):
         else:
             processed_events = self.engine.advance()
         timing_ms = (time.perf_counter() - started) * 1000.0
+        self._invalidate_state_cache()
         observation = self._observation()
-        after = self.engine.snapshot()
+        after = self.engine.snapshot() if self.recorder is not None else None
         step_training_costs = tuple(
             float(record.details['training_cost'])
             for record in processed_events
@@ -324,10 +347,11 @@ class CentralizedInterceptionEnv(gym.Env):
         return {
             'episode_id': self.episode_spec.episode_id,
             'seed': self.episode_spec.seed,
+            'scenario_profile': self.episode_spec.metadata.get('profile'),
             'raw_score': self.engine.raw_score,
             'score_direction': self.engine.objective_direction.value,
             'provider': dict(self.engine.provider_provenance),
-            'simulator_version': self.engine.snapshot()['simulator_version'],
+            'simulator_version': SIMULATOR_VERSION,
             'termination_reason': self.engine.termination_reason,
             'processed_events': [item.as_dict() for item in processed_events],
             'step_training_costs': list(step_training_costs),

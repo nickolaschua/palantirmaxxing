@@ -15,8 +15,16 @@ import uuid
 
 from .store import atomic_json, canonical_id, StoreUnavailable
 from .validation import InvalidResult
+from backend.simulation.scenario_manifest import (
+    load_scenario_manifest, validate_scenario_ref)
 
 ROOT = Path(__file__).resolve().parents[2]
+MANIFEST_POLICIES = frozenset((
+    'naive-launch-on-detection/1',
+    'feasible-immediate-matching/1',
+    'optimal-fixed-rank-assignment/1',
+    'structured-behavior-cloning/1',
+))
 
 
 class InvalidSubmission(ValueError):
@@ -37,20 +45,44 @@ class RunFailure(RuntimeError):
         super().__init__(message)
 
 
-def validate_submission(value):
+def validate_submission(value, manifest=None):
     if not isinstance(value, dict) or value.get('kind') not in ('planning', 'simulation'):
         raise InvalidSubmission('kind must be planning or simulation')
     kind = value['kind']
-    allowed = {'kind', 'seed'} if kind == 'simulation' else {'kind'}
-    if set(value) - allowed:
-        raise InvalidSubmission('Unknown submission fields: ' + ', '.join(sorted(set(value) - allowed)))
-    submission = {'kind': kind}
-    if kind == 'simulation':
+    if kind == 'planning':
+        if set(value) != {'kind'}:
+            raise InvalidSubmission('Planning submissions accept only kind')
+        return {'kind': kind}
+    manifest_mode = 'scenarioRef' in value or 'policy' in value
+    if not manifest_mode:
+        unknown = set(value) - {'kind', 'seed'}
+        if unknown:
+            raise InvalidSubmission(
+                'Unknown submission fields: ' + ', '.join(sorted(unknown)))
         seed = value.get('seed', 7)
         if type(seed) is not int or not 0 <= seed <= 2**31 - 1:
-            raise InvalidSubmission('seed must be an integer from 0 through 2147483647')
-        submission['seed'] = seed
-    return submission
+            raise InvalidSubmission(
+                'seed must be an integer from 0 through 2147483647')
+        return {'kind': kind, 'seed': seed}
+    expected = {'kind', 'scenarioRef', 'policy'}
+    if set(value) != expected:
+        raise InvalidSubmission(
+            'Manifest simulations require exactly scenarioRef and policy; '
+            'seed and unknown fields are forbidden')
+    try:
+        scenario_ref = validate_scenario_ref(value['scenarioRef'])
+    except ValueError as exc:
+        raise InvalidSubmission(str(exc)) from exc
+    if value['policy'] not in MANIFEST_POLICIES:
+        raise InvalidSubmission('Unsupported manifest simulation policy')
+    try:
+        checked = manifest or load_scenario_manifest()
+    except ValueError as exc:
+        raise InvalidSubmission('Checked scenario manifest is unavailable') from exc
+    if scenario_ref not in checked.entries_by_ref:
+        raise InvalidSubmission('Unknown scenario reference')
+    return {'kind': kind, 'scenarioRef': scenario_ref,
+            'policy': value['policy']}
 
 
 def utc():
@@ -65,6 +97,7 @@ class JobManager:
         self._queue = queue.Queue(maxsize=8)
         self._lock = threading.RLock()
         self._stopping = threading.Event()
+        self._unavailable = False
         self._process = None
         self._executor = executor or self._export
         self.timeout = timeout
@@ -93,10 +126,15 @@ class JobManager:
         with self._lock:
             if self._stopping.is_set():
                 raise StoreUnavailable('Run worker is shutting down')
+            if self._unavailable or not self._worker.is_alive():
+                raise StoreUnavailable('Run worker is unavailable; restart the service after restoring storage')
             if self._queue.full():
                 raise QueueFull('The queue already contains eight waiting runs.')
             record = dict(submission, runId=str(uuid.uuid4()), status='queued', createdAt=utc(), updatedAt=utc())
-            self._save(record)
+            try:
+                self._save(record)
+            except OSError as exc:
+                raise StoreUnavailable('Cannot persist run submission') from exc
             self._queue.put_nowait(record['runId'])
             return deepcopy(record)
 
@@ -104,6 +142,9 @@ class JobManager:
         with self._lock:
             if not canonical_id(identity) or identity not in self._records:
                 raise RunNotFound('No matching run.')
+            if (self._records[identity]['status'] in ('queued', 'running')
+                    and (self._unavailable or not self._worker.is_alive())):
+                raise StoreUnavailable('Run worker cannot persist progress; restart after restoring storage')
             return deepcopy(self._records[identity])
 
     def _export(self, submission, directory, log):
@@ -112,8 +153,17 @@ class JobManager:
             args = [sys.executable, str(ROOT / 'scripts/export_static_mvp_planning_result.py'),
                     '--scenario', str(ROOT / 'data/scenarios/demo-singapore.json'), '--output', str(output)]
         else:
-            args = [sys.executable, str(ROOT / 'scripts/export_simulation_result.py'),
-                    '--seed', str(submission['seed']), '--policy', 'baseline', '--output', str(output)]
+            args = [sys.executable,
+                    str(ROOT / 'scripts/export_simulation_result.py')]
+            if 'scenarioRef' in submission:
+                args.extend((
+                    '--scenario-ref', submission['scenarioRef'],
+                    '--policy', submission['policy']))
+            else:
+                args.extend((
+                    '--seed', str(submission['seed']),
+                    '--policy', 'baseline'))
+            args.extend(('--output', str(output)))
         self._execute(args, log)
         try:
             return json.loads(output.read_text())
@@ -133,6 +183,10 @@ class JobManager:
                     code = process.wait(timeout=self.timeout)
                 except subprocess.TimeoutExpired as exc:
                     raise RunFailure('TIMEOUT', f'Exporter exceeded its {self.timeout:g}-second execution timeout.') from exc
+                if code == 42:
+                    raise RunFailure(
+                        'SCENARIO_IDENTITY_MISMATCH',
+                        'The frozen scenario no longer matches its checked identity.')
                 if code:
                     raise RunFailure('EXPORT_FAILED', f'Exporter exited with status {code}.')
             finally:
@@ -178,13 +232,16 @@ class JobManager:
                             record.update(status='succeeded', resultKind=record['kind'], resultId=result['resultId'],
                                           updatedAt=result['publishedAt'])
                 except Exception as exc:
-                    if isinstance(exc, RunFailure):
-                        code, message = exc.code, exc.message
-                    elif isinstance(exc, InvalidResult):
-                        code, message = 'INVALID_OUTPUT', str(exc)
+                    if record['status'] == 'succeeded':
+                        logging.exception('Cannot clean up export directory after committed run %s', identity)
                     else:
-                        code, message = 'RUN_FAILED', str(exc)
-                    record.update(status='failed', error={'code': code, 'message': message})
+                        if isinstance(exc, RunFailure):
+                            code, message = exc.code, exc.message
+                        elif isinstance(exc, InvalidResult):
+                            code, message = 'INVALID_OUTPUT', str(exc)
+                        else:
+                            code, message = 'RUN_FAILED', str(exc)
+                        record.update(status='failed', error={'code': code, 'message': message})
                 with self._lock:
                     if record['status'] == 'succeeded':
                         self._records[identity] = deepcopy(record)
@@ -197,6 +254,20 @@ class JobManager:
                     else:
                         record['updatedAt'] = utc()
                         self._save(record)
+            except OSError:
+                # A state write can fail before execution or while recording a
+                # failed export. Try to make that failure terminal once, then
+                # continue servicing jobs only if persistence has recovered.
+                logging.exception('Cannot persist run state')
+                with self._lock:
+                    failed = dict(self._records[identity], status='failed', updatedAt=utc(), error={
+                        'code': 'STORAGE_FAILED', 'message': 'Run stopped because its state could not be persisted.'})
+                    try:
+                        self._save(failed)
+                    except OSError:
+                        self._unavailable = True
+                        logging.exception('Run storage remains unavailable; refusing further work until restart')
+                        return
             finally:
                 self._queue.task_done()
 

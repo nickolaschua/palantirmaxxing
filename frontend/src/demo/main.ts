@@ -101,6 +101,7 @@ async function setView(next: (typeof VIEWS)[number]): Promise<void> {
   population.setActive(view === "population");
   for (const layer of osmLayers) layer.setVisible(view !== "population"); // that view has its own labels and colours
   decision?.setBasemap(canvas.scene.basemap);
+  comparison?.setBasemap(canvas.scene.basemap);
   for (const [id, b] of viewButtons) b.setAttribute("aria-pressed", String(id === view));
 }
 
@@ -132,6 +133,7 @@ const lightBtn = button(`Light: ${lighting}`, () => {
   lighting = lighting === "midday" ? "blue-hour" : "midday";
   canvas.scene.setLighting(lighting);
   decision?.setLighting(lighting);
+  comparison?.setLighting(lighting);
   lightBtn.textContent = `Light: ${lighting}`;
 });
 panel.append(group("Lighting"), lightBtn);
@@ -172,6 +174,7 @@ decision = planningMode
 if (import.meta.hot) import.meta.hot.dispose(() => {
   window.clearTimeout(edgeTimer);
   decision?.dispose();
+  comparison?.dispose();
   population.dispose();
   simulation?.dispose();
   canvas.destroy();

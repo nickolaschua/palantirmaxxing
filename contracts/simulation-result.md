@@ -1,4 +1,11 @@
-# `simulation-result/1` contract
+# Simulation result contracts
+
+The simulation delivery route accepts two independent payload versions.
+`simulation-result/1` remains the legacy fixed-size seed export.
+`simulation-result/2` is the checked frozen-scenario export with variable
+episode sizes, explicit outcomes, policy scope, and immutable provenance.
+
+## `simulation-result/1`
 
 `simulation-result/1` is the frontend handoff for a complete
 `simulation-episode/2` rollout. It is independent from and does not replace
@@ -79,3 +86,56 @@ The checked baseline example is `data/results/demo-simulation-result.json`.
 Generation and frontend validation are implemented by
 `backend/presentation/simulation_result.py` and
 `frontend/src/demo/simulation-model.ts`.
+
+## `simulation-result/2`
+
+Version 2 retains `episodeSchemaVersion: "simulation-episode/2"` and the same
+trajectory, event, consequence, coordinate-reference, wording, and limitation
+semantics. It changes the result cardinalities and adds these required records:
+
+- `trajectories`: 2–8 distinct threats, each with exactly 20 ordered samples;
+- `outcomes`: exactly one `intercepted` or `unhandled` row per threat;
+- `assignments` and `selectedFootprints`: zero through the threat count, with
+  exactly one of each for every intercepted outcome and none for unhandled
+  outcomes;
+- `terminalCounterfactualFootprints`: exactly one for every threat;
+- `policy`: the active fixed policy identity and its information scope;
+- `policyComparison`: active, naive-online, and exact-reference replay records;
+- `termination`: the active replay's completion and constraint state; and
+- `provenance`: the checked scenario reference and all identities required to
+  reproduce and verify it.
+
+Assignment threat, interceptor, and opportunity IDs are unique. Selected
+footprints resolve to assignments exactly. Every outcome covers one trajectory;
+an intercepted outcome names its locked interceptor and opportunity, while an
+unhandled outcome names neither.
+
+The supported policy identities and labels are:
+
+| Policy | Information scope |
+| --- | --- |
+| `naive-launch-on-detection/1` | `online-detected-only` |
+| `feasible-immediate-matching/1` | `offline-full-episode` |
+| `optimal-fixed-rank-assignment/1` | `offline-full-episode` |
+
+The exact reference must be a completed replay of
+`optimal-fixed-rank-assignment/1`. Its predicted cost must equal its replayed
+cost, and `exact` and `predictedCostMatchesReplay` must both be true. A completed
+active replay has `all_threats_resolved`, satisfied constraints, and an exact
+regret equal to active cost minus exact cost. A recorded failure has a
+`constraint_violation:` reason, a nonempty violation, at least one unhandled
+threat, and no exact-regret claim. Naive failures remain in the result rather
+than being discarded.
+
+`provenance` carries `scenarioRef`, split, profile, seed, generator and
+distribution versions, distribution checksum, public and runtime provider
+identities, provider/source/configuration/geometry checksums, simulator version,
+the canonical episode hash, `hashVerified: true`, and the active policy identity.
+The scenario reference must use its declared split. All digest fields use
+`sha256:` followed by 64 lowercase hexadecimal digits.
+
+Backend publication validation and the frontend parser both reject nonfinite
+numbers, count or identity mismatches, unsupported policies or information
+labels, false exactness, and inconsistent provenance. Generation is implemented
+by `simulation_result_v2_to_dict` in
+`backend/presentation/simulation_result.py`.

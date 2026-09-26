@@ -192,6 +192,31 @@ class RemediationTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 budget_from_wall_clock(100, value, 256, 1)
 
+    def test_vectorized_rollout_and_minibatch_divisibility(self):
+        from backend.learning.training import (_ppo_rollout_configuration,
+                                               _scenario_seed_offset)
+        for total, workers in ((10_000, 1), (50_000, 2), (50_000, 4),
+                               (50_003, 6), (1, 8)):
+            n_steps, batch_size = _ppo_rollout_configuration(total, workers)
+            buffer_size = n_steps * workers
+            self.assertLessEqual(n_steps, 256)
+            self.assertLessEqual(batch_size, 64)
+            self.assertEqual(buffer_size % batch_size, 0)
+        for invalid in (0, -1, True, 1.5):
+            with self.assertRaises(ValueError):
+                _ppo_rollout_configuration(100, invalid)
+        self.assertEqual(_scenario_seed_offset(object()), 1_000_000_000)
+        self.assertEqual(_scenario_seed_offset(type(
+            'PoolSelector', (), {'selects_pool_records': True})()), 0)
+
+    def test_training_rejects_invalid_discount_configuration(self):
+        from backend.learning import train_maskable_ppo
+        for kwargs in ({'gamma': -0.1}, {'gamma': 1.1},
+                       {'gae_lambda': -0.1}, {'gae_lambda': 1.1},
+                       {'entropy_coefficient': -0.1}):
+            with self.subTest(kwargs=kwargs), self.assertRaises(ValueError):
+                train_maskable_ppo(Path('unused'), **kwargs)
+
     def small_generator(self, candidate_count=2):
         generator = self.Generator(candidate_count=candidate_count, max_threats=3,
                                    max_interceptors=3)
@@ -216,7 +241,13 @@ class RemediationTests(unittest.TestCase):
             self.assertEqual(summary.oracle_eligible_regret_count, 1)
             self.assertEqual(summary.median_normalized_regret, oracle.normalized_regret)
             payload = json.loads(report.read_text())
-            self.assertEqual(payload['schema_version'], 'rl-evaluation/2')
+            self.assertEqual(payload['schema_version'], 'policy-evaluation/3')
+            self.assertEqual(payload['primary_comparator']['identity'],
+                             'naive-launch-on-detection/1')
+            self.assertEqual(
+                {row['identity'] for row in payload['offline_references']},
+                {'feasible-immediate-matching/1',
+                 'optimal-fixed-rank-assignment/1'})
             self.assertEqual(payload['episodes'][0]['oracle']['raw_score'], oracle.raw_score)
             self.assertEqual(payload['acceptance_gates'], acceptance_evidence(
                 summary, summary.median_normalized_regret))
@@ -236,6 +267,30 @@ class RemediationTests(unittest.TestCase):
         self.assertEqual(equal[0].oracle.regret_ineligibility_reason,
                          'oracle_not_strictly_better_than_baseline')
         self.assertIsNone(equal[0].oracle.normalized_regret)
+
+    def test_evaluation_accepts_frozen_explicit_episode_specs(self):
+        from backend.learning import evaluate_model
+        generator = self.small_generator()
+        specs = (generator.generate(19), generator.generate(20))
+        rows = evaluate_model(AdvancePolicy(), episode_specs=specs)
+        self.assertEqual([row.seed for row in rows], [19, 20])
+        self.assertEqual([row.episode_id for row in rows],
+                         [spec.episode_id for spec in specs])
+        with self.assertRaises(ValueError):
+            evaluate_model(AdvancePolicy(), [19], episode_specs=specs)
+
+    def test_evaluation_records_online_comparator_scope(self):
+        from backend.learning import evaluate_model
+        from backend.simulation import NaiveLaunchOnDetectionPolicy
+        rows = evaluate_model(
+            AdvancePolicy(), [19], generator=self.small_generator(),
+            baseline_policy=NaiveLaunchOnDetectionPolicy())
+        self.assertEqual(
+            rows[0].baseline_version,
+            NaiveLaunchOnDetectionPolicy.identity)
+        self.assertEqual(
+            rows[0].baseline_information_scope,
+            NaiveLaunchOnDetectionPolicy.information_scope)
 
     def test_exact_oracle_policy_passes_report_regret_gate(self):
         from backend.learning import bounded_oracle, evaluate_model, ADVANCE_ACTION
@@ -341,7 +396,10 @@ class RemediationTests(unittest.TestCase):
                                  provider_factory=DelayedProvider)[0]
         np.testing.assert_allclose(row.policy_inference_samples_ms, 7.0)
         self.assertEqual(len(row.decision_path_samples_ms), row.policy_actions)
-        self.assertTrue(all(value >= 38 - 1e-8 for value in row.decision_path_samples_ms))
+        # The revision cache removes repeated provider/mask work on decisions
+        # that do not need a fresh assessment; inference plus mask retrieval
+        # must still be represented in the end-to-end sample.
+        self.assertTrue(all(value >= 10 - 1e-8 for value in row.decision_path_samples_ms))
         self.assertAlmostEqual(row.policy_inference_p95_ms, 7)
         self.assertAlmostEqual(row.decision_path_p95_ms,
                                np.percentile(row.decision_path_samples_ms, 95))

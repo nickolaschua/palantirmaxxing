@@ -3,12 +3,15 @@ from concurrent.futures import ThreadPoolExecutor
 from copy import deepcopy
 from datetime import datetime, timezone
 import json
+import os
 from pathlib import Path
 import subprocess
 import sys
 import tempfile
+import threading
 import unittest
 import uuid
+from unittest.mock import patch
 
 from backend.api.store import ResultNotFound, ResultStore, StoreUnavailable
 from backend.api.validation import InvalidResult
@@ -68,6 +71,50 @@ class ResultStoreTests(unittest.TestCase):
         self.store.close()
         self.store = ResultStore(self.directory)
         self.assertEqual(self.store.get('planning'), a)
+
+    def test_index_directory_failure_after_replace_retains_visible_publication(self):
+        for operation in ('open', 'fsync'):
+            with self.subTest(operation=operation):
+                real_replace, real_open, real_fsync = os.replace, os.open, os.fsync
+                index_replaced = threading.Event()
+                def replace(source, target):
+                    real_replace(source, target)
+                    if Path(target).name == 'index.json':
+                        index_replaced.set()
+                def open_directory(*args, **kwargs):
+                    if operation == 'open' and index_replaced.is_set():
+                        raise OSError('Injected directory open failure after index replacement')
+                    return real_open(*args, **kwargs)
+                def fsync(descriptor):
+                    if operation == 'fsync' and index_replaced.is_set():
+                        raise OSError('Injected directory fsync failure after index replacement')
+                    return real_fsync(descriptor)
+                with patch('backend.api.store.os.replace', side_effect=replace), \
+                        patch('backend.api.store.os.open', side_effect=open_directory), \
+                        patch('backend.api.store.os.fsync', side_effect=fsync):
+                    published = self.store.publish('planning', self.payload)
+                self.assertEqual(self.store.get('planning'), published)
+                self.store.close()
+                self.store = ResultStore(self.directory)
+                self.assertEqual(self.store.get('planning', published['resultId']), published)
+
+    def test_snapshot_directory_failure_does_not_publish_an_orphan(self):
+        previous = self.store.publish('planning', self.payload)
+        real_replace = os.replace
+        replaced = threading.Event()
+        def replace(source, target):
+            real_replace(source, target)
+            replaced.set()
+        real_fsync = os.fsync
+        def fsync(descriptor):
+            if replaced.is_set():
+                raise OSError('Cannot sync snapshot directory')
+            return real_fsync(descriptor)
+        with patch('backend.api.store.os.replace', side_effect=replace), \
+                patch('backend.api.store.os.fsync', side_effect=fsync):
+            with self.assertRaises(StoreUnavailable):
+                self.store.publish('planning', self.payload)
+        self.assertEqual(self.store.get('planning'), previous)
 
     def test_concurrent_publication_one_writer_and_unique_sequence(self):
         with self.assertRaises(StoreUnavailable):

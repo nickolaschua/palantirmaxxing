@@ -19,6 +19,12 @@ children on Ctrl-C. Both views default to HTTP through Vite. **Run planning** an
 and publication times remain visible, and failed requests preserve the last valid
 view. Planning **Restart** resets presentation only. `?source=fixture` explicitly
 selects the labelled illustrative fixtures; `?basemap=plain` avoids remote basemaps.
+Simulation controls retain the seed-based legacy mode and add a checked frozen
+scenario mode with split/profile/reference filters and fixed policy selection.
+
+For the demo-ready fallback, follow the [deterministic policy demo
+runbook](docs/demo-runbook.md). It pins one immutable validation scenario and
+rehearses Naive → Exact → Structured Imitation through the live backend pipeline.
 
 Verify independently, with fresh outputs, isolated stores, real Chromium/WebGL,
 and retained logs, traces, and screenshots:
@@ -48,12 +54,15 @@ not the project consequence model or evidence of policy improvement. The
 existing static evaluator and `planning-result/1` remain unchanged.
 
 An additive [Singapore simulation and Emmanuel consequence path](docs/singapore-simulation-integration.md)
-now generates versioned eight-threat 3D episodes, retains the established 2D
-reachability calculation, enforces a complete one-to-one feasible matching,
-scores 100 m supplied candidate areas against population and checked-in sector
-data, and exports a separate `simulation-result/1` frontend artifact. The
-checked result uses the immediate-interception baseline; the saved 16-step PPO
-artifact is a smoke test, not a policy-improvement claim.
+preserves the fixed eight-threat `singapore-scenario/1` and
+`simulation-result/1` path. The checked `singapore-scenario/2` distribution adds
+2–8 threat profiles, consequence-eligible matching, deterministic audit
+evidence, and 544 immutable references in `rl-scenario-suites/5`.
+`simulation-result/2` publishes the selected online or offline policy alongside
+the naive online and exact offline replays, explicit outcomes, constraint state,
+and hash-verified provenance. All footprints remain supplied 100 m synthetic
+areas; the saved PPO artifact remains a smoke test rather than a
+policy-improvement claim.
 
 ## Repository structure
 
@@ -126,15 +135,18 @@ For standalone PEC: prepared eligible population and supplied footprints → PEC
 
 For the static MVP: deterministic trajectory/reachability → reachable candidates → synthetic success and supplied circles → existing footprint-assessment adapter → complete-coverage eligibility → Pareto frontier → descriptive category alternatives. Frontend connection remains future work.
 
-For the Singapore simulator: `singapore-scenario/1` → 3D threat trajectories →
-2D reachability → complete matching → clipped population/site intersections →
-Emmanuel demo-v2 ordering → summed ordinal training cost → simulation/RL →
-`simulation-result/1`. Its initial frontend view is implemented separately from
-the static result parser.
+For the Singapore simulator: checked distribution and profile → deterministic
+`singapore-scenario/2` episode → consequence-eligible graph and complete matching
+→ online naive and offline exact replays → audit/manifest hash verification →
+`simulation-result/2` and frontend replay. The frozen v1 seed flow remains
+available as `singapore-scenario/1` → `simulation-result/1`.
 
 The implemented source adapter preserves raw population files and prepares validated, versioned zones. The thin file command loads those zones and supplied episodes, invokes standalone PEC, and writes exposure results, coverage and metadata under shared contracts. Future application orchestration and frontend integration can reuse the calculator. See [architecture](docs/architecture/architecture.md) for folder boundaries.
 
-Storage starts with files in `data/`. Generated results are ignored by Git while Markdown documentation remains trackable; small scenarios and test fixtures can remain under version control. No database or database dependency is introduced.
+Storage starts with files in `data/`. Generated results are ignored by Git
+except for curated evidence such as the canonical scenario audit; Markdown,
+small scenarios, and test fixtures remain versionable. No database dependency
+is introduced.
 
 ## Run locally
 
@@ -199,10 +211,31 @@ python3 -m venv .venv-rl
 # Singapore integration benchmark, smoke training, and baseline export.
 .venv-rl/bin/python scripts/benchmark_singapore_simulation.py
 .venv-rl/bin/python scripts/train_rl.py \
-  --provider singapore-demo-v2 --generator singapore-v1 \
+  --provider singapore-demo-v2 --generator singapore-v2 \
   --output-dir data/results/rl/singapore-smoke --steps 16 --seed 7
 .venv-rl/bin/python scripts/export_simulation_result.py --seed 7
+
+# Rebuild the checked v2 audit and immutable manifest, then export one reference.
+.venv-rl/bin/python scripts/audit_scenarios.py --plan canonical --check-gates
+.venv-rl/bin/python scripts/build_scenario_manifest.py
+.venv-rl/bin/python scripts/export_simulation_result.py \
+  --scenario-ref sg2:validation:000000 \
+  --policy naive-launch-on-detection/1 --output /tmp/scenario-result.json
+
+# Structured imitation from the verified 512-case development pool.
+.venv-rl/bin/python scripts/generate_imitation_dataset.py \
+  --pool data/scenarios/rl/pools/sg2-pilot-512-v1 \
+  --output-dir data/results/rl/imitation-demonstrations --seed 7
+.venv-rl/bin/python scripts/train_imitation.py \
+  --dataset data/results/rl/imitation-demonstrations \
+  --pool data/scenarios/rl/pools/sg2-pilot-512-v1 \
+  --output-dir data/results/rl/imitation-pipeline --seed 7 \
+  --validation-and-dagger
 ```
+
+The integrated UI exposes naive online, exact fixed-rank, and feasible matching
+for frozen scenarios. Exact and feasible policies remain offline comparators,
+not online deployment policies.
 
 `train_rl.py --wall-clock-minutes N` estimates training steps from a disposable
 PPO calibration run using the same seed, normalization and rollout configuration
@@ -219,10 +252,15 @@ Training scenario seeds start at `1_000_000_000`: the nonnegative algorithm seed
 is added to that offset on explicit resets, and automatic resets use the offset
 plus base seed plus episode counter. Evaluation suites retain their original
 seed ranges. Supplied `EpisodeSpec` objects bypass this mapping. The partition is
-recorded in the `rl-scenario-suites/3` manifest and training metadata.
+recorded in the `rl-scenario-suites/5` manifest and training metadata. Frozen
+evaluation references and development audit seeds occupy separate lower ranges.
 
-Evaluation writes `rl-evaluation/2` reports with separate prediction and complete
-decision-path timings. Episode p95 values use that episode's raw samples; summary
+Evaluation writes `policy-evaluation/3` reports with the naive detected-threat-
+only policy as the primary online comparator and feasible matching plus exact
+fixed-rank optimization as separately labeled offline references. Reports record
+artifact/algorithm identity, constraint and completion outcomes, score differences,
+profile slices, and separate prediction and complete decision-path timings.
+Episode p95 values use that episode's raw samples; summary
 p95 values use all decision samples across episodes. `--suite bounded-oracle`
 runs policy, baseline and oracle on identical specs capped at three threats,
 three interceptors, five candidates per pair and 100,000 enumerated sequences.

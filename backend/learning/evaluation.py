@@ -12,6 +12,8 @@ import numpy as np
 
 from backend.simulation import (DeterministicToyProvider, EpisodeSpec,
                                 FeasibleImmediateMatchingPolicy, ObjectiveDirection,
+                                NaiveLaunchOnDetectionPolicy,
+                                OptimalFixedRankAssignmentPolicy,
                                 SeededScenarioGenerator, SimulationEngine,
                                 canonical_episode_hash)
 
@@ -35,6 +37,20 @@ class OracleEvidence:
 
 
 @dataclass(frozen=True)
+class ReferenceEvidence:
+    policy_identity: str
+    information_scope: str
+    raw_score: Optional[float]
+    exact: bool
+    proof_scope: Optional[str]
+    terminated: bool
+    truncated: bool
+    termination_reason: Optional[str]
+    constraint_violation: bool
+    favorable_policy_difference: Optional[float]
+
+
+@dataclass(frozen=True)
 class EpisodeEvaluation:
     seed: int
     episode_id: str
@@ -47,6 +63,7 @@ class EpisodeEvaluation:
     decision_path_p95_ms: float
     model_version: str
     baseline_version: str
+    baseline_information_scope: str
     provider_identity: str
     provider_version: str
     score_direction: str
@@ -56,6 +73,14 @@ class EpisodeEvaluation:
     decision_path_samples_ms: Tuple[float, ...]
     constraint_violation: bool
     termination_reason: str
+    baseline_termination_reason: Optional[str] = None
+    baseline_constraint_violation: bool = False
+    baseline_completed: bool = False
+    policy_algorithm: str = 'unknown'
+    artifact_identity: str = 'unknown'
+    scenario_profile: Optional[str] = None
+    completed: bool = False
+    offline_references: Tuple[ReferenceEvidence, ...] = ()
     oracle: Optional[OracleEvidence] = None
 
 
@@ -77,6 +102,8 @@ class ComparisonSummary:
     oracle_enumerated_action_sequences: int
     constraint_violation_count: int
     constraint_violation_rate: float
+    completion_rate: float = 0.0
+    mean_optimal_reference_regret: Optional[float] = None
 
 
 def _rollout_model(model: Any, env: CentralizedInterceptionEnv,
@@ -110,22 +137,52 @@ def _rollout_model(model: Any, env: CentralizedInterceptionEnv,
             tuple(inference_timings), tuple(decision_timings), info)
 
 
-def evaluate_model(model: Any, seeds: Sequence[int],
+def evaluate_model(model: Any, seeds: Sequence[int] = (),
                    generator: Optional[SeededScenarioGenerator] = None,
+                   episode_specs: Optional[Sequence[EpisodeSpec]] = None,
                    provider_factory: Callable[[], Any] = DeterministicToyProvider,
+                   baseline_policy: Optional[Any] = None,
+                   offline_reference_policies: Optional[Sequence[Any]] = None,
                    report_path: Optional[Path] = None,
                    full_capacity: bool = False,
                    include_oracle: bool = False,
                    oracle_max_action_sequences: int = ORACLE_MAX_ACTION_SEQUENCES) -> Tuple[EpisodeEvaluation, ...]:
-    if generator is None:
+    if episode_specs is not None and seeds:
+        raise ValueError('supply seeds or explicit episode specs, not both')
+    if episode_specs is None and generator is None:
         generator = (SeededScenarioGenerator(
             max_threats=ORACLE_MAX_THREATS,
             max_interceptors=ORACLE_MAX_INTERCEPTORS,
             candidate_count=ORACLE_CANDIDATES_PER_PAIR)
             if include_oracle else SeededScenarioGenerator())
+    if episode_specs is None:
+        plan = tuple(
+            (int(seed), generator.generate(int(seed), full_capacity=full_capacity))
+            for seed in seeds)
+    else:
+        values = tuple(episode_specs)
+        if not values:
+            raise ValueError('explicit evaluation episodes cannot be empty')
+        if any(not isinstance(spec, EpisodeSpec) for spec in values):
+            raise ValueError('explicit evaluation episodes must be EpisodeSpec values')
+        plan = tuple((spec.seed, spec) for spec in values)
+    comparator = (NaiveLaunchOnDetectionPolicy()
+                  if baseline_policy is None else baseline_policy)
+    if offline_reference_policies is None:
+        offline_reference_policies = (
+            FeasibleImmediateMatchingPolicy(),
+            OptimalFixedRankAssignmentPolicy(),
+        )
+    if not callable(getattr(comparator, 'run', None)):
+        raise ValueError('baseline_policy must provide run(engine)')
+    comparator_identity = getattr(comparator, 'identity', None)
+    comparator_scope = getattr(comparator, 'information_scope', None)
+    if not isinstance(comparator_identity, str) or not comparator_identity:
+        raise ValueError('baseline_policy must provide a nonempty identity')
+    if not isinstance(comparator_scope, str) or not comparator_scope:
+        raise ValueError('baseline_policy must provide a nonempty information_scope')
     rows = []
-    for seed in seeds:
-        spec: EpisodeSpec = generator.generate(int(seed), full_capacity=full_capacity)
+    for seed, spec in plan:
         env = CentralizedInterceptionEnv(provider_factory(), episode_spec=spec)
         try:
             policy_raw, reward, actions, inference_samples, decision_samples, info = _rollout_model(
@@ -133,9 +190,38 @@ def evaluate_model(model: Any, seeds: Sequence[int],
         finally:
             env.close()
         baseline_engine = SimulationEngine(spec, provider_factory())
-        baseline = FeasibleImmediateMatchingPolicy().run(baseline_engine)
+        baseline = comparator.run(baseline_engine)
         if baseline.truncated or baseline.raw_score is None:
             raise RuntimeError('baseline episode did not terminate normally')
+        direction = ObjectiveDirection(info['score_direction'])
+        references = []
+        for reference_policy in offline_reference_policies:
+            identity = getattr(reference_policy, 'identity', None)
+            scope = getattr(reference_policy, 'information_scope', None)
+            if not identity or not scope or not callable(getattr(reference_policy, 'run', None)):
+                raise ValueError('offline references must expose identity, scope, and run')
+            reference = reference_policy.run(
+                SimulationEngine(spec, provider_factory()))
+            difference = None
+            if reference.raw_score is not None:
+                difference = (float(reference.raw_score) - policy_raw
+                              if direction == ObjectiveDirection.MINIMIZE
+                              else policy_raw - float(reference.raw_score))
+            reference_plan = getattr(reference, 'plan', None)
+            references.append(ReferenceEvidence(
+                policy_identity=identity, information_scope=scope,
+                raw_score=(None if reference.raw_score is None
+                           else float(reference.raw_score)),
+                exact=bool(getattr(reference_plan, 'exact', False)),
+                proof_scope=getattr(reference_plan, 'proof_scope', None),
+                terminated=bool(reference.terminated),
+                truncated=bool(reference.truncated),
+                termination_reason=reference.termination_reason,
+                constraint_violation=(reference.termination_reason is not None
+                                      and str(reference.termination_reason).startswith(
+                                          'constraint_violation:')),
+                favorable_policy_difference=difference,
+            ))
         oracle_evidence = None
         if include_oracle:
             oracle = bounded_oracle(
@@ -143,7 +229,6 @@ def evaluate_model(model: Any, seeds: Sequence[int],
                 max_action_sequences=oracle_max_action_sequences)
             regret = None
             reason = None
-            direction = ObjectiveDirection(info['score_direction'])
             if not oracle.exact:
                 reason = 'oracle_inexact'
             elif oracle.raw_score is None:
@@ -177,14 +262,30 @@ def evaluate_model(model: Any, seeds: Sequence[int],
             constraint_violation=str(info['termination_reason']).startswith(
                 'constraint_violation:'),
             termination_reason=str(info['termination_reason']),
+            baseline_termination_reason=baseline.termination_reason,
+            baseline_constraint_violation=(
+                baseline.termination_reason is not None
+                and str(baseline.termination_reason).startswith(
+                    'constraint_violation:')),
+            baseline_completed=bool(
+                baseline.terminated and not baseline.truncated
+                and baseline.termination_reason == 'all_threats_resolved'),
+            policy_algorithm=getattr(model, 'algorithm', 'unknown'),
+            artifact_identity=getattr(model, 'artifact_identity', 'unknown'),
+            scenario_profile=spec.metadata.get('profile'),
+            completed=bool(info['termination_reason'] == 'all_threats_resolved'),
+            offline_references=tuple(references),
             oracle=oracle_evidence,
             model_version=getattr(model, 'model_version', model.__class__.__name__),
-            baseline_version=FeasibleImmediateMatchingPolicy.identity,
+            baseline_version=comparator_identity,
+            baseline_information_scope=comparator_scope,
             provider_identity=info['provider']['identity'],
             provider_version=info['provider']['version'],
             score_direction=info['score_direction'],
             simulator_version=info['simulator_version'],
-            scenario_generator_version=generator.version,
+            scenario_generator_version=(
+                spec.metadata.get('generator', 'explicit-episode-spec')
+                if episode_specs is not None else generator.version),
         ))
     result = tuple(rows)
     if report_path is not None:
@@ -194,12 +295,35 @@ def evaluate_model(model: Any, seeds: Sequence[int],
         is_toy = all(
             row.provider_identity == DeterministicToyProvider.identity
             for row in result)
+        profile_rows = {}
+        for profile in sorted({row.scenario_profile or 'unspecified' for row in result}):
+            selected = tuple(row for row in result
+                             if (row.scenario_profile or 'unspecified') == profile)
+            profile_rows[profile] = asdict(summarize_comparison(selected))
         path.write_text(json.dumps({
-            'schema_version': 'rl-evaluation/2',
+            'schema_version': 'policy-evaluation/3',
             'artifact_label': ('toy provider: plumbing validation only' if is_toy
                                else 'Singapore demo-v2 assumption-grade evaluation'),
+            'policy': {
+                'algorithm': result[0].policy_algorithm,
+                'model_version': result[0].model_version,
+                'artifact_identity': result[0].artifact_identity,
+                'information_scope': 'online-observation-only',
+            },
+            'primary_comparator': {
+                'identity': comparator_identity,
+                'information_scope': comparator_scope,
+            },
+            'offline_references': [{
+                'identity': item.policy_identity,
+                'information_scope': item.information_scope,
+                'teacher_label': ('clairvoyant/offline' if item.exact else 'offline'),
+            } for item in result[0].offline_references],
             'summary': asdict(summary),
-            'acceptance_gates': acceptance_evidence(summary, summary.median_normalized_regret),
+            'acceptance_gates': (
+                acceptance_evidence(summary, summary.median_normalized_regret)
+                if include_oracle else behavior_cloning_acceptance_evidence(summary)),
+            'by_scenario_profile': profile_rows,
             'episodes': [asdict(item) for item in result],
         }, indent=2, sort_keys=True, allow_nan=False) + '\n', encoding='utf-8')
     return result
@@ -248,6 +372,15 @@ def summarize_comparison(rows: Sequence[EpisodeEvaluation]) -> ComparisonSummary
     regrets = [item.normalized_regret for item in oracles
                if item.exact and item.regret_ineligibility_reason is None
                and item.normalized_regret is not None]
+    optimal_regrets = []
+    for row in rows:
+        for reference in row.offline_references:
+            if (reference.policy_identity == OptimalFixedRankAssignmentPolicy.identity
+                    and reference.raw_score is not None):
+                optimal_regrets.append(
+                    row.policy_raw_score - reference.raw_score
+                    if row.score_direction == ObjectiveDirection.MINIMIZE.value
+                    else reference.raw_score - row.policy_raw_score)
     return ComparisonSummary(
         episode_count=len(rows),
         win_rate=sum(value > 0 for value in differences) / len(differences),
@@ -268,6 +401,9 @@ def summarize_comparison(rows: Sequence[EpisodeEvaluation]) -> ComparisonSummary
         constraint_violation_count=sum(row.constraint_violation for row in rows),
         constraint_violation_rate=(sum(row.constraint_violation for row in rows)
                                    / len(rows)),
+        completion_rate=sum(row.completed for row in rows) / len(rows),
+        mean_optimal_reference_regret=(statistics.fmean(optimal_regrets)
+                                       if optimal_regrets else None),
     )
 
 
@@ -304,3 +440,13 @@ def acceptance_evidence(summary: ComparisonSummary,
             and median_oracle_regret <= 0.10),
         'decision_path_p95_below_100_ms': summary.decision_path_p95_ms < 100.0,
     }
+
+
+def behavior_cloning_acceptance_evidence(
+        summary: ComparisonSummary) -> Mapping[str, bool]:
+    """Promotion gates for BC/DAgger on the frozen validation suite."""
+    evidence = acceptance_evidence(summary, summary.median_normalized_regret)
+    return {key: evidence[key] for key in (
+        'zero_constraint_violations', 'win_rate_at_least_60_percent',
+        'mean_improvement_at_least_5_percent', 'bootstrap_ci_excludes_zero',
+        'decision_path_p95_below_100_ms')}

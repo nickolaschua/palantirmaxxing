@@ -41,6 +41,9 @@ claude-code-prompt.md
 !/data/results/mvp-sensitivity.json
 !/data/results/demo-simulation-result.json
 !/data/results/singapore-simulation-benchmark.json
+!/data/results/rl/scenario-audit-v2.json
+!/data/results/rl/experiments/structured-imitation-512-seed7/pipeline/bc-validation.json
+!/data/results/rl/experiments/structured-imitation-512-seed7/pipeline/bc-artifact/**
 
 # Local Python environment and interpreter caches
 /.venv/
@@ -59,6 +62,14 @@ __pycache__/
 /frontend/public/population.geojson
 
 # Local integrated MVP runtime and verification evidence
-/outputs/integration-mvp/
+/outputs/
 /frontend/test-results/
 /frontend/playwright-report/
+
+# Generated local training releases
+/data/scenarios/rl/pools/sg2-training-*/
+
+# Local agent and knowledge-graph state
+/.codex/
+/graphify-out/
+/AGENTS.md

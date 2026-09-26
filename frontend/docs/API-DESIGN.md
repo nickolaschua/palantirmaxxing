@@ -1042,3 +1042,17 @@ then hands over. The panel lists newest first, a checkbox per entry toggles
 its mark; disabled when nothing was fired. Marks are not mirrored into the
 side window, which shows live options only. History lives for the page: a
 reload clears it.
+### Singapore simulation result — 2026-09-26
+
+`simulation-result/1` is parsed by `simulation-model.ts` independently from the
+legacy `planning-result/1` parser. It requires eight trajectories with WGS84
+positions, nonnegative heights, absolute timestamps, eight assignments, selected
+and terminal-counterfactual supplied footprints, consequence summaries, baseline
+comparison, provenance, and limitations. The parser rejects non-finite values,
+legacy planning payloads, and validated-blast wording.
+
+The checked artifact is `data/results/demo-simulation-result.json`. The initial
+view labels its 100 m circles as supplied areas and exposes population and
+assumption-grade casualty evidence. It does not label the smoke-trained policy
+as improved or optimal. The complete backend contract and evidence are in
+`docs/singapore-simulation-integration.md`.

@@ -1,5 +1,11 @@
 # Backend
 
+`simulation/` provides the isolated continuous-event episode engine,
+replaceable consequence-provider contract, seeded scenarios, replay records and
+immediate-interception baseline. `learning/` is the optional fixed-shape
+Gymnasium/MaskablePPO adapter and evaluation tooling. Neither layer changes the
+static evaluator or the `planning-result/1` presentation contract.
+
 Implemented Python functionality consists of offline Census 2020 preparation in [data_sources](data_sources/data_sources.md), standalone PEC v0.1 in [exposure](exposure/exposure.md), synthetic candidate generation in [planning](planning/planning.md), replaceable synthetic assumptions in [scenario](scenario/scenario.md), pure Pareto/category processing in [trade_space](trade_space/trade_space.md), and the static machine-side pipeline in [orchestration](orchestration/orchestration.md).
 
 The thin PEC file command under `scripts/` loads inputs and writes exposure results. Static orchestration remains a reusable Python interface plus a deterministic benchmark fixture; it has no API transport, frontend coupling, service framework or database. See the [planning contract](../contracts/candidate-opportunities.md), [static-scenario contract](../contracts/static-scenario-evaluation.md), and [PEC specification](../docs/specifications/pec.md).

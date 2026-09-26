@@ -2,6 +2,7 @@ import { createSingaporeCanvas, FlightCancelled, PRESETS } from "../lib/index.js
 import { mountPopulation } from "./population.js";
 import { HOSPITALS, MILITARY, mountOsmAreas } from "./osm-areas.js";
 import { mountDecision } from "./decision.js";
+import { mountSimulationResult } from "./simulation.js";
 import type { Decision } from "./decision.js";
 import type { BasemapKind, LightingPreset } from "../lib/index.js";
 import "./style.css";
@@ -120,6 +121,7 @@ const osmLayers = [MILITARY, HOSPITALS].map(layer => {
   panel.append(legend);
   return mountOsmAreas(canvas, layer, { labels: true });
 });
+const simulation = mountSimulationResult(canvas, panel);
 
 // Lighting
 let lighting: LightingPreset = "midday";
@@ -166,6 +168,7 @@ if (import.meta.hot) import.meta.hot.dispose(() => {
   window.clearTimeout(edgeTimer);
   decision?.dispose();
   population.dispose();
+  simulation.dispose();
   canvas.destroy();
 });
 

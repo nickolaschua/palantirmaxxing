@@ -39,9 +39,12 @@ claude-code-prompt.md
 !/data/results/demo-planning-result.json
 !/data/results/demo-planning-result-benchmark.json
 !/data/results/mvp-sensitivity.json
+!/data/results/demo-simulation-result.json
+!/data/results/singapore-simulation-benchmark.json
 
 # Local Python environment and interpreter caches
 /.venv/
+/.venv-rl/
 __pycache__/
 *.pyc
 

@@ -1,0 +1,43 @@
+{
+  "schema_version": "rl-scenario-suites/3",
+  "artifact_label": "versioned partitions; materialize per generator before evaluation",
+  "supported_generator_versions": ["seeded-synthetic-scenarios/1", "singapore-scenario/1"],
+  "duplicate_prevention": {
+    "method": "sha256 of canonical simulation episode JSON",
+    "enforced_by": "backend.simulation.suites.build_suite_manifest"
+  },
+  "smoke_training": {"policy_steps": 10000},
+  "training_seed_partition": {
+    "scenario_seed_offset": 1000000000,
+    "minimum_algorithm_seed": 0,
+    "minimum_scenario_seed": 1000000000,
+    "explicit_episode_specs_bypass_offset": true
+  },
+  "validation": {
+    "seed_start_inclusive": 10000,
+    "seed_end_exclusive": 10064,
+    "episode_count": 64
+  },
+  "held_out_test": {
+    "seed_start_inclusive": 20000,
+    "seed_end_exclusive": 20256,
+    "episode_count": 256
+  },
+  "stress": {
+    "seed_start_inclusive": 30000,
+    "seed_end_exclusive": 30032,
+    "episode_count": 32,
+    "threats_per_episode": 8,
+    "interceptors_per_episode": 8,
+    "candidates_per_pair": 20
+  },
+  "bounded_oracle": {
+    "seed_start_inclusive": 40000,
+    "seed_end_exclusive": 40032,
+    "episode_count": 32,
+    "maximum_threats": 3,
+    "maximum_interceptors": 3,
+    "candidates_per_pair": 5,
+    "maximum_enumerated_action_sequences": 100000
+  }
+}

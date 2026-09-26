@@ -636,3 +636,6 @@ body.at-edge::after {
 #inspector .consequence .bar { position: relative; height: 6px; background: rgba(255, 255, 255, 0.08); border-radius: 3px; }
 #inspector .consequence .bar i { position: absolute; top: 0; bottom: 0; background: rgba(88, 166, 255, 0.35); border-radius: 3px; }
 #inspector .consequence .bar b { position: absolute; top: -2px; width: 2px; height: 10px; margin-left: -1px; background: #58a6ff; }
+#simulation-result { margin-top: 10px; border-top: 1px solid var(--line); padding-top: 8px; }
+#simulation-result summary { cursor: pointer; font-size: 12px; font-weight: 700; }
+#simulation-result p, #simulation-result small { display: block; color: var(--muted); font-size: 10px; line-height: 1.4; }

@@ -12,6 +12,23 @@ The Python preparation pipeline acquires official Census 2020 and URA Master Pla
 
 Read the [population preparation specification](docs/specifications/population-data.md), [file contract](contracts/population-dataset.md), [validation summary](data/processed/validation-summary.md) and [browser/check report](frontend/docs/POPULATION-VERIFICATION.md). Standalone PEC calculation, strict file execution, tests and [PEC specification](docs/specifications/pec.md) are implemented under the [PEC contracts](contracts/pec.md). The [static-scenario contract](contracts/static-scenario-evaluation.md) and [benchmark report](docs/specifications/static-mvp-benchmark.md) document machine-side Phases D-G. Frontend PEC integration, endpoints, dynamic replanning, resource allocation and databases are not implemented. Existing historical frontend scenario-design notes remain preserved.
 
+An isolated continuous-event RL preparation layer now exists under
+`backend/simulation/` and `backend/learning/`. It coordinates at most eight
+detected synthetic threats and eight one-use resources, reuses the existing
+candidate/reachability implementation, exposes fixed masked actions, records
+replayable JSONL transitions and includes an immediate-interception baseline.
+Its deterministic toy consequence provider is explicitly plumbing validation,
+not the project consequence model or evidence of policy improvement. The
+existing static evaluator and `planning-result/1` remain unchanged.
+
+An additive [Singapore simulation and Emmanuel consequence path](docs/singapore-simulation-integration.md)
+now generates versioned eight-threat 3D episodes, retains the established 2D
+reachability calculation, enforces a complete one-to-one feasible matching,
+scores 100 m supplied candidate areas against population and checked-in sector
+data, and exports a separate `simulation-result/1` frontend artifact. The
+checked result uses the immediate-interception baseline; the saved 16-step PPO
+artifact is a smoke test, not a policy-improvement claim.
+
 ## Repository structure
 
 Every new folder contains its same-named Markdown guide; the existing frontend has `frontend.md`. The tree shows the assessment skeleton and key existing frontend content, omitting dependency and generated directories. The folder guides describe implementation files within each area; the following is the architectural skeleton.
@@ -25,6 +42,8 @@ Every new folder contains its same-named Markdown guide; the existing frontend h
 │   ├── api/api.md
 │   ├── domain/domain.md
 │   ├── exposure/exposure.md
+│   ├── simulation/simulation.md
+│   ├── learning/learning.md
 │   ├── orchestration/orchestration.md
 │   └── data_sources/data_sources.md
 ├── frontend/
@@ -67,7 +86,7 @@ Folder guides:
 
 | Area | Documentation |
 |---|---|
-| Backend | [Overview](backend/backend.md), [API](backend/api/api.md), [domain](backend/domain/domain.md), [PEC](backend/exposure/exposure.md), [orchestration](backend/orchestration/orchestration.md), [data sources](backend/data_sources/data_sources.md) |
+| Backend | [Overview](backend/backend.md), [API](backend/api/api.md), [domain](backend/domain/domain.md), [PEC](backend/exposure/exposure.md), [simulation](backend/simulation/simulation.md), [learning](backend/learning/learning.md), [orchestration](backend/orchestration/orchestration.md), [data sources](backend/data_sources/data_sources.md) |
 | Frontend | [Singapore Canvas](frontend/frontend.md), [public assets](frontend/public/public.md) |
 | Contracts | [Overview](contracts/contracts.md), [examples](contracts/examples/examples.md) |
 | Data | [Overview](data/data.md), [raw](data/raw/raw.md), [processed](data/processed/processed.md), [scenarios](data/scenarios/scenarios.md), [results](data/results/results.md) |
@@ -80,6 +99,12 @@ Folder guides:
 For standalone PEC: prepared eligible population and supplied footprints → PEC validation and calculation → structured JSON results.
 
 For the static MVP: deterministic trajectory/reachability → reachable candidates → synthetic success and supplied circles → existing footprint-assessment adapter → complete-coverage eligibility → Pareto frontier → descriptive category alternatives. Frontend connection remains future work.
+
+For the Singapore simulator: `singapore-scenario/1` → 3D threat trajectories →
+2D reachability → complete matching → clipped population/site intersections →
+Emmanuel demo-v2 ordering → summed ordinal training cost → simulation/RL →
+`simulation-result/1`. Its initial frontend view is implemented separately from
+the static result parser.
 
 The implemented source adapter preserves raw population files and prepares validated, versioned zones. The thin file command loads those zones and supplied episodes, invokes standalone PEC, and writes exposure results, coverage and metadata under shared contracts. Future application orchestration and frontend integration can reuse the calculator. See [architecture](docs/architecture/architecture.md) for folder boundaries.
 
@@ -132,6 +157,63 @@ npm --prefix frontend run build
 npm --prefix frontend run build:lib
 npm --prefix frontend run preview -- --host 127.0.0.1
 ```
+
+Set up and smoke-test the optional RL layer separately:
+
+```sh
+python3 -m venv .venv-rl
+.venv-rl/bin/python -m pip install \
+  -r backend/learning/requirements-rl.txt \
+  -r backend/data_sources/requirements.txt \
+  -r backend/data_sources/consequence/requirements.txt pytest
+.venv-rl/bin/python scripts/train_rl.py --steps 10000
+.venv-rl/bin/python scripts/evaluate_rl.py --suite validation
+.venv-rl/bin/python scripts/evaluate_rl.py --suite bounded-oracle
+
+# Singapore integration benchmark, smoke training, and baseline export.
+.venv-rl/bin/python scripts/benchmark_singapore_simulation.py
+.venv-rl/bin/python scripts/train_rl.py \
+  --provider singapore-demo-v2 --generator singapore-v1 \
+  --output-dir data/results/rl/singapore-smoke --steps 16 --seed 7
+.venv-rl/bin/python scripts/export_simulation_result.py --seed 7
+```
+
+`train_rl.py --wall-clock-minutes N` estimates training steps from a disposable
+PPO calibration run using the same seed, normalization and rollout configuration
+as training. The 60% training / 20% held-out evaluation / 20% rerun split is a
+best-effort planning estimate, not a deadline. Calibration and setup are additional
+costs; evaluation and reruns must be run separately. `--calibration-steps` controls
+the calibration length, rounded up to a whole PPO rollout. Training is planned in
+whole rollouts (at least one), so small budgets can overrun. Environment p95 step
+time remains diagnostic only. Metadata retains requested and effective step
+counts, measured PPO throughput, estimated and actual training duration, and
+overrun/underrun relative to the 60% allocation.
+
+Training scenario seeds start at `1_000_000_000`: the nonnegative algorithm seed
+is added to that offset on explicit resets, and automatic resets use the offset
+plus base seed plus episode counter. Evaluation suites retain their original
+seed ranges. Supplied `EpisodeSpec` objects bypass this mapping. The partition is
+recorded in the `rl-scenario-suites/3` manifest and training metadata.
+
+Evaluation writes `rl-evaluation/2` reports with separate prediction and complete
+decision-path timings. Episode p95 values use that episode's raw samples; summary
+p95 values use all decision samples across episodes. `--suite bounded-oracle`
+runs policy, baseline and oracle on identical specs capped at three threats,
+three interceptors, five candidates per pair and 100,000 enumerated sequences.
+Reports include per-episode oracle scores, exactness, enumeration counts and
+regret eligibility. Only exact oracles strictly better than baseline contribute
+to median normalized regret; the regret gate stays false if none qualify.
+Historical v1 reports remain unchanged, as do model and rollout schema versions.
+
+`replay_rollout` verifies every record in contiguous episode groups, including
+observations, masks, pre/post states, assignments, score and termination. It
+requires complete episodes by default; `require_complete=False` permits only
+the final episode to be partial.
+
+Models, normalization state and reports are stored below ignored
+`data/results/rl/` paths. Do not describe a toy
+policy as “optimal”; the held-out and bounded-oracle acceptance gates must pass
+against the integrated consequence provider first.
 
 Run the deterministic machine-side MVP benchmark. It prepares population before
 timing, performs one warm-up and seven measured runs, and writes an ignored full

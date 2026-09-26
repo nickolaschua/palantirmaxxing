@@ -8,6 +8,8 @@ import {
 import type { Flow, Grade, Option } from "./decision-model.js";
 import { mountInspector } from "./inspector.js";
 import { loadPlanningResult } from "./source.js";
+import { mountResultLoader } from "./result-loader.js";
+import type { ResultLoader } from "./source.js";
 
 export interface Decision {
   setBasemap(kind: BasemapKind): void;
@@ -53,10 +55,11 @@ const coverageText = (o: Option): string =>
  * Standby → [Space/Play] Live → [FIRE click] Fired → intercept → Outcome;
  * Live → every window closed → Expired; [R/Restart] → Standby from anywhere.
  */
-export async function mountDecision(
+function renderDecision(
   canvas: SingaporeCanvas,
   setup: { ionToken?: string; googleApiKey?: string; lighting: LightingPreset },
-): Promise<Decision> {
+  parsed: ReturnType<typeof parseResult>,
+): Decision {
   const tray = el("section");
   tray.id = "decision-tray";
   tray.setAttribute("aria-label", "Engagement decision");
@@ -100,16 +103,6 @@ export async function mountDecision(
   };
   document.body.append(tray, presenter, historyPanel);
 
-  // The result loads and validates here, in Standby, so nothing can fail mid-countdown.
-  let parsed: ReturnType<typeof parseResult>;
-  try {
-    parsed = parseResult(await loadPlanningResult());
-  } catch (error) {
-    phaseEl.textContent = "UNAVAILABLE";
-    message.textContent = `Can't use the planning result: ${error instanceof Error ? error.message : String(error)}`;
-    playBtn.disabled = restartBtn.disabled = true;
-    return { setBasemap() {}, setLighting() {}, dispose() { tray.remove(); presenter.remove(); historyPanel.remove(); } };
-  }
   const { result, options } = parsed;
   const words = wording(result.assumptions);
   const start = new Date(result.start);
@@ -560,6 +553,7 @@ export async function mountDecision(
       for (const entry of history) { entry.mark?.circle.destroy(); entry.mark?.marker.destroy(); }
       historyPanel.remove();
       openSnapshot?.remove();
+      for (const burst of bursts.values()) burst.destroy();
       path.destroy();
       descent?.destroy();
       approach?.destroy();
@@ -570,5 +564,27 @@ export async function mountDecision(
       tray.remove();
       presenter.remove();
     },
+  };
+}
+
+/** Returns immediately so navigation can dispose even a pending load. */
+export function mountDecision(
+  canvas: SingaporeCanvas,
+  setup: { ionToken?: string; googleApiKey?: string; lighting: LightingPreset },
+  loader: ResultLoader = loadPlanningResult,
+): Decision & { retry(): void } {
+  let basemap = canvas.scene.basemap;
+  let lighting = setup.lighting;
+  const loading = mountResultLoader(document.body, "Planning", loader, parseResult,
+    parsed => {
+      const view = renderDecision(canvas, { ...setup, lighting }, parsed);
+      view.setBasemap(basemap);
+      return view;
+    });
+  return {
+    retry: loading.retry,
+    setBasemap(kind) { basemap = kind; loading.current()?.setBasemap(kind); },
+    setLighting(preset) { lighting = preset; loading.current()?.setLighting(preset); },
+    dispose: loading.dispose,
   };
 }

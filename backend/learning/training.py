@@ -1,9 +1,12 @@
 """MaskablePPO training and wall-clock budgeting utilities."""
+from collections import Counter
 from dataclasses import asdict, dataclass, replace
 import json
 import hashlib
 import importlib.metadata
 import math
+import multiprocessing
+from numbers import Real
 from pathlib import Path
 import time
 from typing import Any, Callable, Mapping, Optional
@@ -14,8 +17,9 @@ from backend.simulation import DeterministicToyProvider, SeededScenarioGenerator
 
 from backend.simulation.suites import TRAINING_SEED_OFFSET
 
-from .environment import (OBSERVATION_LAYOUT_VERSION, CentralizedInterceptionEnv,
-                          ObservationLayout)
+from .environment import (ADVANCE_ACTION, ASSIGNMENT_ACTIONS,
+                          OBSERVATION_LAYOUT_VERSION,
+                          CentralizedInterceptionEnv, ObservationLayout)
 
 
 MODEL_VERSION = 'maskable-ppo-centralized/2'
@@ -47,14 +51,37 @@ class TrainingArtifacts:
     model_version: str = MODEL_VERSION
 
 
+@dataclass(frozen=True)
+class _EnvironmentFactory:
+    provider_factory: Callable[[], Any]
+    scenario_factory: Callable[[], Any]
+    base_seed: int
+    seed_stride: int
+    scenario_seed_offset: int
+
+    def __call__(self):
+        return CentralizedInterceptionEnv(
+            self.provider_factory(), scenario_generator=self.scenario_factory(),
+            base_seed=self.base_seed, episode_seed_stride=self.seed_stride,
+            scenario_seed_offset=self.scenario_seed_offset,
+            policy_version=MODEL_VERSION)
+
+
+def _scenario_seed_offset(generator: Any) -> int:
+    return 0 if getattr(generator, 'selects_pool_records', False) else TRAINING_SEED_OFFSET
+
+
 class NormalizedPolicy:
     """Inference wrapper that reuses the observation statistics saved at training."""
 
     model_version = MODEL_VERSION
+    algorithm = 'maskable-ppo'
 
-    def __init__(self, model: Any, normalization_env: Any):
+    def __init__(self, model: Any, normalization_env: Any,
+                 artifact_identity: Optional[str] = None):
         self.model = model
         self.normalization_env = normalization_env
+        self.artifact_identity = artifact_identity or 'legacy-ppo-artifact'
 
     def predict(self, observation, deterministic: bool = True, action_masks=None):
         array = np.asarray(observation, dtype=np.float32)
@@ -83,9 +110,9 @@ def measure_environment_p95_step_ms(sample_steps: int = 256,
         raise ValueError('sample_steps must be a positive integer')
     env = CentralizedInterceptionEnv(
         provider_factory(),
-        scenario_generator=scenario_factory(),
+        scenario_generator=(generator := scenario_factory()),
         base_seed=seed,
-        scenario_seed_offset=TRAINING_SEED_OFFSET,
+        scenario_seed_offset=_scenario_seed_offset(generator),
     )
     env.reset(seed=seed)
     timings = []
@@ -146,15 +173,20 @@ def budget_from_wall_clock(wall_clock_seconds: float,
     )
 
 
-def _ppo_rollout_configuration(total_timesteps: int):
-    """Choose a rollout/batch pair that is exact for common requested totals."""
-    upper = min(256, total_timesteps)
+def _ppo_rollout_configuration(total_timesteps: int, n_envs: int = 1):
+    """Choose a rollout/batch pair for a complete vectorized rollout."""
+    if type(total_timesteps) is not int or total_timesteps <= 0:
+        raise ValueError('total_timesteps must be a positive integer')
+    if type(n_envs) is not int or n_envs <= 0:
+        raise ValueError('n_envs must be a positive integer')
+    upper = min(256, max(2, math.ceil(total_timesteps / n_envs)))
     divisors = [value for value in range(2, upper + 1)
-                if total_timesteps % value == 0]
-    n_steps = max(divisors) if divisors else max(2, upper)
-    batch_divisors = [value for value in range(2, min(64, n_steps) + 1)
-                      if n_steps % value == 0]
-    batch_size = max(batch_divisors) if batch_divisors else n_steps
+                if total_timesteps % (value * n_envs) == 0]
+    n_steps = max(divisors) if divisors else upper
+    buffer_size = n_steps * n_envs
+    batch_divisors = [value for value in range(2, min(64, buffer_size) + 1)
+                      if buffer_size % value == 0]
+    batch_size = max(batch_divisors) if batch_divisors else buffer_size
     return n_steps, batch_size
 
 
@@ -165,15 +197,33 @@ def train_maskable_ppo(output_dir: Path,
                        benchmark_steps: int = 256,
                        calibration_steps: int = 256,
                        provider_factory: Callable[[], Any] = DeterministicToyProvider,
-                       scenario_factory: Callable[[], Any] = SeededScenarioGenerator) -> TrainingArtifacts:
+                       scenario_factory: Callable[[], Any] = SeededScenarioGenerator,
+                       n_envs: int = 1,
+                       gamma: float = 1.0,
+                       gae_lambda: float = 0.95,
+                       entropy_coefficient: float = 0.0) -> TrainingArtifacts:
     """Train with replaceable provider/scenario factories and save identities."""
     if type(total_timesteps) is not int or total_timesteps <= 0:
         raise ValueError('total_timesteps must be a positive integer')
     if type(seed) is not int or seed < 0:
         raise ValueError('seed must be a nonnegative integer')
+    if type(n_envs) is not int or n_envs <= 0:
+        raise ValueError('n_envs must be a positive integer')
+    for value, name, lower_inclusive, upper_inclusive in (
+            (gamma, 'gamma', 0.0, 1.0),
+            (gae_lambda, 'gae_lambda', 0.0, 1.0)):
+        if (type(value) not in (int, float) or not math.isfinite(value)
+                or not lower_inclusive <= value <= upper_inclusive):
+            raise ValueError(name + ' must be finite and between zero and one')
+    if (type(entropy_coefficient) not in (int, float)
+            or not math.isfinite(entropy_coefficient)
+            or entropy_coefficient < 0):
+        raise ValueError('entropy_coefficient must be finite and nonnegative')
     try:
         from sb3_contrib import MaskablePPO
-        from stable_baselines3.common.vec_env import DummyVecEnv, VecNormalize
+        from stable_baselines3.common.vec_env import (DummyVecEnv, SubprocVecEnv,
+                                                      VecNormalize)
+        from stable_baselines3.common.callbacks import BaseCallback
         from torch.distributions import Distribution
     except ImportError as exc:
         raise RuntimeError(
@@ -194,28 +244,59 @@ def train_maskable_ppo(output_dir: Path,
     requested_timesteps = total_timesteps
     identity_provider = provider_factory()
     identity_generator = scenario_factory()
+    scenario_seed_offset = _scenario_seed_offset(identity_generator)
     p95_ms = None
     budget = None
     calibration_elapsed = None
     # Freeze this configuration before calibration so training uses the same PPO
     # rollout and minibatch sizes even when its effective step count changes.
-    n_steps, batch_size = _ppo_rollout_configuration(requested_timesteps)
+    n_steps, batch_size = _ppo_rollout_configuration(requested_timesteps, n_envs)
+    rollout_buffer_size = n_steps * n_envs
+    start_method = None
+    if n_envs > 1:
+        start_method = ('forkserver' if 'forkserver' in multiprocessing.get_all_start_methods()
+                        else 'spawn')
+    env_factories = tuple(
+        _EnvironmentFactory(
+            provider_factory, scenario_factory, seed + rank, n_envs,
+            scenario_seed_offset)
+        for rank in range(n_envs))
 
-    def make_env():
-        return CentralizedInterceptionEnv(
-            provider_factory(),
-            scenario_generator=scenario_factory(),
-            base_seed=seed,
-            scenario_seed_offset=TRAINING_SEED_OFFSET,
-            policy_version=MODEL_VERSION,
-        )
+    class EpisodeCoverageCallback(BaseCallback):
+        def __init__(self):
+            super().__init__(verbose=0)
+            self.completed = 0
+            self.episodes = Counter()
+            self.profiles = Counter()
+            self.actions = Counter()
+
+        def _on_step(self) -> bool:
+            for action in np.asarray(self.locals.get('actions', ())).reshape(-1):
+                value = int(action)
+                kind = ('assign' if value < ASSIGNMENT_ACTIONS else
+                        'cancel' if value < ADVANCE_ACTION else 'advance')
+                self.actions[kind] += 1
+            for done, info in zip(
+                    self.locals.get('dones', ()), self.locals.get('infos', ())):
+                if done:
+                    self.completed += 1
+                    self.episodes[str(info.get('episode_id', 'unknown'))] += 1
+                    profile = info.get('scenario_profile')
+                    if profile is not None:
+                        self.profiles[str(profile)] += 1
+            return True
 
     def make_training_run():
+        vector_env = (DummyVecEnv(env_factories) if n_envs == 1 else
+                      SubprocVecEnv(env_factories, start_method=start_method))
         normalized = VecNormalize(
-            DummyVecEnv([make_env]), norm_obs=True, norm_reward=True, clip_obs=10.0)
+            vector_env, norm_obs=True, norm_reward=True, clip_obs=10.0,
+            gamma=float(gamma))
         model = MaskablePPO(
             'MlpPolicy', normalized, seed=seed, verbose=0,
             n_steps=n_steps, batch_size=batch_size,
+            gamma=float(gamma), gae_lambda=float(gae_lambda),
+            ent_coef=float(entropy_coefficient),
         )
         return model, normalized
 
@@ -225,7 +306,9 @@ def train_maskable_ppo(output_dir: Path,
         calibration_model, calibration_env = make_training_run()
         try:
             started = time.perf_counter()
-            calibration_model.learn(total_timesteps=calibration_steps)
+            calibration_target = (math.ceil(calibration_steps / rollout_buffer_size)
+                                  * rollout_buffer_size)
+            calibration_model.learn(total_timesteps=calibration_target)
             calibration_elapsed = time.perf_counter() - started
             completed = int(calibration_model.num_timesteps)
             ppo_ms = calibration_elapsed * 1000.0 / completed
@@ -233,57 +316,66 @@ def train_maskable_ppo(output_dir: Path,
             calibration_env.close()
         del calibration_model, calibration_env
         budget = budget_from_wall_clock(
-            wall_clock_seconds, ppo_ms, completed, p95_ms, rollout_steps=n_steps)
+            wall_clock_seconds, ppo_ms, completed, p95_ms,
+            rollout_steps=rollout_buffer_size)
         total_timesteps = budget.planned_training_steps
+
+    total_timesteps = (math.ceil(total_timesteps / rollout_buffer_size)
+                       * rollout_buffer_size)
 
     # A fresh model and fresh statistics prevent calibration from becoming
     # unreported training. MaskablePPO reseeds this run with the same seed.
     model, normalized_env = make_training_run()
+    coverage_callback = EpisodeCoverageCallback()
     started = time.perf_counter()
-    model.learn(total_timesteps=total_timesteps)
-    elapsed = time.perf_counter() - started
-    if budget is not None:
-        budget = replace(
-            budget, actual_training_seconds=elapsed,
-            training_overrun_seconds=max(0.0, elapsed - budget.training_seconds),
-            training_underrun_seconds=max(0.0, budget.training_seconds - elapsed))
-    artifact_stem = ('maskable_ppo_toy'
-                     if identity_provider.identity == DeterministicToyProvider.identity
-                     else 'maskable_ppo_' + identity_provider.identity.replace('-', '_'))
-    model_path = output / artifact_stem
-    normalization_path = output / 'vecnormalize.pkl'
-    metadata_path = output / 'training-metadata.json'
-    model.save(str(model_path))
-    normalized_env.save(str(normalization_path))
-    provider_metadata = {
-        'identity': identity_provider.identity,
-        'version': identity_provider.version,
-        'objective_direction': identity_provider.objective_direction.value,
-        'data_identity': getattr(getattr(identity_provider, 'catalog', None), 'identity', None),
-        'configuration_identity': getattr(identity_provider, 'config_identity', None),
-        'cache_identity': getattr(identity_provider, 'cache_identity', None),
-        'source_checksums': dict(getattr(
-            getattr(identity_provider, 'catalog', None), 'source_checksums', {})),
-    }
-    generator_metadata = {
-        'version': identity_generator.version,
-        'configuration_checksum': getattr(
-            identity_generator, 'configuration_checksum', _stable_identity(vars(identity_generator))),
-        'geometry_checksum': getattr(
-            getattr(identity_generator, 'main_island', None), 'geometry_checksum', None),
-        'source_checksum': getattr(
-            getattr(identity_generator, 'main_island', None), 'source_checksum', None),
-    }
-    layout = ObservationLayout.build()
-    configuration_checksum = _stable_identity({
-        'model_version': MODEL_VERSION,
-        'observation_layout_version': OBSERVATION_LAYOUT_VERSION,
-        'observation_layout_checksum': layout.checksum,
-        'provider': provider_metadata,
-        'generator': generator_metadata,
-    })
-    dependencies = _dependency_versions()
-    metadata = {
+    try:
+        model.learn(total_timesteps=total_timesteps, callback=coverage_callback)
+        elapsed = time.perf_counter() - started
+        if budget is not None:
+            budget = replace(
+                budget, actual_training_seconds=elapsed,
+                training_overrun_seconds=max(0.0, elapsed - budget.training_seconds),
+                training_underrun_seconds=max(0.0, budget.training_seconds - elapsed))
+        artifact_stem = ('maskable_ppo_toy'
+                         if identity_provider.identity == DeterministicToyProvider.identity
+                         else 'maskable_ppo_' + identity_provider.identity.replace('-', '_'))
+        model_path = output / artifact_stem
+        normalization_path = output / 'vecnormalize.pkl'
+        metadata_path = output / 'training-metadata.json'
+        model.save(str(model_path))
+        normalized_env.save(str(normalization_path))
+        provider_metadata = {
+            'identity': identity_provider.identity, 'version': identity_provider.version,
+            'objective_direction': identity_provider.objective_direction.value,
+            'data_identity': getattr(getattr(identity_provider, 'catalog', None), 'identity', None),
+            'configuration_identity': getattr(identity_provider, 'config_identity', None),
+            'cache_identity': getattr(identity_provider, 'cache_identity', None),
+            'source_checksums': dict(getattr(
+                getattr(identity_provider, 'catalog', None), 'source_checksums', {})),
+        }
+        generator_metadata = {
+            'version': identity_generator.version,
+            'configuration_checksum': getattr(identity_generator, 'configuration_checksum',
+                                                _stable_identity(vars(identity_generator))),
+            'geometry_checksum': getattr(getattr(identity_generator, 'main_island', None),
+                                         'geometry_checksum', None),
+            'source_checksum': getattr(getattr(identity_generator, 'main_island', None),
+                                       'source_checksum', None),
+        }
+        pool_provenance = getattr(identity_generator, 'provenance', None)
+        if pool_provenance is not None:
+            generator_metadata['scenario_pool'] = dict(pool_provenance)
+        layout = ObservationLayout.build()
+        configuration_checksum = _stable_identity({
+            'model_version': MODEL_VERSION,
+            'observation_layout_version': OBSERVATION_LAYOUT_VERSION,
+            'observation_layout_checksum': layout.checksum,
+            'provider': provider_metadata, 'generator': generator_metadata,
+        })
+        dependencies = _dependency_versions()
+        metadata = {
+        'schema_version': 'policy-artifact/1',
+        'algorithm': 'maskable-ppo',
         'artifact_label': ('plumbing validation only'
                            if identity_provider.identity == DeterministicToyProvider.identity
                            else 'Singapore demo-v2 assumption-grade training'),
@@ -297,14 +389,38 @@ def train_maskable_ppo(output_dir: Path,
         'scenario_generator_version': identity_generator.version,
         'seed': seed,
         'algorithm_seed': seed,
-        'scenario_seed_offset': TRAINING_SEED_OFFSET,
-        'first_scenario_seed': TRAINING_SEED_OFFSET + seed,
+        'scenario_seed_offset': scenario_seed_offset,
+        'first_scenario_seed': scenario_seed_offset + seed,
+        'n_envs': n_envs,
+        'vector_environment_type': ('DummyVecEnv' if n_envs == 1 else 'SubprocVecEnv'),
+        'multiprocessing_start_method': start_method,
+        'worker_seed_streams': [
+            {'rank': rank, 'base_seed': seed + rank,
+             'episode_seed_stride': n_envs,
+             'first_scenario_seed': scenario_seed_offset + seed + rank}
+            for rank in range(n_envs)],
+        'completed_episodes': coverage_callback.completed,
+        'unique_episodes_visited': len(coverage_callback.episodes),
+        'episode_visit_counts': dict(sorted(coverage_callback.episodes.items())),
+        'profile_episode_counts': dict(sorted(coverage_callback.profiles.items())),
+        'action_counts': dict(sorted(coverage_callback.actions.items())),
         'requested_timesteps': requested_timesteps,
         'effective_timesteps': total_timesteps,
         'total_timesteps': model.num_timesteps,
         'ppo_n_steps': n_steps,
         'ppo_batch_size': batch_size,
+        'ppo_rollout_buffer_size': rollout_buffer_size,
+        'ppo_n_epochs': model.n_epochs,
+        'ppo_gamma': model.gamma,
+        'ppo_gae_lambda': model.gae_lambda,
+        'ppo_entropy_coefficient': model.ent_coef,
+        'ppo_final_diagnostics': {
+            key.removeprefix('train/'): float(value)
+            for key, value in sorted(model.logger.name_to_value.items())
+            if key.startswith('train/') and isinstance(value, Real)
+        },
         'elapsed_seconds': elapsed,
+        'measured_timesteps_per_second': model.num_timesteps / elapsed,
         'measured_p95_step_ms': p95_ms,
         'calibration_steps': 0 if budget is None else budget.calibration_steps,
         'calibration_seconds': calibration_elapsed,
@@ -316,11 +432,12 @@ def train_maskable_ppo(output_dir: Path,
         'budget': None if budget is None else asdict(budget),
         'dependencies': dependencies,
         'dependency_identity': _stable_identity(dependencies),
-    }
-    metadata_path.write_text(
-        json.dumps(metadata, indent=2, sort_keys=True, allow_nan=False) + '\n',
-        encoding='utf-8')
-    normalized_env.close()
+        }
+        metadata_path.write_text(
+            json.dumps(metadata, indent=2, sort_keys=True, allow_nan=False) + '\n',
+            encoding='utf-8')
+    finally:
+        normalized_env.close()
     return TrainingArtifacts(
         model_path=str(model_path) + '.zip',
         normalization_path=str(normalization_path),
@@ -356,6 +473,7 @@ def load_normalized_policy(
         raise ValueError('recorded model artifact is required')
     provider = provider_factory()
     generator = scenario_factory()
+    scenario_seed_offset = _scenario_seed_offset(generator)
     expected = {
         'model_version': MODEL_VERSION,
         'observation_layout_version': OBSERVATION_LAYOUT_VERSION,
@@ -391,7 +509,7 @@ def load_normalized_policy(
             provider_factory(),
             scenario_generator=scenario_factory(),
             base_seed=seed,
-            scenario_seed_offset=TRAINING_SEED_OFFSET,
+            scenario_seed_offset=scenario_seed_offset,
             policy_version=MODEL_VERSION,
         )
 
@@ -400,7 +518,48 @@ def load_normalized_policy(
     normalized_env.training = False
     normalized_env.norm_reward = False
     model = MaskablePPO.load(str(model_path), env=normalized_env)
-    return NormalizedPolicy(model, normalized_env)
+    artifact_identity = _stable_identity({
+        'algorithm': metadata.get('algorithm', 'maskable-ppo'),
+        'model_version': metadata.get('model_version'),
+        'configuration_checksum': metadata.get('configuration_checksum'),
+        'dependency_identity': metadata.get('dependency_identity'),
+        'total_timesteps': metadata.get('total_timesteps'),
+    })
+    return NormalizedPolicy(model, normalized_env, artifact_identity)
+
+
+def load_policy(
+        output_dir: Path, seed: int = 0,
+        provider_factory: Optional[Callable[[], Any]] = None,
+        scenario_factory: Optional[Callable[[], Any]] = None):
+    """Load PPO or structured imitation based on artifact metadata.
+
+    PPO metadata produced before the generic artifact schema did not contain an
+    ``algorithm`` field; those directories intentionally retain legacy PPO
+    loading behavior.
+    """
+    output = Path(output_dir)
+    imitation_metadata = output / 'policy-metadata.json'
+    ppo_metadata = output / 'training-metadata.json'
+    metadata_path = imitation_metadata if imitation_metadata.is_file() else ppo_metadata
+    if not metadata_path.is_file():
+        raise ValueError('policy metadata artifact is required')
+    try:
+        metadata = json.loads(metadata_path.read_text(encoding='utf-8'))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise ValueError('cannot load policy metadata') from exc
+    algorithm = metadata.get('algorithm', 'maskable-ppo')
+    if algorithm == 'maskable-ppo':
+        return load_normalized_policy(
+            output, seed=seed,
+            provider_factory=(provider_factory or DeterministicToyProvider),
+            scenario_factory=(scenario_factory or SeededScenarioGenerator))
+    if algorithm == 'structured-behavior-cloning/1':
+        from .imitation import load_imitation_policy
+        return load_imitation_policy(
+            output, provider_factory=provider_factory,
+            scenario_factory=scenario_factory)
+    raise ValueError('unsupported policy algorithm: ' + str(algorithm))
 
 
 def _stable_identity(value: Any) -> str:

@@ -2,6 +2,7 @@ import math
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
+from unittest.mock import patch
 
 import numpy as np
 
@@ -95,6 +96,40 @@ class LearningEnvironmentTests(unittest.TestCase):
         _, reward, _, _, info = env.step(assignment)
         self.assertEqual(reward, 0.0)
         self.assertEqual(info['step_training_costs'], [])
+
+    def test_unrecorded_step_skips_snapshots_and_duplicate_observation(self):
+        env = self.Env(self.Provider(), scenario_generator=self.Generator())
+        env.reset(seed=19)
+        action = int(np.flatnonzero(env.action_masks())[-1])
+        with patch.object(env.engine, 'snapshot', wraps=env.engine.snapshot) as snapshot, \
+                patch.object(env, '_observation', wraps=env._observation) as observation:
+            env.step(action)
+        snapshot.assert_not_called()
+        self.assertEqual(observation.call_count, 1)
+
+    def test_action_mask_cache_is_protected_and_invalidated(self):
+        env = self.Env(self.Provider(), scenario_generator=self.Generator())
+        env.reset(seed=19)
+        with patch.object(env.engine, 'is_assignment_valid',
+                          wraps=env.engine.is_assignment_valid) as validity:
+            first = env.action_masks()
+            scans = validity.call_count
+            second = env.action_masks()
+            self.assertEqual(validity.call_count, scans)
+            first[:] = 0
+            np.testing.assert_array_equal(env.action_masks(), second)
+            env.step(int(np.flatnonzero(second)[-1]))
+            env.action_masks()
+            self.assertGreater(validity.call_count, scans)
+
+    def test_episode_seed_stride_preserves_default_and_partitions_streams(self):
+        default = self.Env(self.Provider(), scenario_generator=self.Generator(), base_seed=10)
+        self.assertEqual([default.reset()[1]['seed'] for _ in range(3)], [10, 11, 12])
+        streams = [self.Env(self.Provider(), scenario_generator=self.Generator(),
+                            base_seed=10 + rank, episode_seed_stride=2)
+                   for rank in range(2)]
+        self.assertEqual([[env.reset()[1]['seed'] for _ in range(3)] for env in streams],
+                         [[10, 12, 14], [11, 13, 15]])
 
     def test_maximize_direction_returns_positive_raw_terminal_reward(self):
         from backend.simulation import ObjectiveDirection

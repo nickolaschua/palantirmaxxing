@@ -41,6 +41,9 @@ claude-code-prompt.md
 !/data/results/mvp-sensitivity.json
 !/data/results/demo-simulation-result.json
 !/data/results/singapore-simulation-benchmark.json
+!/data/results/rl/scenario-audit-v2.json
+!/data/results/rl/experiments/structured-imitation-512-seed7/pipeline/bc-validation.json
+!/data/results/rl/experiments/structured-imitation-512-seed7/pipeline/bc-artifact/**
 
 # Local Python environment and interpreter caches
 /.venv/

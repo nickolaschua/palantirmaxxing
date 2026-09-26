@@ -1,3 +1,4 @@
+import simulationJson from "../../../data/results/demo-simulation-result.json";
 import resultJson from "../../../data/results/demo-planning-result.json";
 import type { Consequence, DimensionId } from "./decision-model.js";
 
@@ -38,4 +39,10 @@ function illustrativeConsequence(id: string): Consequence {
 function withIllustrativeConsequence<T extends { candidates: { id: string; consequence?: unknown }[] }>(result: T): T {
   for (const c of result.candidates) c.consequence ??= illustrativeConsequence(c.id);
   return result;
+}
+
+export type ResultLoader = () => Promise<unknown>;
+
+export async function loadSimulationResult(): Promise<unknown> {
+  return structuredClone(simulationJson);
 }

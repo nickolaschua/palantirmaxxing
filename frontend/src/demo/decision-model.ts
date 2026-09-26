@@ -5,7 +5,7 @@
  */
 import type { CameraPose, GeoPoint } from "../lib/index.js";
 
-// --- planning-result/1 wire types (frontend/docs/API-DESIGN.md is the source of truth) ---
+// --- planning-result/1 wire types (contracts/planning-result.md is the canonical payload contract) ---
 
 export interface PlanningTimedSample { time: string; lon: number; lat: number; height: number }
 export interface PlanningCandidate {

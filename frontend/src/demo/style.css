@@ -639,3 +639,19 @@ body.at-edge::after {
 #simulation-result { margin-top: 10px; border-top: 1px solid var(--line); padding-top: 8px; }
 #simulation-result summary { cursor: pointer; font-size: 12px; font-weight: 700; }
 #simulation-result p, #simulation-result small { display: block; color: var(--muted); font-size: 10px; line-height: 1.4; }
+
+/* Planning loads before its tray exists; keep status above the canvas. */
+body > .result-load-status {
+  position: fixed;
+  z-index: 100;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: min(600px, 90vw);
+  padding: 16px;
+  color: #e8eaed;
+  background: #161b22;
+  border: 1px solid #68717d;
+  border-radius: 8px;
+}
+.result-load-status[hidden] { display: none; }

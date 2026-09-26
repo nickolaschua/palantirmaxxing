@@ -12,11 +12,13 @@ Code: `roads.py`, `rail.py`, `datamall.py` (this folder); run with `../pipeline.
 
 ## Outputs (`output/transport/`)
 
-- `transport_output.csv` - one row per site and condition, **35 columns (A to AI)**, following the consequence
+- `transport_output.csv` - one row per site and condition, **43 columns**, following the consequence
   model's full vector:
-  - **H, E, D, X, R, A and total**, each as `_low/_central/_high`. D and X have no source for transport, so
-    they are blank (never zero) and listed in `dimensions_missing`; the total renormalises over the dimensions
-    present.
+  - **C, O_display, E, D, X, R, A and the secondary score**, each as `_low/_central/_high` (formulas and ranking:
+    model doc sections 6-7). D and X have no source for transport, so they are blank (never zero) and listed in
+    `dimensions_missing`; the secondary score renormalises over the dimensions present.
+  - **Veto**: `veto_status`, `veto_reasons_civilian`, `veto_reasons_capability`, plus `population_method` and
+    `overlap_area_km2` (transport sites are `direct`).
   - **All eight flags** as `flag_*` columns (`True`, `False` or `unavailable` where the input needed to judge
     it is absent: `mass_vulnerability_condition`, `minimum_capability_breach`).
   - `site_id`, `condition_id`, `role`, `rankable`, `dimensions_missing`, `policy_version`.
@@ -72,7 +74,7 @@ Six, all in the normal operating state: weekday AM peak (07-09), midday (09-17),
 - Weekend counts include public holidays, which DataMall files under the weekend/holiday day type.
 - All coefficients (trips per person, vehicle density, hourly shares, dwell, recovery times, alternative
   capacity) are uncalibrated assumptions, listed in `transport_output_provenance.json`.
-- Vulnerability is unknown for transport, so H bounds widen (V=0 at low/central, V=100 at high).
+- Vulnerability is unknown for transport, so C bounds widen (V=0 at low/central, V=100 at high).
 - Dimensions D (capability) and X (cascades) are absent and reported in `dimensions_missing`.
 - Requires OSMnx 1.x and pandas < 3. The old code needed Python 3.10+; new modules use
   `from __future__ import annotations` but the population code base states 3.9.

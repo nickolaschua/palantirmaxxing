@@ -5,7 +5,7 @@ System-level public evidence for infrastructure that is not modelled site by sit
 ## Files
 
 - `input_profiles.csv`: 13 profiles (energy 3, water 4, aviation 3, port 3), for example `ENE-ELEC`, the national electricity system with 6,111,200 beneficiaries and 8,045 MW peak demand. Columns include beneficiaries, flow and unit, vulnerability, role, recovery baseline and what D, X and A would need.
-- `../output/critical_sectors/critical_sectors_output.csv` (written by the builder, git-ignored): 104 scenario rows (`BASE`, `PEAK`, `PARTIAL_2H`, ...) with people and service-loss inputs, effective service units and H/E/D/X/R/A low/central/high, state, confidence and flags per dimension.
+- `../output/critical_sectors/critical_sectors_output.csv` (written by the builder, git-ignored): 104 scenario rows (`BASE`, `PEAK`, `PARTIAL_2H`, ...) with people and service-loss inputs, effective service units and H/E/D/X/R/A low/central/high, state, confidence and flags per dimension. This builder output is the legacy demo-v1 view (H and a total, no C, veto or rank); the scored and ranked output is `facilities_output.csv` below.
 - `input_sources.csv`: source log (agency, title, date, facts, URL, confidence, limitation).
 - `input_metadata.json`: retrieval date, vector, weights (demo-v1) and the population basis.
 - `input_evidence.xlsx`: the same tables as a workbook.
@@ -28,7 +28,7 @@ Decided 2026-09-26 (plan: `../doc/plans/2026-09-26-rank-defence-and-critical-sec
 - E is populated only for the 8 people-based profiles (energy, water, AVI-PAX). The 5 throughput profiles (AVI-CARGO, AVI-ATM, PORT-CONT, PORT-VES, PORT-BUNK) measure tonnes, TEU or aircraft, so the person-hour bands do not apply and E is unavailable; the raw `effective_service_units` are kept. E bounds come from ranges on loss, duration and alternative capacity (`loss_*`, `hours_*`, `alt_*` columns). E is 0, not 10, only when the scenario has no service loss (BASE, PEAK).
 - H is populated only for AVI-PAX (assumed 3-hour dwell, grade D); V is a category-proxy assumption, not the spec's five components. R is a grade D assumption, the same per scenario in every sector. D, X and A are unavailable, so `policy_total_score` is null everywhere; null means unavailable, not zero.
 - Scenarios are disruption states, not the time conditions in `conditions.py`, so the rows are not joined to the scored sectors by condition.
-- `flag_*` columns carry the eight spec section 7 flags (same thresholds as `scoring.py`); `unavailable` where the input is missing. `data_stale` is unavailable because values carry no per-value source date.
+- In the builder output, `flag_*` columns carry the eight spec section 7 flags with the builder's own thresholds; `unavailable` where the input is missing. `facilities_output.csv` uses `scoring.py` (`demo-v2`) for flags, veto and rank. `data_stale` is unavailable because values carry no per-value source date.
 
 ## Rebuild
 

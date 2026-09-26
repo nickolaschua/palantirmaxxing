@@ -1,6 +1,6 @@
 # Singapore conditional consequence model and data plan
 
-Status: research and implementation specification. No scoring code, runtime policy, optimisation policy, or operational validation is implemented by this document.
+Status: research and implementation specification. The consequence vector, veto and ranking (sections 6-7) are implemented in `scoring.py` under policy `demo-v2`, and the residential profiles in `residential/residential.py`; this document describes that behaviour. Runtime policy, optimisation policy, and operational validation are not implemented by this document.
 
 ## 1. Purpose and boundary
 
@@ -55,11 +55,11 @@ Categories organise data collection; they do not assign consequence by themselve
 |---|---|---|
 | `aviation` | Aviation zones | terminals, runways, taxiways, aprons, air-freight and support facilities |
 | `defence_security` | Defence and security | authorised abstract capability nodes and continuity functions |
-| `energy_fuel` | Energy and fuel | generation, transmission, substations, gas and fuel storage |
-| `water_drainage` | Water and drainage | treatment, pumping, reservoirs, drainage and used-water systems |
+| `energy` | Energy and fuel | generation, transmission, substations, gas and fuel storage |
+| `water` | Water and drainage | treatment, pumping, reservoirs, drainage and used-water systems |
 | `health_emergency` | Healthcare and emergency services | hospitals, clinics, nursing homes, ambulance and fire response |
 | `transport` | Transport networks | rail, stations, roads, interchanges, depots and alternative routes |
-| `port_maritime` | Port and maritime | terminals, berths, navigation, bunkering and maritime logistics |
+| `port` | Port and maritime | terminals, berths, navigation, bunkering and maritime logistics |
 | `residential` | Dense residential | HDB, private apartments, landed housing and supporting amenities |
 | `commercial_civic` | Commercial and civic | offices, retail, government services, schools and tertiary campuses |
 | `industrial_logistics` | Industrial and logistics | factories, warehouses, distribution and production clusters |
@@ -67,7 +67,6 @@ Categories organise data collection; they do not assign consequence by themselve
 | `water_coastal` | Water bodies and coastal areas | reservoirs, waterways, coast, recreational waters and water intakes |
 
 Schools and campuses may be stored as `commercial_civic` with `education` as a functional role. A mixed-use development should not be forced into one label.
-
 ## 4. Information states
 
 Every value must declare how it was obtained:
@@ -180,7 +179,7 @@ D = 100
     * (1 - replacement_fraction)
 ```
 
-The profile may additionally carry `minimum_capability_breach`. Detailed evidence stays in the owning system; the prototype stores only the approved value, version, and confidence.
+The profile may additionally carry `minimum_capability_breach`. Detailed evidence stays in the owning system; the prototype stores only the approved value, version, and confidence. `scoring.py` does not evaluate the formula above: it takes the authorised `D` value from the profile's `capability` input as supplied, and `D` is none when no input exists. Residential profiles produce no `D`.
 
 ### 6.4 Cascading consequence `X`
 
@@ -191,6 +190,8 @@ X = min(100, sum(dependency_weight[j] * downstream_service_score[j]))
 ```
 
 The evaluator must prevent the same outage population from being counted in both direct `E` and downstream `X` without an explicit reason.
+
+Not yet implemented: `scoring.py` sets `X` to none because no dependency records are supplied, so `X` appears in `dimensions_missing` and drops out of the secondary score (its weight is renormalised over the present dimensions).
 
 ### 6.5 Functional recovery `R`
 
@@ -219,13 +220,15 @@ A = 0.30 * flammable
   + 0.10 * proximity_to_other_hazards
 ```
 
-Each component is 0-100 and must state whether it is measured, operator-supplied, or assumed. This factor describes site potential only; it is not the probability that a hazard will be activated.
+Each component is 0-100 and must state whether it is measured, operator-supplied, or assumed. A missing component counts 0 at low/central and 100 at high, so unknown hazard widens `A` rather than lowering it. This factor describes site potential only; it is not the probability that a hazard will be activated.
 
 ## 7. Veto, then rank, and non-compensatory flags
 
 The preferred output is the full vector `(C, E, D, X, R, A)`. The `demo-v2` policy profile (versioned, not objective truth) judges sites in two steps instead of a compensatory weighted total.
 
-**Step A, hard veto (evaluated first).** A site is `vetoed` when `high_human_exposure`, `essential_service_floor_breach` or `minimum_capability_breach` is true. Capability reasons (`minimum_capability_breach`) are reported separately from civilian-harm reasons. A site where no veto flag is true but one could not be judged (for example no authorised D input) is `unknown`, never a silent `pass`. Veto flags are magnitude-based: `high_human_exposure` trips at `C >= 10` expected casualties and `essential_service_floor_breach` at `E >= 80`. An essential site (priority asset, or category health_emergency, defence_security, aviation, energy or water) trips them at a lower magnitude (`C >= 5`, `E >= 60`), but a category never trips a flag by itself. All thresholds are placeholders.
+**Step A, hard veto (evaluated first).** A site is `vetoed` when `high_human_exposure`, `essential_service_floor_breach` or `minimum_capability_breach` is true. Capability reasons (`minimum_capability_breach`) are reported separately from civilian-harm reasons. A site where no veto flag is true but one could not be judged (for example no authorised D input) is `unknown`, never a silent `pass`. The exception is a declared priority asset with no authorised capability input: it is precautionarily `vetoed` with the capability reason `priority_asset_capability_not_assessed`, never derived from its scores. Veto flags are magnitude-based: `high_human_exposure` trips at `C >= 10` expected casualties and `essential_service_floor_breach` at `E >= 80`. An essential site (priority asset, or category health_emergency, defence_security, aviation, energy, water or port) trips them at a lower magnitude (`C >= 5`, `E >= 60`), but a category never trips a flag by itself. All thresholds are placeholders.
+
+A site is rankable only when both `C` and `E` are available. Rows with no `C` are listed after all others rather than dropped.
 
 **Step B, lexicographic rank of survivors.** Survivors (`pass` and `unknown`) are ordered by `C`, lowest first. The lowest remaining `C` opens a tie band, `C <= max(1.10 * C_min, C_min + 0.5)`; inside it sites are ordered by
 
@@ -239,14 +242,16 @@ lowest first, and the next band starts after it. The fixed band keeps the rule t
 
 Always report these flags separately:
 
-- `high_human_exposure`;
-- `mass_vulnerability_condition`;
-- `essential_service_floor_breach`;
-- `minimum_capability_breach`;
-- `single_point_of_failure`;
-- `hazard_inventory_high`;
-- `data_stale`; and
-- `uncertainty_high`.
+- `high_human_exposure`: central `C` at or above the threshold above;
+- `mass_vulnerability_condition`: `high_human_exposure` conditions plus central `V >= 50`; `unavailable` when no vulnerability component is available;
+- `essential_service_floor_breach`: central `E` at or above the threshold above;
+- `minimum_capability_breach`: from the authorised capability input; `unavailable` when none is supplied;
+- `single_point_of_failure`: supplied on the profile;
+- `hazard_inventory_high`: central `A >= 60`;
+- `data_stale`: any occupancy, service or recovery input with a source date more than 400 days before the evaluation date; `unavailable` when no evaluation date is given; and
+- `uncertainty_high`: a low-high spread of 40 or more in `O_display`, `E`, `D`, `X` or the secondary score.
+
+A `priority_asset` marker is also reported when the profile declares one. Flag values are `true`, `false` or `unavailable`.
 
 A hard flag must not be cleared merely because the scalar total is low.
 
@@ -274,7 +279,7 @@ The repository already prepares the official Census 2020 subzone population and 
 | Healthcare/emergency | [MOH bed occupancy](https://www.moh.gov.sg/others/resources-and-statistics/healthcare-institution-statistics-beds-occupancy-rate-%28bor%29/), [MOH beds](https://www.moh.gov.sg/others/resources-and-statistics/beds-in-inpatient-facilities-and-places-in-non-residential-long-term-care-facilities/), [SCDF statistics](https://www.scdf.gov.sg/home/about-scdf/media-room/publications/annual-statistics) | daily public-hospital occupancy, bed capacity, admissions/attendance, national EMS/fire demand | protected capacity, staff presence, transfer capacity, local response coverage |
 | Transport | [LTA DataMall](https://datamall.lta.gov.sg/content/datamall/en/search_datasets.html) | station passengers, crowding, traffic counts/speeds, service alerts, routes and stations | restricted farecard detail where needed, recovery estimates |
 | Port/maritime | [MPA maritime performance](https://www.mpa.gov.sg/media-centre/details/strong-growth-momentum-for-maritime-singapore) | vessel-arrival tonnage, cargo, containers and bunker volumes | terminal/vessel occupancy, cargo hazard, berth redundancy, restoration |
-| Residential | repository population pipeline, OneMap, URA, SingStat | subzone residents, age, dwelling type and residential geography | block unit counts/capacity, time-at-home coefficients, current evacuation state |
+| Residential | repository population pipeline, OneMap, URA, SingStat, HDB Property Information | subzone residents, age, dwelling type, HDB units per block and residential geography | calibrated time-at-home coefficients, private-housing unit counts, current evacuation state |
 | Commercial/civic | OneMap, URA, SingStat workplace geography, facility calendars | use class, location, aggregate workplace patterns, public events | tenant occupancy and continuity plans |
 | Education within commercial/civic | [MOE education datasets](https://data.gov.sg/collections/2146/view), [Education Statistics Digest](https://www.moe.gov.sg/-/media/files/about-us/esd-2025.pdf) | system enrolment and institution directories where published | site enrolment, staff, timetable and event attendance when not public |
 | Industrial/logistics | URA industrial zoning, EMA sector consumption, public company information | use class and aggregate sector activity | shifts, workforce, production share, inventory and dependencies |
@@ -310,16 +315,22 @@ Initial uncalibrated coefficients:
 
 These are explicitly `assumption` values. Convert each coefficient into a distribution, for example a beta distribution bounded by plausible low/high values, rather than repeating one deterministic number in every episode. Validate them later against LTA temporal patterns, facility records, enrolment/timetables, event counts, or operator data. Never describe them as official Singapore statistics.
 
-For residential areas:
+For residential areas the implementation (`residential/residential.py`) uses six conditions and a multiplicative non-resident uplift, replacing the four-column residential row above:
 
 ```text
-night_occupancy = resident_population * night_home_fraction
-weekday_day_occupancy = resident_population * day_home_fraction
-                      + nonresident_workers
-                      + visitors
+occupancy = resident_population * home_fraction[condition] * non_resident_uplift
 ```
 
-Allocate subzone residents to a development using dwelling units or residential floor area. Report ranges rather than false precision.
+| Condition | Home fraction (low, central, high) |
+|---|---|
+| weekday AM peak | 0.55, 0.70, 0.85 |
+| weekday midday | 0.40, 0.55, 0.70 |
+| weekday PM peak | 0.60, 0.75, 0.90 |
+| weekday night | 0.85, 0.92, 0.98 |
+| weekend day | 0.60, 0.75, 0.90 |
+| weekend night | 0.85, 0.92, 0.98 |
+
+`non_resident_uplift` is (1.00, 1.05, 1.15) for visitors, domestic workers and others the census does not count as residents. Residents are allocated to blocks by HDB unit counts and to private parcels by plot area x GPR, with an extra low/high band on the resident count that depends on how it was obtained (census subzone rate 0.90-1.10, national rate 0.70-1.30, floor-area share 0.60-1.50). All values are uncalibrated assumptions; see `residential/residential.md`. Report ranges rather than false precision.
 
 ### 9.1 Area sites: people inside the footprint
 

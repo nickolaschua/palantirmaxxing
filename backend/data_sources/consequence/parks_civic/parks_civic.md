@@ -1,6 +1,6 @@
 # Parks and civic venues
 
-Public evidence for green and civic sites, in the same H/E/D/X/R/A vocabulary as the other sectors. Model: [singapore-consequence-model.md](../docs/singapore-consequence-model.md). Folder overview: [consequence.md](../consequence.md). `parks_civic.py` routes these tables through `score_profile` (`pipeline.py parks_civic`). The builder's composite index remains a separate research baseline and is not comparable with sector totals.
+Public evidence for green and civic sites, in the same H/E/D/X/R/A vocabulary as the other sectors. Model: [singapore-consequence-model.md](../docs/singapore-consequence-model.md). Folder overview: [consequence.md](../consequence.md). `parks_civic.py` routes these tables through `score_profile` (`pipeline.py parks_civic`). The builder's composite index remains a separate research baseline and is not comparable with the C ranking.
 
 ## Files
 
@@ -9,12 +9,12 @@ Public evidence for green and civic sites, in the same H/E/D/X/R/A vocabulary as
 - `input_metadata.json`: scenario definitions, weights, warning and the eight sources (NParks parks and facilities, SportSG, SLA, People's Association, NLB, NAC, NHB; all data.gov.sg).
 - `input_evidence.xlsx`: the same tables as a workbook.
 - `build_parks_civic.mjs`: the builder that produced the files above.
-- `parks_civic.py`: turns each site and scenario into a `Profile`. Its outputs are the model's H/E/D/X/R/A vector, the demo-v1 total and all eight flags.
+- `parks_civic.py`: turns each site and scenario into a `Profile`. Its outputs are the model's C/E/D/X/R/A vector, the secondary score, veto status and all eight flags (policy `demo-v2`, model doc sections 6-7).
 
 ## Scored profiles
 
 `python -m backend.data_sources.consequence.pipeline parks_civic` writes to `output/parks_civic/`. It needs no network and takes about 30 seconds.
-- `parks_civic_output.csv` has 57,656 rows (8 scenarios per site) in the 35-column transport layout.
+- `parks_civic_output.csv` has 57,656 rows (8 scenarios per site) in the 43-column transport layout.
 - The run also writes `parks_civic_output_sites.geojson` and `parks_civic_output_provenance.json`.
 
 Inputs:
@@ -26,9 +26,9 @@ Inputs:
 - D is unavailable and X is not computed.
 
 On the 2026-09-25 run:
-- Totals by sector (median / max): parks 20 / 44, roads and rail 44 / 47, schools 36 / 52. No parks row exceeds the transport maximum.
+- Central C has median 0.8 and maximum 213.5; 1,061 rows are vetoed and the rest are `unknown` (D unavailable). The earlier demo-v1 totals no longer apply.
 - `data_stale` is raised on 53,616 rows, because sport venues date from 2024 and libraries from 2017–2019.
-- `uncertainty_high` is raised on 768 rows.
+- `uncertainty_high` is raised on 8 rows (768 under demo-v1, before it was judged on the C display transform).
 
 ## Limits
 

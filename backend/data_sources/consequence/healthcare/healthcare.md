@@ -5,14 +5,14 @@ Model: [singapore-consequence-model.md](../docs/singapore-consequence-model.md).
 
 Conditional consequence profiles for **public acute hospitals** (category `health_emergency`) and **MOE schools**
 (category `commercial_civic`, education role). Each site gets one `Profile` per transport condition (six recurring
-time windows), scored into (H, E, R, A) plus flags. D and X are not produced; the scorer records them in
-`dimensions_missing`. Code: `hospitals.py`, `schools.py` (this folder); run with `../pipeline.py healthcare`.
+time windows), scored by `scoring.py` (policy `demo-v2`) into (C, E, R, A) with a secondary tie-breaker score, a veto status and flags; see
+model doc sections 6-7. D and X are not produced; the scorer records them in `dimensions_missing`. Code: `hospitals.py`, `schools.py` (this folder); run with `../pipeline.py healthcare`.
 
 The first run downloads the MOH workbooks and data.gov.sg tables and geocodes about 350 postal codes through OneMap
 (about 6 minutes, cached and resumable). No API key is needed. `--refresh` re-downloads the weekly MOH workbooks.
 Outputs are `healthcare_output_sites.geojson`, `healthcare_output.csv`, `education_output_sites.geojson`,
-`education_output.csv` (34 columns: ids, the H/E/D/X/R/A vector and total, ending at `total_status`; flags and
-raw inputs are not written) and `healthcare_output_provenance.json` (checksums, reconciliations and every assumption constant).
+`education_output.csv` (43 columns: ids, the C/O_display/E/D/X/R/A vector, secondary score, veto status and reasons,
+`population_method` and `overlap_area_km2`, all eight flags; raw inputs are not written) and `healthcare_output_provenance.json` (checksums, reconciliations and every assumption constant).
 
 ## Sources (all public download or API)
 
@@ -35,7 +35,7 @@ low/central/high band and source URL, and are reconciled against SingStat's nati
 
 ## Hospital method
 
-**Occupancy (H).** inpatients (beds x BOR) + ED patients present (daily arrivals / 24 x hour factor x stay) + staff on
+**Occupancy (N).** inpatients (beds x BOR) + ED patients present (daily arrivals / 24 x hour factor x stay) + staff on
 shift + visitors. BOR and ED are p10/p50/p90 over days since 2023-01-01 of the condition's day type (weekday or
 weekend); BOR is a midnight census so it is used for every hour. Staff, visitors, ED stay and hour factors are grade D
 assumptions, so the occupancy estimate is grade C.
@@ -69,4 +69,5 @@ teaching hours lost with home-based learning as the alternative.
 - ED patients present is a Little's-law style estimate, not a headcount.
 - School occupancy is per-level mean, not per-school enrolment; vacation, exams, and events are not modelled.
 - Every assumption band is uncalibrated. Calibrate against hospital operator data or MOE per-school enrolment.
-- Ranking output is provisional, as for the other categories.
+- Ranking output is provisional, as for the other categories. At the demo-v2 placeholder thresholds all 54 hospital
+  rows are vetoed (central C up to 83.6 against an essential threshold of 5).

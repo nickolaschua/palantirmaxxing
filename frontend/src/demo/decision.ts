@@ -1,17 +1,10 @@
-import { SINGAPORE_BOUNDS } from "../lib/index.js";
-import type { BasemapKind, CircleLayer, CircleStyle, LabelLayer, LightingPreset, MarkerLayer, MarkerStyle, PathLayer, SingaporeCanvas } from "../lib/index.js";
-import {
-  advance, approachOrigin, categoryColour, categoryLabel, circleBounds, comparisonLines, consequenceRows, descentSamples, DESCENT_S, detect,
-  elapsedS, exposureGrade, fire, formatNumber, formatPercent, formatT, framePose, isOpen, optionColour, parseResult,
-  remainingS, select, shortId, STANDBY, successGrade, threatPositionAt, urgency, wording,
-} from "./decision-model.js";
-import type { Flow, Grade, Option } from "./decision-model.js";
-import { mountInspector } from "./inspector.js";
-import { loadPlanningResult } from "./source.js";
-import { mountResultLoader } from "./result-loader.js";
-import type { ResultLoader, Snapshot } from "./source.js";
-import { ResultResources } from "./result-resources.js";
-import { mountRunControls } from "./run-controls.js";
+import type {
+  BasemapKind, CircleLayer, CircleStyle, LabelLayer, LightingPreset, MarkerLayer, MarkerStyle, SingaporeCanvas,
+} from "../lib/index.js";
+import { circleBounds, framePose } from "./decision-model.js";
+import { DIMENSIONS } from "./comparison-contract.js";
+import type { MultiThreatComparisonResult, Outcome, OutcomeMetric, RangeValue, Stage, ThreatComparison } from "./comparison-contract.js";
+import { loadComparisonResult } from "./comparison-source.js";
 
 export interface Decision {
   setBasemap(kind: BasemapKind): void;
@@ -19,148 +12,178 @@ export interface Decision {
   dispose(): void;
 }
 
-const STANDBY_PITCH = -70;
-const BURST_S = 2.2;
+const BASELINE = "#f0a04b";
+const OPTIMISED = "#35c78a";
+const DIM = "rgba(189, 198, 209, 0.28)";
+const STAGES: readonly Stage[] = ["baseline", "optimised", "improvement"];
 
 function el<K extends keyof HTMLElementTagNameMap>(tag: K, className?: string, text?: string): HTMLElementTagNameMap[K] {
-  const e = document.createElement(tag);
-  if (className) e.className = className;
-  if (text !== undefined) e.textContent = text;
-  return e;
+  const node = document.createElement(tag);
+  if (className) node.className = className;
+  if (text !== undefined) node.textContent = text;
+  return node;
 }
 
-const alpha = (hex: string, a: number): string => {
-  const n = parseInt(hex.slice(1), 16);
-  return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${a})`;
-};
+const samplesOf = (threat: ThreatComparison, start: Date) => threat.samples.map(sample => ({
+  lon: sample.lon,
+  lat: sample.lat,
+  height: sample.height,
+  time: new Date(start.getTime() + sample.seconds * 1000),
+}));
 
-const ignoreCancel = (err: unknown): void => {
-  if (!(err instanceof Error && err.name === "FlightCancelled")) throw err;
-};
+const formatInteger = (value: number): string => value.toLocaleString("en-SG", { maximumFractionDigits: 0 });
+const formatCompact = (value: number): string => value.toLocaleString("en-SG", { notation: "compact", maximumFractionDigits: 1 });
+const rangeText = (range: RangeValue, unit = ""): string => `${formatInteger(range.low)}-${formatInteger(range.high)}${unit}`;
 
-/** A struck area once the threat is down: light, so it reads apart from anything still live. */
-const markStyle = (o: Option): CircleStyle => ({ fill: alpha(optionColour(o), 0.12), outline: "rgba(255, 255, 255, 0.55)", visible: true });
+function metricValue(metric: OutcomeMetric): string {
+  if (metric.unit === "person-hours") return `${formatCompact(metric.central)} person-hours`;
+  if (metric.unit === "days") return `${formatInteger(metric.central)} days`;
+  if (metric.unit === "minutes") return `${formatInteger(metric.central)} min`;
+  return formatInteger(metric.central);
+}
 
-const exposureText = (o: Option): string =>
-  !o.exposure ? "Not evaluated"
-  : o.exposure.peoplePotentiallyExposed === null ? "Incomplete (partial coverage)"
-  : formatNumber(o.exposure.peoplePotentiallyExposed);
-const successText = (o: Option): string =>
-  o.suppliedSuccessProbability === undefined ? "Unavailable" : formatPercent(o.suppliedSuccessProbability);
-const coverageText = (o: Option): string =>
-  !o.exposure ? "Not evaluated"
-  : o.exposure.status === "complete" ? "Complete population coverage"
-  : o.exposure.coveredAreaFraction === null ? "Partial coverage" : `Partial coverage (${formatPercent(o.exposure.coveredAreaFraction)} of area)`;
+function metricRange(metric: OutcomeMetric): string {
+  if (metric.unit === "person-hours") return `${formatCompact(metric.low)}-${formatCompact(metric.high)} person-hours`;
+  if (metric.unit === "days") return rangeText(metric, " days");
+  if (metric.unit === "minutes") return rangeText(metric, " min");
+  return rangeText(metric);
+}
 
-/**
- * The engagement decision flow on planning-result/1:
- * Standby → [Space/Play] Live → [FIRE click] Fired → intercept → Outcome;
- * Live → every window closed → Expired; [R/Restart] → Standby from anywhere.
- */
-function renderDecision(
-  canvas: SingaporeCanvas,
-  setup: { ionToken?: string; googleApiKey?: string; lighting: LightingPreset },
-  parsed: ReturnType<typeof parseResult>,
-  resources: ResultResources,
-  snapshot?: Snapshot,
-): Decision {
-  const tray = resources.node(el("section"));
-  tray.dataset.resultId = snapshot?.resultId ?? "fixture";
-  tray.id = "decision-tray";
-  tray.setAttribute("aria-label", "Engagement decision");
-  const phaseEl = el("span", "phase");
-  const clockEl = el("span", "clock");
-  const head = el("header");
-  head.append(phaseEl, clockEl);
-  const message = el("p", "message");
-  message.setAttribute("role", "status");
-  const cardsEl = el("div", "cards");
-  const summary = el("ul", "summary");
-  tray.className = "decision-tray";
-  tray.append(head, message, cardsEl, summary);
+function metricById(outcome: Outcome, id: string): OutcomeMetric {
+  const metric = outcome.metrics.find(item => item.id === id);
+  if (!metric) throw new Error(`Synthetic outcome is missing metric ${id}`);
+  return metric;
+}
 
-  // Presenter controls, bottom right: Play and Restart (temporary) above History.
-  const presenter = resources.node(el("div"));
-  presenter.id = "presenter";
-  const playBtn = el("button", undefined, "Play");
-  const restartBtn = el("button", undefined, "Restart");
-  const historyBtn = el("button", undefined, "History");
-  playBtn.type = restartBtn.type = historyBtn.type = "button";
-  const presenterRow = el("div", "row");
-  presenterRow.append(playBtn, restartBtn);
-  presenter.append(presenterRow, historyBtn);
-  // Past threats, each with its mark on the map that can be switched off.
-  const historyPanel = resources.node(el("aside"));
-  historyPanel.dataset.resultId = snapshot?.resultId ?? "fixture";
-  historyPanel.id = "history";
-  historyPanel.setAttribute("aria-label", "Past threats");
-  const historyEmpty = el("p", "empty", "No past threats yet.");
-  const historyList = el("ul");
-  historyPanel.append(el("h2", undefined, "History"), historyEmpty, historyList);
-  historyBtn.setAttribute("aria-expanded", "false");
-  historyBtn.onclick = () => {
-    const open = !historyPanel.classList.contains("open");
-    // Grow from, and shrink back into, the History button.
-    const b = historyBtn.getBoundingClientRect();
-    // offsetLeft/Top ignore the panel's own scale, which the origin is measured against.
-    historyPanel.style.transformOrigin = `${b.left + b.width / 2 - historyPanel.offsetLeft}px ${b.top + b.height / 2 - historyPanel.offsetTop}px`;
-    historyPanel.classList.toggle("open", open);
-    historyBtn.setAttribute("aria-expanded", String(open));
-  };
-  document.body.append(tray, presenter, historyPanel);
+const optionalMetric = (outcome: Outcome, id: string): OutcomeMetric | undefined => outcome.metrics.find(item => item.id === id);
 
-  const { result, options } = parsed;
-  const words = wording(result.assumptions);
-  const start = new Date(result.start);
-  const samples = result.threat.samples.map(({ time, ...position }) => ({ ...position, time: new Date(time) }));
-  const optionName = (id: string | null): string => `Option ${options.findIndex(o => o.id === id) + 1}`;
-  const exposures = options.flatMap(o => (typeof o.exposure?.peoplePotentiallyExposed === "number" ? [o.exposure.peoplePotentiallyExposed] : []));
-  const exposureGradeOf = (o: Option): Grade | null =>
-    typeof o.exposure?.peoplePotentiallyExposed === "number" ? exposureGrade(o.exposure.peoplePotentiallyExposed, exposures) : null;
-  const successGradeOf = (o: Option): Grade | null => (o.suppliedSuccessProbability === undefined ? null : successGrade(o.suppliedSuccessProbability));
+function improvementText(baseline: number, optimised: number, unit: string): { text: string; improved: boolean } {
+  const delta = baseline - optimised;
+  const percent = baseline === 0 ? null : Math.abs(delta / baseline) * 100;
+  const amount = unit === "person-hours" ? formatCompact(Math.abs(delta)) : formatInteger(Math.abs(delta));
+  const suffix = unit === "people" ? "" : unit === "days" ? " days" : unit === "minutes" ? " min" : unit === "score" ? " points" : " person-hours";
+  if (delta > 0) return { text: `${amount}${suffix} lower${percent === null ? "" : ` (${percent.toFixed(0)}%)`}`, improved: true };
+  if (delta < 0) return { text: `${amount}${suffix} higher${percent === null ? "" : ` (${percent.toFixed(0)}%)`}`, improved: false };
+  return { text: "No change", improved: true };
+}
 
-  // --- map layers, hidden until Live ---
-  // The clock runs past the supplied end so a fall after the latest intercept has room.
-  const endS = (new Date(result.end).getTime() - start.getTime()) / 1000;
-  const latestIntercept = Math.max(endS, ...options.map(o => o.timeFromStartS + DESCENT_S + 0.5));
-  canvas.time.setRange(start, new Date(start.getTime() + latestIntercept * 1000));
-  const path = canvas.addPath(samples, { color: "#f5f7fa", width: 4, trailColor: "rgba(245, 247, 250, 0.5)", markerSize: 35, markerShape: "craft", markerPulse: true });
-  // Illustration: the payload has no launch origin, so this is extrapolated from
-  // the first two samples and drawn dashed, dim and labelled.
-  const origin = approachOrigin(result, SINGAPORE_BOUNDS);
-  const first = samples[0];
-  let approach: PathLayer | undefined;
-  let approachLabel: LabelLayer | undefined;
-  if (origin && first) {
-    approach = canvas.addPath(
-      [{ ...origin, time: new Date(start.getTime() + origin.timeFromStartS * 1000) }, first],
-      { color: "rgba(245, 247, 250, 0.65)", width: 3, dashed: true, markerSize: 0 },
-    );
-    approachLabel = canvas.addLabels(
-      [{ position: origin, text: `Illustrative inbound track · not supplied · ${Math.round(-origin.timeFromStartS)} s earlier` }],
-    );
+function aggregateOutcome(result: MultiThreatComparisonResult, side: "baseline" | "optimised"): Outcome {
+  const outcomes = result.threats.map(threat => threat[side]);
+  const first = outcomes[0]!;
+  const metrics = first.metrics.map(template => {
+    const values = outcomes.map(outcome => metricById(outcome, template.id));
+    const useMaximum = template.id === "recovery" || template.id === "delay";
+    const combine = (key: keyof RangeValue): number => useMaximum
+      ? Math.max(...values.map(value => value[key]))
+      : values.reduce((sum, value) => sum + value[key], 0);
+    return { ...template, low: combine("low"), central: combine("central"), high: combine("high") };
+  });
+  const vector = Object.fromEntries(DIMENSIONS.map(({ code }) => {
+    const average = (key: keyof RangeValue): number => Math.round(outcomes.reduce((sum, outcome) => sum + outcome.vector[code][key], 0) / outcomes.length);
+    return [code, { low: average("low"), central: average("central"), high: average("high") }];
+  })) as Outcome["vector"];
+  const categoryTotals = new Map<string, { contribution: number; mechanism: string }>();
+  for (const outcome of outcomes) {
+    for (const category of outcome.categories) {
+      const current = categoryTotals.get(category.label) ?? { contribution: 0, mechanism: category.mechanism };
+      current.contribution += category.contribution;
+      categoryTotals.set(category.label, current);
+    }
   }
-  const markers = canvas.addMarkers(options.flatMap(o => [
-    { id: o.id, position: o.position },
-    ...(o.timeMarginS === null ? [] : [{ id: `${o.id}#closes`, position: threatPositionAt(result, o.timeMarginS).position }]),
-  ]));
-  let hovered: string | null = null;
-  let pinned: string | null = null;
-  const circles = canvas.addGroundCircles(
-    options.map(o => ({ id: o.id, center: o.position, radiusM: o.footprint.radiusM })),
-    // Hover opens the side window, click pins it. Neither selects nor fires.
-    { hover(id) { hovered = id; showInspector(); }, click(id) { pinned = id; showInspector(); } },
-  );
-  // The fall into the chosen area, drawn only once that option is fired.
-  let descent: PathLayer | undefined;
-  const inspector = mountInspector({
-    keys: { ionToken: setup.ionToken, googleApiKey: setup.googleApiKey },
-    basemap: canvas.scene.basemap,
-    lighting: setup.lighting,
-    samples,
-    range: [start, new Date(result.end)],
-    options,
-    onUnpin() { pinned = null; showInspector(); },
+  const categories = [...categoryTotals].map(([label, value]) => ({ label, ...value })).sort((a, b) => b.contribution - a.contribution).slice(0, 5);
+  return {
+    policyLabel: side === "baseline" ? "Combined baseline" : "Combined optimised",
+    policyDetail: side === "baseline" ? "Aggregate of every baseline result." : "Aggregate of every optimised result.",
+    position: first.position,
+    timeFromStartS: Math.max(...outcomes.map(outcome => outcome.timeFromStartS)),
+    successProbability: outcomes.reduce((sum, outcome) => sum + outcome.successProbability, 0) / outcomes.length,
+    metrics,
+    vector,
+    categories,
+    sourcedPercent: Math.round(outcomes.reduce((sum, outcome) => sum + outcome.sourcedPercent, 0) / outcomes.length),
+    assumedPercent: Math.round(outcomes.reduce((sum, outcome) => sum + outcome.assumedPercent, 0) / outcomes.length),
+  };
+}
+
+function aggregateComparison(result: MultiThreatComparisonResult): ThreatComparison {
+  const baseline = aggregateOutcome(result, "baseline");
+  const optimised = aggregateOutcome(result, "optimised");
+  const exposedBaseline = optionalMetric(baseline, "exposed");
+  const exposedOptimised = optionalMetric(optimised, "exposed");
+  const serviceBaseline = optionalMetric(baseline, "service");
+  const serviceOptimised = optionalMetric(optimised, "service");
+  const simulationCount = result.threats.reduce((sum, threat) => sum + threat.simulationCount, 0);
+  const robustnessPercent = Math.round(result.threats.reduce((sum, threat) => sum + threat.robustnessPercent * threat.simulationCount, 0) / simulationCount);
+  const tradeoffs: string[] = [];
+  for (const { code, label } of DIMENSIONS) {
+    if (optimised.vector[code].central > baseline.vector[code].central) tradeoffs.push(`${label} is ${optimised.vector[code].central - baseline.vector[code].central} points higher on average.`);
+  }
+  const successDelta = (baseline.successProbability - optimised.successProbability) * 100;
+  if (successDelta > 0) tradeoffs.push(`Mean supplied success is ${successDelta.toFixed(1)} percentage points lower.`);
+  if (!tradeoffs.length) tradeoffs.push("No material aggregate trade-off is present in the supplied results.");
+  const reasons = [
+    ...(exposedBaseline && exposedOptimised ? [`Reduces summed potential exposure by ${formatInteger(exposedBaseline.central - exposedOptimised.central)} people before overlap adjustment.`] : []),
+    ...(serviceBaseline && serviceOptimised ? [`Reduces summed service disruption by ${formatCompact(serviceBaseline.central - serviceOptimised.central)} person-hours.`] : []),
+    `Lowers average human-exposure score H from ${baseline.vector.H.central} to ${optimised.vector.H.central}.`,
+  ];
+  return {
+    id: "all-threats",
+    displayId: "ALL",
+    condition: `${result.threats.length} missiles in ${result.scenarioId}`,
+    samples: result.threats[0]!.samples,
+    baseline,
+    optimised,
+    reasons,
+    tradeoffs,
+    robustnessPercent,
+    simulationCount,
+  };
+}
+
+function outcomeMarkers(canvas: SingaporeCanvas, threats: readonly ThreatComparison[]): MarkerLayer {
+  const points = threats.flatMap(threat => [
+    { id: `${threat.id}:baseline`, position: threat.baseline.position },
+    { id: `${threat.id}:optimised`, position: threat.optimised.position },
+  ]);
+  return canvas.addMarkers(points);
+}
+
+export async function mountDecision(
+  canvas: SingaporeCanvas,
+  _setup: { ionToken?: string; googleApiKey?: string; lighting: LightingPreset },
+): Promise<Decision> {
+  const root = el("aside", "comparison-panel");
+  root.id = "comparison-panel";
+  root.tabIndex = -1;
+  root.setAttribute("aria-label", "Synthetic outcome comparison");
+  root.innerHTML = `<p class="outcome-kicker">Synthetic research demo</p><h1>Preparing comparison...</h1>`;
+  const restorePanel = el("button", "restore-comparison-panel", "Show comparison");
+  restorePanel.type = "button";
+  restorePanel.hidden = true;
+  restorePanel.setAttribute("aria-controls", "comparison-panel");
+  document.body.append(root, restorePanel);
+
+  let loaded: Awaited<ReturnType<typeof loadComparisonResult>>;
+  try {
+    loaded = await loadComparisonResult();
+  } catch (error) {
+    root.innerHTML = `<p class="outcome-kicker">Comparison unavailable</p><h1>Result could not be loaded</h1><p class="source-error"></p>`;
+    root.querySelector<HTMLElement>(".source-error")!.textContent = error instanceof Error ? error.message : String(error);
+    return { setBasemap() {}, setLighting() {}, dispose() { root.remove(); restorePanel.remove(); } };
+  }
+  const { result, sourceLabel, usingFallback } = loaded;
+  const threats = result.threats;
+  const aggregate = aggregateComparison(result);
+  const start = new Date(result.start);
+  const durationS = Math.max(...threats.flatMap(threat => threat.samples.map(sample => sample.seconds)));
+  const stop = new Date(start.getTime() + durationS * 1000);
+
+  canvas.time.setRange(start, stop);
+  const trackLayers = threats.map(threat => {
+    const samples = samplesOf(threat, start);
+    return canvas.addPath(samples, {
+      color: DIM, trailColor: DIM, width: 2, markerSize: 14, markerShape: "craft",
+    });
   });
   resources.use(() => inspector.dispose());
   // Everything that belongs to this threat's flight. Once it is down, this goes
@@ -179,404 +202,438 @@ function renderDecision(
   };
   setLayersVisible(false);
 
-  // --- history: one entry per run; a struck area's mark stays on the map across restarts ---
-  // snapshot: a copy of the tray as it closed, reopened from the history entry.
-  interface HistoryEntry { text: string; resultId: string; mark?: { circle: CircleLayer; marker: MarkerLayer }; shown: boolean; snapshot?: HTMLElement }
-  const history: HistoryEntry[] = [];
-  let recorded = false; // this run already has its entry
-  let runMarkReady = false; // this run's history mark is built, so the run's own area can go
-  let openSnapshot: HTMLElement | null = null;
-  function closeSnapshot(): void {
-    if (!openSnapshot) return;
-    openSnapshot.remove();
-    openSnapshot = null;
-    tray.hidden = flow.phase === "outcome"; // the live tray only comes back if it had not closed
-    renderHistory();
-  }
-  function toggleSnapshot(entry: HistoryEntry): void {
-    const same = openSnapshot === entry.snapshot;
-    closeSnapshot();
-    if (same || !entry.snapshot) return;
-    openSnapshot = entry.snapshot;
-    tray.hidden = true;
-    document.body.append(openSnapshot);
-    renderHistory();
-  }
-  function renderHistory(): void {
-    historyEmpty.hidden = history.length > 0;
-    historyList.replaceChildren(...[...history].reverse().map(entry => {
-      const li = el("li");
-      li.dataset.resultId = entry.resultId;
-      const label = el("label");
-      const box = el("input");
-      box.type = "checkbox";
-      box.checked = !!entry.mark && entry.shown;
-      box.disabled = !entry.mark;
-      box.title = entry.mark ? "Show the struck area on the map" : "Nothing was fired, so there is no mark";
-      box.onchange = () => {
-        entry.shown = box.checked;
-        entry.mark?.circle.setVisible(entry.shown);
-        entry.mark?.marker.setVisible(entry.shown);
-      };
-      box.setAttribute("aria-label", "Show the struck area on the map");
-      label.append(box);
-      let text: HTMLElement;
-      if (entry.snapshot) {
-        text = el("button", "entry", entry.text);
-        (text as HTMLButtonElement).type = "button";
-        text.title = "Show this engagement's details";
-        text.setAttribute("aria-pressed", String(openSnapshot === entry.snapshot));
-        text.onclick = () => toggleSnapshot(entry);
-      } else {
-        text = el("span", entry.mark ? undefined : "muted", entry.text);
-      }
-      li.append(label, text);
-      return li;
-    }));
-  }
-  function record(text: string, chosen?: Option): void {
-    if (recorded) return;
-    recorded = true;
-    let mark: HistoryEntry["mark"];
-    if (chosen) {
-      const id = `mark-${history.length}`;
-      const circle = canvas.addGroundCircles([{ id, center: chosen.position, radiusM: chosen.footprint.radiusM }]);
-      circle.setStyles(new Map([[id, markStyle(chosen)]]));
-      const marker = canvas.addMarkers([{ id, position: chosen.position }]);
-      marker.setStyles(new Map([[id, { color: "#e8eaed", size: 7, visible: true, label: `Intercepted · ${formatT(chosen.timeFromStartS)}` }]]));
-      mark = { circle, marker };
-      void circle.ready.then(() => { runMarkReady = true; if (!disposed) render(); });
-    }
-    history.push({ text, resultId: snapshot?.resultId ?? "fixture", mark, shown: true });
-    renderHistory();
-  }
+  const labels: LabelLayer = canvas.addLabels(threats.map(threat => ({
+    position: threat.samples[0]!, text: threat.displayId,
+  })), { font: "700 12px sans-serif" });
 
-  /**
-   * What the panels cover, so framing uses only the open map. The side window is
-   * reserved even while closed (it opens on hover); the tray is reserved at its
-   * Live height, since framing happens in Standby while it is still short.
-   */
-  const coveredInsets = () => {
-    const w = innerWidth, h = innerHeight;
-    const panel = document.getElementById("panel")?.getBoundingClientRect();
-    const trayTop = Math.min(tray.getBoundingClientRect().top, h - 270);
-    return {
-      left: panel ? panel.right / w : 0,
-      right: w > 1100 ? 432 / w : 0, // matches the side window's 16 + 400 + 16 in style.css
-      top: 0,
-      bottom: Math.max(0, (h - trayTop) / h),
-    };
-  };
-  const framePoints = [...samples, ...options.flatMap(o => circleBounds(o.position, o.footprint.radiusM))];
-  const frameCorridor = (): void => {
-    // Generous margin: the route flies 1,000 m nearer the camera than the ground, so it looks wider.
-    canvas.camera.flyTo(framePose(framePoints, STANDBY_PITCH, innerWidth / innerHeight, 1.3, coveredInsets()), { duration: 1.2 }).catch(ignoreCancel);
-  };
-
-  // --- state ---
-  let flow: Flow = STANDBY;
-  // Detection waits until the areas can draw: they build on shared workers and can
-  // take seconds, longer than an option's whole window.
-  let layersReady = false;
+  const markers = outcomeMarkers(canvas, threats);
+  let selectedIndex = 0;
+  let stage: Stage = "baseline";
+  let scope: "missile" | "all" = "missile";
+  let comparisonExpanded = false;
+  let panelCollapsed = false;
   let disposed = false;
-  resources.use(() => { disposed = true; });
-  void circles.ready.then(() => {
-    layersReady = true;
-    if (!disposed) render();
-  });
-  const now = (): number => elapsedS(result, canvas.time.current);
+  const activeStyle = { color: "#f4f7fb", trailColor: "rgba(244, 247, 251, 0.38)", width: 4, markerSize: 25, markerShape: "craft" as const, markerPulse: true };
+  let activeTrack = canvas.addPath(samplesOf(threats[0]!, start), activeStyle);
+  const createSelectedCircles = (threat: ThreatComparison): CircleLayer => canvas.addGroundCircles([
+    { id: `${threat.id}:baseline`, center: threat.baseline.position, radiusM: 650 },
+    { id: `${threat.id}:optimised`, center: threat.optimised.position, radiusM: 650 },
+  ]);
+  let circles = createSelectedCircles(threats[0]!);
 
-  const cards = options.map((o, i) => {
-    const card = el("div", "card");
-    card.dataset.candidateId = o.id;
-    card.style.setProperty("--option", optionColour(o));
-    const pick = el("button", "pick");
-    pick.type = "button";
-    const titleEl = el("span", "card-title");
-    titleEl.append(el("kbd", undefined, String(i + 1)), ` Option ${i + 1} `, el("code", undefined, shortId(o.id)));
-    const badges = el("span", "badges");
-    for (const c of o.categories.length ? o.categories : [""]) {
-      const badge = el("span", "badge");
-      const swatch = el("i");
-      swatch.style.background = categoryColour(c);
-      badge.append(swatch, categoryLabel(c));
-      badges.append(badge);
-    }
-    const dl = el("dl");
-    for (const [k, v, grade] of [[words.exposure, exposureText(o), exposureGradeOf(o)], [words.success, successText(o), successGradeOf(o)], ["Intercept", formatT(o.timeFromStartS), null]] as const) {
-      const dd = el("dd", undefined, v);
-      if (grade) dd.dataset.grade = grade;
-      dl.append(el("dt", undefined, k), dd);
-    }
-    const bar = el("span", "bar");
-    const fill = el("i");
-    bar.append(fill);
-    const left = el("span", "left countdown");
-    pick.append(titleEl, badges, dl, bar, left);
-    const fireBtn = el("button", "fire", `FIRE · Option ${i + 1}`);
-    fireBtn.type = "button";
-    fireBtn.title = "Click to fire. Keyboard firing is disabled.";
-    card.append(pick, fireBtn);
-    cardsEl.append(card);
+  const framePoints = threats.flatMap(threat => [
+    ...samplesOf(threat, start),
+    ...circleBounds(threat.baseline.position, 650),
+    ...circleBounds(threat.optimised.position, 650),
+  ]);
+  const frameAll = (): void => {
+    canvas.camera.flyTo(framePose(framePoints, -72, innerWidth / innerHeight, 1.45), { duration: 0.8 }).catch(() => undefined);
+  };
 
-    pick.onclick = () => { flow = select(flow, options, o.id, now()); render(); };
-    fireBtn.onclick = event => {
-      // Keyboard-generated clicks have detail 0: firing takes a real pointer click, never Enter or Space.
-      if (event.detail === 0) return;
-      flow = fire(flow, options, now());
+  function selectThreat(index: number): void {
+    if (index < 0 || index >= threats.length) return;
+    if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+    const changed = index !== selectedIndex;
+    scope = "missile";
+    panelCollapsed = false;
+    selectedIndex = index;
+    if (changed) {
+      activeTrack.destroy();
+      activeTrack = canvas.addPath(samplesOf(threats[selectedIndex]!, start), activeStyle);
+      circles.destroy();
+      circles = createSelectedCircles(threats[selectedIndex]!);
+      void circles.ready.then(() => { if (!disposed) renderMap(); });
+    }
+    stage = "baseline";
+    comparisonExpanded = false;
+    render();
+    root.scrollTop = 0;
+    requestAnimationFrame(() => { root.scrollTop = 0; });
+  }
+
+  function setStage(next: Stage): void {
+    if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+    stage = next;
+    if (stage !== "improvement") comparisonExpanded = false;
+    render();
+    root.scrollTop = 0;
+    requestAnimationFrame(() => { root.scrollTop = 0; });
+  }
+
+  function showAllMissiles(): void {
+    if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+    scope = "all";
+    stage = "improvement";
+    comparisonExpanded = false;
+    panelCollapsed = false;
+    render();
+    root.scrollTop = 0;
+    requestAnimationFrame(() => { root.scrollTop = 0; });
+  }
+
+  function sectionTitle(text: string): HTMLElement {
+    return el("h3", "comparison-section-title", text);
+  }
+
+  function stepper(): HTMLElement {
+    const nav = el("nav", "story-steps");
+    nav.setAttribute("aria-label", "Comparison stages");
+    STAGES.forEach((item, index) => {
+      const label = item === "improvement" ? "Compare" : item[0]!.toUpperCase() + item.slice(1);
+      const button = el("button", undefined, `${index + 1} ${label}`);
+      button.type = "button";
+      button.dataset.active = String(item === stage);
+      button.setAttribute("aria-current", item === stage ? "step" : "false");
+      button.onclick = () => setStage(item);
+      nav.append(button);
+    });
+    return nav;
+  }
+
+  function metricList(outcome: Outcome): HTMLElement {
+    const section = el("section", "outcome-metrics");
+    section.append(sectionTitle("Outcome estimates"));
+    const list = el("dl");
+    for (const metric of outcome.metrics) {
+      const row = el("div", "metric-row");
+      const value = el("dd");
+      value.append(el("strong", undefined, metricValue(metric)), el("small", undefined, metricRange(metric)));
+      row.append(el("dt", undefined, metric.label), value);
+      list.append(row);
+    }
+    const success = el("div", "metric-row");
+    const successValue = el("dd");
+    successValue.append(el("strong", undefined, `${(outcome.successProbability * 100).toFixed(1)}%`), el("small", undefined, "Supplied synthetic probability"));
+    success.append(el("dt", undefined, "Intercept success"), successValue);
+    list.append(success);
+    section.append(list);
+    return section;
+  }
+
+  function vector(outcome: Outcome): HTMLElement {
+    const section = el("section", "vector-section");
+    section.append(sectionTitle("Consequence vector"));
+    const rows = el("div", "vector-rows");
+    for (const item of DIMENSIONS) {
+      const value = outcome.vector[item.code];
+      const row = el("div", "vector-row");
+      row.title = `${item.label}: ${value.low}-${value.high}, central ${value.central}`;
+      row.append(el("strong", "vector-code", item.code), el("span", "vector-label", item.label));
+      const track = el("span", "vector-track");
+      const fill = el("i");
+      fill.style.width = `${value.central}%`;
+      track.append(fill);
+      row.append(track, el("b", "vector-value", String(value.central)), el("small", "vector-range", `${value.low}-${value.high}`));
+      rows.append(row);
+    }
+    section.append(rows);
+    return section;
+  }
+
+  function categories(outcome: Outcome): HTMLElement {
+    const section = el("section", "category-section");
+    section.append(sectionTitle("Main affected categories"));
+    const list = el("ol");
+    for (const category of outcome.categories) {
+      const item = el("li");
+      const top = el("span");
+      top.append(el("strong", undefined, category.label), el("b", undefined, `${category.contribution}%`));
+      item.append(top, el("small", undefined, category.mechanism));
+      list.append(item);
+    }
+    section.append(list);
+    return section;
+  }
+
+  function evidence(outcome: Outcome): HTMLElement {
+    const section = el("section", "evidence-section");
+    section.append(sectionTitle("Evidence quality"));
+    const bar = el("div", "evidence-bar");
+    const sourced = el("i"); sourced.style.width = `${outcome.sourcedPercent}%`;
+    const assumed = el("i"); assumed.style.width = `${outcome.assumedPercent}%`;
+    bar.append(sourced, assumed);
+    section.append(bar, el("p", undefined, `${outcome.sourcedPercent}% sourced / derived - ${outcome.assumedPercent}% assumed`));
+    return section;
+  }
+
+  function outcomeView(threat: ThreatComparison, outcome: Outcome): DocumentFragment {
+    const fragment = document.createDocumentFragment();
+    const hero = el("section", "outcome-heading");
+    hero.append(el("p", "outcome-kicker", stage === "baseline" ? "Unoptimised reference" : "Optimised result"));
+    hero.append(el("h2", undefined, outcome.policyLabel), el("p", undefined, outcome.policyDetail));
+    fragment.append(hero, metricList(outcome), vector(outcome), categories(outcome), evidence(outcome));
+    fragment.append(el("p", "synthetic-note", "Synthetic demonstration values. Not observed outcomes or operational estimates."), stageActions(threat));
+    return fragment;
+  }
+
+  function tableRow(label: string, baseline: string, optimised: string, change: string, improved: boolean): HTMLTableRowElement {
+    const row = el("tr");
+    row.append(el("th", undefined, label), el("td", undefined, baseline), el("td", undefined, optimised), el("td", improved ? "delta-good" : "delta-cost", change));
+    return row;
+  }
+
+  function comparisonTable(threat: ThreatComparison): HTMLElement {
+    const wrap = el("div", "comparison-table-wrap");
+    const table = el("table", "comparison-table");
+    const head = el("thead");
+    const headRow = el("tr");
+    ["Measure", "Baseline", "Optimised", "Improvement"].forEach(label => headRow.append(el("th", undefined, label)));
+    head.append(headRow);
+    const body = el("tbody");
+    const outcomeGroup = el("tr", "table-group");
+    const outcomeTitle = el("th", undefined, "Outcome metrics"); outcomeTitle.colSpan = 4; outcomeGroup.append(outcomeTitle);
+    body.append(outcomeGroup);
+    for (const baselineMetric of threat.baseline.metrics) {
+      const optimisedMetric = metricById(threat.optimised, baselineMetric.id);
+      const improvement = improvementText(baselineMetric.central, optimisedMetric.central, baselineMetric.unit);
+      body.append(tableRow(baselineMetric.label, metricValue(baselineMetric), metricValue(optimisedMetric), improvement.text, improvement.improved));
+    }
+    const successDelta = (threat.optimised.successProbability - threat.baseline.successProbability) * 100;
+    body.append(tableRow("Intercept success", `${(threat.baseline.successProbability * 100).toFixed(1)}%`, `${(threat.optimised.successProbability * 100).toFixed(1)}%`, `${Math.abs(successDelta).toFixed(1)} percentage points ${successDelta < 0 ? "lower" : "higher"}`, successDelta >= 0));
+    const vectorGroup = el("tr", "table-group");
+    const vectorTitle = el("th", undefined, "H / E / D / X / R / A"); vectorTitle.colSpan = 4; vectorGroup.append(vectorTitle);
+    body.append(vectorGroup);
+    for (const item of DIMENSIONS) {
+      const baseline = threat.baseline.vector[item.code];
+      const optimised = threat.optimised.vector[item.code];
+      const improvement = improvementText(baseline.central, optimised.central, "score");
+      body.append(tableRow(`${item.code} - ${item.label}`, String(baseline.central), String(optimised.central), improvement.text, improvement.improved));
+    }
+    table.append(head, body);
+    wrap.append(table);
+    return wrap;
+  }
+
+  function explanation(title: string, items: readonly string[], className: string): HTMLElement {
+    const section = el("section", `explanation ${className}`);
+    section.append(sectionTitle(title));
+    const list = el("ul");
+    items.forEach(item => list.append(el("li", undefined, item)));
+    section.append(list);
+    return section;
+  }
+
+  function improvementView(threat: ThreatComparison): DocumentFragment {
+    const fragment = document.createDocumentFragment();
+    const heading = el("section", "improvement-heading");
+    heading.append(el("p", "outcome-kicker", "Retrospective comparison"), el("h2", undefined, "Measured improvement"));
+    const expand = el("button", "expand-comparison", comparisonExpanded ? "Restore panel" : "Full screen");
+    expand.type = "button";
+    expand.setAttribute("aria-pressed", String(comparisonExpanded));
+    expand.onclick = () => { comparisonExpanded = !comparisonExpanded; render(); };
+    heading.append(expand);
+    fragment.append(heading, comparisonTable(threat));
+    fragment.append(explanation("Why this was selected", threat.reasons, "benefits"), explanation("Accepted trade-offs", threat.tradeoffs, "tradeoffs"));
+    const robustness = el("section", "robustness-section");
+    robustness.append(sectionTitle("Robustness and evidence"));
+    robustness.append(el("strong", undefined, `Lower consequence in ${threat.robustnessPercent}% of simulations`), el("p", undefined, `${formatInteger(threat.simulationCount)} sampled scenarios - ${threat.optimised.sourcedPercent}% sourced / derived - ${threat.optimised.assumedPercent}% assumed`));
+    fragment.append(robustness, el("p", "synthetic-note", "Synthetic demonstration values. Not observed outcomes or operational estimates."), stageActions(threat));
+    return fragment;
+  }
+
+  function missileBreakdown(): HTMLElement {
+    const section = el("section", "missile-breakdown");
+    section.append(sectionTitle("Improvement by missile"));
+    const wrap = el("div", "comparison-table-wrap");
+    const table = el("table", "comparison-table missile-table");
+    const head = el("thead");
+    const headRow = el("tr");
+    const comparisonMetric = optionalMetric(aggregate.baseline, "exposed") ?? aggregate.baseline.metrics[0]!;
+    ["Missile", `Baseline ${comparisonMetric.label}`, `Optimised ${comparisonMetric.label}`, "Reduction", "Robustness"].forEach(label => headRow.append(el("th", undefined, label)));
+    head.append(headRow);
+    const body = el("tbody");
+    for (const threat of threats) {
+      const baselineMetric = metricById(threat.baseline, comparisonMetric.id);
+      const optimisedMetric = metricById(threat.optimised, comparisonMetric.id);
+      const baseline = baselineMetric.central;
+      const optimised = optimisedMetric.central;
+      const reduction = improvementText(baseline, optimised, baselineMetric.unit);
+      const row = el("tr");
+      const select = el("button", "missile-link", threat.displayId);
+      select.type = "button";
+      select.title = `Open ${threat.displayId} comparison`;
+      select.onclick = () => {
+        const index = threats.indexOf(threat);
+        selectThreat(index);
+        setStage("improvement");
+      };
+      const missile = el("th"); missile.append(select);
+      row.append(
+        missile,
+        el("td", undefined, formatInteger(baseline)),
+        el("td", undefined, formatInteger(optimised)),
+        el("td", reduction.improved ? "delta-good" : "delta-cost", reduction.text),
+        el("td", undefined, `${threat.robustnessPercent}%`),
+      );
+      body.append(row);
+    }
+    table.append(head, body);
+    wrap.append(table);
+    section.append(wrap);
+    return section;
+  }
+
+  function allMissilesView(): DocumentFragment {
+    const fragment = document.createDocumentFragment();
+    const heading = el("section", "improvement-heading");
+    heading.append(el("p", "outcome-kicker", "Scenario-wide comparison"), el("h2", undefined, `All ${threats.length} missiles`));
+    const close = el("button", "close-comparison", "Close panel");
+    close.type = "button";
+    close.setAttribute("aria-label", "Close comparison panel and show the full map");
+    close.onclick = () => {
+      panelCollapsed = true;
       render();
+      requestAnimationFrame(frameAll);
     };
-    return { option: o, card, pick, fill, left, fireBtn };
-  });
-
-  function showInspector(): void {
-    const o = options.find(x => x.id === (pinned ?? hovered));
-    if (!o || flow.phase === "standby") { inspector.close(); return; }
-    const rem = remainingS(o, now());
-    inspector.open(o, {
-      eyebrow: words.area.toUpperCase(),
-      title: `${optionName(o.id)} · ${shortId(o.id)}`,
-      colour: optionColour(o),
-      pinned: pinned === o.id,
-      rows: [
-        { label: "Intercept", value: formatT(o.timeFromStartS) },
-        { label: words.exposure, value: exposureText(o), grade: exposureGradeOf(o) },
-        { label: words.success, value: successText(o), grade: successGradeOf(o) },
-        {
-          label: "Window",
-          value: flow.fired === o.id ? "Fired" : rem === null ? "No window supplied" : rem > 0 ? `${rem.toFixed(1)} s left` : "Expired",
-          urgency: flow.phase === "live" && rem !== null && rem > 0 ? urgency(o, now()) : 0,
-        },
-        { label: "Coverage", value: coverageText(o) },
-      ],
-      consequence: o.consequence && {
-        scenario: o.consequence.scenario ?? null,
-        illustrative: o.consequence.illustrative === true,
-        rows: consequenceRows(o.consequence),
-      },
-    });
+    heading.append(close);
+    const method = el("p", "aggregation-note", "Aggregation: exposure, fatalities and service-person-hours are summed; recovery and delay use the scenario maximum; success and H/E/D/X/R/A use the mean. Exposure totals are not deduplicated across overlapping outcome areas.");
+    fragment.append(heading, method, comparisonTable(aggregate), missileBreakdown());
+    fragment.append(explanation("Why the combined result improved", aggregate.reasons, "benefits"), explanation("Combined trade-offs", aggregate.tradeoffs, "tradeoffs"));
+    const evidence = el("section", "robustness-section");
+    evidence.append(sectionTitle("Scenario robustness and provenance"));
+    evidence.append(
+      el("strong", undefined, `Weighted robustness: ${aggregate.robustnessPercent}% across ${formatInteger(aggregate.simulationCount)} samples`),
+      el("p", undefined, `Policy ${result.scorePolicy.id} v${result.scorePolicy.version} - ${sourceLabel}`),
+      el("p", undefined, result.provenance.limitations.join(" ")),
+    );
+    const actions = el("footer", "stage-actions");
+    const back = el("button", "secondary-action", `Back to ${threats[selectedIndex]!.displayId}`);
+    back.type = "button";
+    back.onclick = () => { scope = "missile"; render(); root.scrollTop = 0; };
+    actions.append(back);
+    fragment.append(evidence, actions);
+    return fragment;
   }
 
-  // One burst per option, built now so its ground geometry is ready when it plays.
-  const bursts = new Map(options.map(o => [
-    o.id,
-    canvas.addBurst({ lon: o.position.lon, lat: o.position.lat }, { color: "#ff7043", radiusM: o.footprint.radiusM, durationS: BURST_S }),
-  ]));
-
-  function beginImpact(chosen: Option): void {
-    if (descent) return;
-    path.setMarkerVisible(false); // the threat leaves its supplied route here
-    descent = canvas.addPath(descentSamples(chosen, start), {
-      color: "#ff7043", trailColor: "#ff7043", width: 2, markerSize: 35, markerShape: "craft", markerPulse: true,
-    });
+  function stageActions(_threat: ThreatComparison): HTMLElement {
+    const actions = el("footer", "stage-actions");
+    const back = el("button", "secondary-action", stage === "optimised" ? "Back to baseline" : "Back to optimised");
+    back.type = "button";
+    back.hidden = stage === "baseline";
+    back.onclick = () => setStage(stage === "improvement" ? "optimised" : "baseline");
+    const nextLabel = stage === "baseline" ? "Show optimised outcome" : stage === "optimised" ? "Compare outcomes" : selectedIndex < threats.length - 1 ? "Next missile" : "View all missiles";
+    const next = el("button", "primary-action", nextLabel);
+    next.type = "button";
+    next.onclick = () => {
+      if (stage === "baseline") setStage("optimised");
+      else if (stage === "optimised") setStage("improvement");
+      else if (selectedIndex < threats.length - 1) selectThreat(selectedIndex + 1);
+      else showAllMissiles();
+    };
+    actions.append(back, next);
+    return actions;
   }
 
-  let closeTray: ReturnType<typeof setTimeout> | undefined;
-  resources.use(() => { clearTimeout(closeTray); openSnapshot?.remove(); });
-  let lastCircles = "";
-  let lastMarkers = "";
-  function render(): void {
-    let elapsed = now();
-    const next = advance(flow, options, elapsed);
-    const firedOption = options.find(o => o.id === next.fired);
-    if (next.phase === "impact" && firedOption) beginImpact(firedOption);
-    if (next.phase === "outcome" && flow.phase !== "outcome" && firedOption) {
-      // Hold everything at the moment it comes down.
-      canvas.time.pause();
-      canvas.time.seek(new Date(start.getTime() + (firedOption.timeFromStartS + DESCENT_S) * 1000));
-      elapsed = firedOption.timeFromStartS + DESCENT_S;
-      descent?.setMarkerVisible(false); // it is inside the burst now
-      const burst = bursts.get(firedOption.id);
-      burst?.setVisible(true);
-      burst?.play();
-      // Close the tray once the burst has played out; Restart brings it back.
-      const runIndex = history.length; // record() below adds this run's entry here
-      closeTray = setTimeout(() => {
-        const snapshot = tray.cloneNode(true) as HTMLElement;
-        snapshot.removeAttribute("id");
-        snapshot.classList.add("snapshot");
-        snapshot.querySelectorAll("button").forEach(b => { b.disabled = true; });
-        const close = el("button", "close", "Close");
-        close.type = "button";
-        close.onclick = closeSnapshot;
-        snapshot.querySelector("header")?.append(close);
-        const past = history[runIndex];
-        if (past) past.snapshot = snapshot;
-        tray.hidden = true;
-        renderHistory();
-      }, BURST_S * 1000);
-      setRouteVisible(false); // the flight is over; the struck area stays as the mark
-      record(`Threat ${history.length + 1} · ${optionName(firedOption.id)} (${shortId(firedOption.id)}) · intercepted at ${formatT(firedOption.timeFromStartS)}`, firedOption);
-    }
-    if (next.phase === "expired" && flow.phase !== "expired") record(`Threat ${history.length + 1} · expired · nothing fired`);
-    // Nothing was fired, so the supplied route simply runs out.
-    if (next.phase === "expired" && elapsed >= endS && canvas.time.playing) {
-      canvas.time.pause();
-      canvas.time.seek(new Date(start.getTime() + endS * 1000));
-      elapsed = endS;
-    }
-    flow = next;
-    const { phase } = flow;
-    const locked = phase === "fired" || phase === "impact" || phase === "outcome";
-    const chosen = options.find(o => o.id === flow.fired);
-
-    tray.dataset.phase = phase;
-    phaseEl.textContent = phase.toUpperCase();
-    clockEl.textContent = formatT(Math.max(0, elapsed));
-    message.textContent =
-      phase === "standby" ? (!options.length ? "No eligible options in this result — nothing to decide" : layersReady ? "Standby — press Space on detection" : "Preparing map layers…")
-      : phase === "live" ? (flow.selected ? `${optionName(flow.selected)} selected — click FIRE to commit` : `Threat live — select an option (1–${options.length})`)
-      : phase === "fired" ? `Fired ${optionName(flow.fired)} — intercept at ${formatT(chosen!.timeFromStartS)}`
-      : phase === "impact" ? `Intercepted at ${formatT(chosen!.timeFromStartS)} — coming down inside its ${words.area.toLowerCase()}`
-      : phase === "outcome" ? `Outcome — ${optionName(flow.fired)}, intercept at ${formatT(chosen!.timeFromStartS)}, down inside its ${words.area.toLowerCase()}`
-      : "All engagement windows expired — nothing fired";
-    cardsEl.hidden = phase === "standby";
-    playBtn.disabled = phase !== "standby" || !layersReady;
-    restartBtn.disabled = phase === "standby";
-
-    if (phase === "outcome" && chosen && !summary.childElementCount) {
-      summary.append(el("li", undefined, `${words.exposure}: ${exposureText(chosen)} · ${words.success}: ${successText(chosen)}`));
-      for (const line of comparisonLines(result, chosen.id, words)) {
-        summary.append(el("li", undefined, `vs ${optionName(line.otherId)} (${shortId(line.otherId)}): ${line.text}`));
-      }
-    } else if (phase !== "outcome" && summary.childElementCount) {
-      summary.replaceChildren();
-    }
-
-    for (const c of cards) {
-      const o = c.option;
-      const rem = remainingS(o, elapsed);
-      const open = isOpen(o, elapsed);
-      const selected = flow.selected === o.id;
-      c.card.dataset.state = flow.fired === o.id ? "fired" : locked || phase === "expired" || !open ? "closed" : selected ? "selected" : "open";
-      c.pick.disabled = phase !== "live" || !open;
-      c.pick.setAttribute("aria-pressed", String(selected));
-      c.fill.style.width = `${o.timeMarginS && rem !== null ? Math.max(0, Math.min(1, rem / o.timeMarginS)) * 100 : 0}%`;
-      c.left.textContent = flow.fired === o.id ? "Fired" : locked ? "—" : rem === null ? "No window supplied" : open ? `${rem.toFixed(1)} s left` : "Window closed";
-      // Reddens the countdown and its bar as the window closes.
-      c.card.style.setProperty("--urgency", String(phase === "live" && open ? urgency(o, elapsed) : 0));
-      c.fireBtn.hidden = !(phase === "live" && selected && open);
-    }
-
-    const circleStyles = new Map<string, CircleStyle>(options.map(o => {
-      const colour = optionColour(o);
-      const strong = { fill: alpha(colour, 0.5), outline: "#ffffff", visible: true };
-      const normal = { fill: alpha(colour, 0.3), outline: colour, visible: true };
-      const faded = { fill: alpha(colour, 0.08), outline: alpha(colour, 0.4), visible: true };
-      // Once it comes down, the area steps back so the burst over it is the thing you see.
-      const struck = { fill: alpha(colour, 0.18), outline: "#ffffff", visible: true };
-      const gone = { ...faded, visible: false };
-      // At the outcome the run's own area shows the mark only until the history copy has built.
-      const chosenStyle = phase === "outcome" ? (runMarkReady ? gone : markStyle(o)) : phase === "impact" ? struck : strong;
-      const style = locked ? (flow.fired === o.id ? chosenStyle : phase === "outcome" ? gone : faded) : phase === "expired" || !isOpen(o, elapsed) ? faded : flow.selected === o.id ? strong : normal;
-      return [o.id, style];
-    }));
-    const circleKey = JSON.stringify([...circleStyles]);
-    if (circleKey !== lastCircles) {
-      lastCircles = circleKey;
-      circles.setStyles(circleStyles);
-      inspector.setCircleStyles(circleStyles);
-    }
-
+  function renderMap(): void {
+    trackLayers.forEach((layer, index) => {
+      const selected = index === selectedIndex;
+      layer.setVisible(scope === "all" || !selected);
+    });
+    activeTrack.setVisible(scope === "missile");
+    const threat = threats[selectedIndex]!;
     const markerStyles = new Map<string, MarkerStyle>();
-    options.forEach((o, i) => {
-      if (phase === "outcome") {
-        // The history entry's own marker carries the "Intercepted" label.
-        markerStyles.set(o.id, { color: "#8b949e", size: 9, visible: false, label: String(i + 1) });
-        markerStyles.set(`${o.id}#closes`, { color: "#6e7681", size: 6, visible: false, label: "" });
-        return;
+    const circleStyles = new Map<string, CircleStyle>();
+    for (const item of threats) {
+      const baselineId = `${item.id}:baseline`;
+      const optimisedId = `${item.id}:optimised`;
+      const selected = scope === "missile" && item.id === threat.id;
+      const showBaseline = selected && (stage === "baseline" || stage === "improvement");
+      const showOptimised = selected && (stage === "optimised" || stage === "improvement");
+      markerStyles.set(baselineId, { color: BASELINE, size: 12, visible: showBaseline, label: "Baseline" });
+      markerStyles.set(optimisedId, { color: OPTIMISED, size: 12, visible: showOptimised, label: "Optimised" });
+      if (selected) {
+        circleStyles.set(baselineId, { fill: "rgba(240, 160, 75, 0.24)", outline: BASELINE, visible: showBaseline });
+        circleStyles.set(optimisedId, { fill: "rgba(53, 199, 138, 0.22)", outline: OPTIMISED, visible: showOptimised });
       }
-      const dim = phase === "expired" || (locked && flow.fired !== o.id);
-      markerStyles.set(o.id, { color: dim ? "#8b949e" : optionColour(o), size: 9, visible: true, label: String(i + 1) });
-      markerStyles.set(`${o.id}#closes`, {
-        color: phase === "live" && isOpen(o, elapsed) ? "#ffffff" : "#6e7681", size: 6, visible: phase === "live" || phase === "expired", label: `${i + 1} closes`,
+    }
+    markers.setStyles(markerStyles);
+    circles.setStyles(circleStyles);
+  }
+
+  function render(): void {
+    if (disposed) return;
+    const threat = threats[selectedIndex]!;
+    root.dataset.stage = scope === "all" ? "improvement" : stage;
+    root.dataset.scope = scope;
+    root.dataset.expanded = String(comparisonExpanded);
+    root.hidden = scope === "all" && panelCollapsed;
+    restorePanel.hidden = scope !== "all" || !panelCollapsed;
+    root.replaceChildren();
+    const header = el("header", "comparison-header");
+    const title = el("div");
+    title.append(el("span", "synthetic-badge", usingFallback ? "Bundled research fixture" : "Validated simulation result"), el("h1", undefined, "Outcome comparison"));
+    const headerActions = el("div", "header-actions");
+    const all = el("button", "all-missiles-button", scope === "all" ? "Selected missile" : `All missiles (${threats.length})`);
+    all.type = "button";
+    all.onclick = () => {
+      if (scope === "all") { scope = "missile"; panelCollapsed = false; render(); root.scrollTop = 0; }
+      else showAllMissiles();
+    };
+    const replay = el("button", "replay-button", "Replay tracks");
+    replay.type = "button";
+    replay.onclick = () => { canvas.time.seek(start); canvas.time.play(); };
+    headerActions.append(all, replay);
+    header.append(title, headerActions);
+    const navigator = el("div", "threat-navigator");
+    const identity = el("div");
+    if (scope === "all") {
+      identity.append(el("strong", undefined, `All missiles - ${threats.length} threats`), el("small", undefined, result.scenarioId));
+      navigator.append(identity);
+      root.append(header, navigator, allMissilesView());
+    } else {
+      const prev = el("button", undefined, "Prev"); prev.type = "button"; prev.disabled = selectedIndex === 0; prev.title = "Previous missile"; prev.onclick = () => selectThreat(selectedIndex - 1);
+      identity.append(el("strong", undefined, `${threat.displayId} - Missile ${selectedIndex + 1} of ${threats.length}`), el("small", undefined, threat.condition));
+      const selector = el("select", "missile-selector");
+      selector.setAttribute("aria-label", "Select missile");
+      threats.forEach((item, index) => {
+        const option = el("option", undefined, `${item.displayId} - ${item.condition}`);
+        option.value = String(index);
+        option.selected = index === selectedIndex;
+        selector.append(option);
       });
-    });
-    const markerKey = JSON.stringify([...markerStyles]);
-    if (markerKey !== lastMarkers) {
-      lastMarkers = markerKey;
-      markers.setStyles(markerStyles);
+      selector.onchange = () => selectThreat(Number(selector.value));
+      identity.append(selector);
+      const next = el("button", undefined, "Next"); next.type = "button"; next.disabled = selectedIndex === threats.length - 1; next.title = "Next missile"; next.onclick = () => selectThreat(selectedIndex + 1);
+      navigator.append(prev, identity, next);
+      root.append(header, navigator, stepper());
+      root.append(stage === "improvement" ? improvementView(threat) : outcomeView(threat, stage === "baseline" ? threat.baseline : threat.optimised));
     }
-
-    if (hovered || pinned) showInspector();
+    renderMap();
   }
 
-  function detectNow(): void {
-    if (flow.phase !== "standby" || !layersReady) return;
-    closeSnapshot();
-    flow = detect(flow);
-    setLayersVisible(true);
-    canvas.time.seek(start);
-    canvas.time.play();
-    render();
-  }
-
-  function reset(): void {
-    flow = STANDBY;
-    clearTimeout(closeTray);
-    closeSnapshot();
-    tray.hidden = false;
-    hovered = pinned = null;
-    recorded = runMarkReady = false; // the history keeps its entries and marks
-    canvas.time.pause();
-    canvas.time.seek(start);
-    setLayersVisible(false);
-    descent?.destroy();
-    descent = undefined;
-    path.setMarkerVisible(true);
-    for (const burst of bursts.values()) burst.setVisible(false);
-    inspector.close();
-    render();
-    frameCorridor();
-  }
-
-  playBtn.onclick = detectNow;
-  restartBtn.onclick = reset;
-  const onKey = (e: KeyboardEvent): void => {
-    if (e.target instanceof HTMLElement && e.target.closest("input, textarea, select")) return;
-    if (e.ctrlKey || e.metaKey || e.altKey || e.repeat) return;
-    if (e.code === "Space") {
-      e.preventDefault(); // also keeps Space from pressing whichever button has focus
-      detectNow();
-    } else if (/^[1-9]$/.test(e.key)) {
-      const o = options[Number(e.key) - 1];
-      if (o) { flow = select(flow, options, o.id, now()); render(); }
-    } else if (e.key === "r" || e.key === "R") {
-      reset();
-    }
+  const onKey = (event: KeyboardEvent): void => {
+    const target = event.target as HTMLElement | null;
+    if (target?.matches("button, input, select, textarea") || event.ctrlKey || event.metaKey || event.altKey) return;
+    if (event.key === "ArrowLeft") selectThreat(selectedIndex - 1);
+    if (event.key === "ArrowRight") selectThreat(selectedIndex + 1);
   };
   window.addEventListener("keydown", onKey);
-  resources.use(() => window.removeEventListener("keydown", onKey));
-  const offTick = canvas.on("clockTick", t => {
-    inspector.syncTime(t);
+  restorePanel.onclick = () => {
+    panelCollapsed = false;
     render();
-  });
+    root.focus({ preventScroll: true });
+  };
 
   render();
-  frameCorridor();
+  frameAll();
+  canvas.time.play();
+  void circles.ready.then(() => {
+    if (!disposed) renderMap();
+  });
 
   return {
-    setBasemap: kind => inspector.setBasemap(kind),
-    setLighting: preset => inspector.setLighting(preset),
+    setBasemap() {},
+    setLighting() {},
     dispose() {
       disposed = true;
-      clearTimeout(closeTray);
-      offTick();
       window.removeEventListener("keydown", onKey);
-      for (const entry of history) { entry.mark?.circle.destroy(); entry.mark?.marker.destroy(); }
-      historyPanel.remove();
-      openSnapshot?.remove();
-      for (const burst of bursts.values()) burst.destroy();
-      path.destroy();
-      descent?.destroy();
-      approach?.destroy();
-      approachLabel?.destroy();
+      trackLayers.forEach(layer => layer.destroy());
+      activeTrack.destroy();
+      labels.destroy();
       markers.destroy();
       circles.destroy();
-      inspector.dispose();
-      tray.remove();
-      presenter.remove();
-      resources.dispose();
+      root.remove();
+      restorePanel.remove();
     },
   };
 }

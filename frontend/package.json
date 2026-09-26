@@ -8,9 +8,8 @@
     "build": "tsc --noEmit && vite build",
     "build:lib": "tsc --noEmit && vite build --config vite.lib.config.ts",
     "preview": "vite preview",
-    "test": "node --experimental-strip-types --test ../tests/unit/population-model.test.ts ../tests/unit/decision-model.test.ts ../tests/unit/ground-model.test.ts ../tests/unit/simulation-model.test.ts ../tests/unit/scenario-manifest-model.test.ts ./tests/delivery.test.ts",
-    "test:ui": "vitest run --config vitest.config.ts",
-    "test:demo": "node tests/demo-rehearsal.mjs"
+    "test": "node --experimental-strip-types --test ../tests/unit/population-model.test.ts ../tests/unit/decision-model.test.ts ../tests/unit/ground-model.test.ts ../tests/unit/simulation-model.test.ts ./tests/delivery.test.ts ./tests/comparison-contract.test.ts",
+    "test:ui": "vitest run --config vitest.config.ts"
   },
   "dependencies": {
     "cesium": "^1.145.0"

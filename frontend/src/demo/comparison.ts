@@ -2,11 +2,11 @@ import type {
   BasemapKind, CircleLayer, CircleStyle, LabelLayer, LightingPreset, MarkerLayer, MarkerStyle, SingaporeCanvas,
 } from "../lib/index.js";
 import { circleBounds, framePose } from "./decision-model.js";
-import { DIMENSIONS } from "./comparison-contract.js";
-import type { MultiThreatComparisonResult, Outcome, OutcomeMetric, RangeValue, Stage, ThreatComparison } from "./comparison-contract.js";
+import { DIMENSIONS, DIMENSION_DESCRIPTIONS } from "./comparison-contract.js";
+import type { ComparisonExplanation, DimensionCode, MultiThreatComparisonResult, Outcome, OutcomeMetric, RangeValue, Stage, ThreatComparison } from "./comparison-contract.js";
 import { loadComparisonResult } from "./comparison-source.js";
 
-export interface Comparison {
+export interface ComparisonView {
   setBasemap(kind: BasemapKind): void;
   setLighting(preset: LightingPreset): void;
   dispose(): void;
@@ -36,14 +36,14 @@ const formatCompact = (value: number): string => value.toLocaleString("en-SG", {
 const rangeText = (range: RangeValue, unit = ""): string => `${formatInteger(range.low)}-${formatInteger(range.high)}${unit}`;
 
 function metricValue(metric: OutcomeMetric): string {
-  if (metric.unit === "person-hours") return `${formatCompact(metric.central)} person-hours`;
+  if (metric.unit === "person-hours") return `${formatCompact(metric.central)} service-hours lost`;
   if (metric.unit === "days") return `${formatInteger(metric.central)} days`;
   if (metric.unit === "minutes") return `${formatInteger(metric.central)} min`;
   return formatInteger(metric.central);
 }
 
 function metricRange(metric: OutcomeMetric): string {
-  if (metric.unit === "person-hours") return `${formatCompact(metric.low)}-${formatCompact(metric.high)} person-hours`;
+  if (metric.unit === "person-hours") return `${formatCompact(metric.low)}-${formatCompact(metric.high)} service-hours`;
   if (metric.unit === "days") return rangeText(metric, " days");
   if (metric.unit === "minutes") return rangeText(metric, " min");
   return rangeText(metric);
@@ -61,7 +61,7 @@ function improvementText(baseline: number, optimised: number, unit: string): { t
   const delta = baseline - optimised;
   const percent = baseline === 0 ? null : Math.abs(delta / baseline) * 100;
   const amount = unit === "person-hours" ? formatCompact(Math.abs(delta)) : formatInteger(Math.abs(delta));
-  const suffix = unit === "people" ? "" : unit === "days" ? " days" : unit === "minutes" ? " min" : unit === "score" ? " points" : " person-hours";
+  const suffix = unit === "people" ? "" : unit === "days" ? " days" : unit === "minutes" ? " min" : unit === "score" ? " points" : " service-hours";
   if (delta > 0) return { text: `${amount}${suffix} lower${percent === null ? "" : ` (${percent.toFixed(0)}%)`}`, improved: true };
   if (delta < 0) return { text: `${amount}${suffix} higher${percent === null ? "" : ` (${percent.toFixed(0)}%)`}`, improved: false };
   return { text: "No change", improved: true };
@@ -105,15 +105,22 @@ function aggregateOutcome(result: MultiThreatComparisonResult, side: "baseline" 
   };
 }
 
-function aggregateComparison(result: MultiThreatComparisonResult): ThreatComparison {
+interface AggregateComparison {
+  baseline: Outcome;
+  optimised: Outcome;
+  reasons: readonly string[];
+  tradeoffs: readonly string[];
+}
+
+const robustnessPercent = (threat: ThreatComparison): number => threat.robustness.lowerConsequenceSamples / threat.robustness.sampleCount * 100;
+
+function aggregateComparison(result: MultiThreatComparisonResult): AggregateComparison {
   const baseline = aggregateOutcome(result, "baseline");
   const optimised = aggregateOutcome(result, "optimised");
   const exposedBaseline = optionalMetric(baseline, "exposed");
   const exposedOptimised = optionalMetric(optimised, "exposed");
   const serviceBaseline = optionalMetric(baseline, "service");
   const serviceOptimised = optionalMetric(optimised, "service");
-  const simulationCount = result.threats.reduce((sum, threat) => sum + threat.simulationCount, 0);
-  const robustnessPercent = Math.round(result.threats.reduce((sum, threat) => sum + threat.robustnessPercent * threat.simulationCount, 0) / simulationCount);
   const tradeoffs: string[] = [];
   for (const { code, label } of DIMENSIONS) {
     if (optimised.vector[code].central > baseline.vector[code].central) tradeoffs.push(`${label} is ${optimised.vector[code].central - baseline.vector[code].central} points higher on average.`);
@@ -123,21 +130,51 @@ function aggregateComparison(result: MultiThreatComparisonResult): ThreatCompari
   if (!tradeoffs.length) tradeoffs.push("No material aggregate trade-off is present in the supplied results.");
   const reasons = [
     ...(exposedBaseline && exposedOptimised ? [`Reduces summed potential exposure by ${formatInteger(exposedBaseline.central - exposedOptimised.central)} people before overlap adjustment.`] : []),
-    ...(serviceBaseline && serviceOptimised ? [`Reduces summed service disruption by ${formatCompact(serviceBaseline.central - serviceOptimised.central)} person-hours.`] : []),
+    ...(serviceBaseline && serviceOptimised ? [`Reduces summed essential-service disruption by ${formatCompact(serviceBaseline.central - serviceOptimised.central)} service-hours.`] : []),
     `Lowers average human-exposure score H from ${baseline.vector.H.central} to ${optimised.vector.H.central}.`,
   ];
   return {
-    id: "all-threats",
-    displayId: "ALL",
-    condition: `${result.threats.length} missiles in ${result.scenarioId}`,
-    samples: result.threats[0]!.samples,
     baseline,
     optimised,
     reasons,
     tradeoffs,
-    robustnessPercent,
-    simulationCount,
   };
+}
+
+function explanationReference(explanation: ComparisonExplanation, type: ComparisonExplanation["references"][number]["type"]): string | undefined {
+  return explanation.references.find(reference => reference.type === type)?.id;
+}
+
+function explanationText(threat: ThreatComparison, explanation: ComparisonExplanation): string {
+  const metricId = explanationReference(explanation, "metric");
+  const dimension = explanationReference(explanation, "dimension") as DimensionCode | undefined;
+  const category = explanationReference(explanation, "category");
+  const constraint = explanationReference(explanation, "constraint");
+  if (explanation.code === "human_exposure_reduced" && metricId) {
+    const baseline = metricById(threat.baseline, metricId);
+    const optimised = metricById(threat.optimised, metricId);
+    const reduction = baseline.central - optimised.central;
+    const percent = baseline.central === 0 ? 0 : reduction / baseline.central * 100;
+    return `Reduces ${baseline.label.toLowerCase()} by ${formatInteger(reduction)} (${percent.toFixed(0)}%).`;
+  }
+  if (dimension) {
+    const baseline = threat.baseline.vector[dimension].central;
+    const optimised = threat.optimised.vector[dimension].central;
+    const subject = category ? `${category} impact` : DIMENSIONS.find(item => item.code === dimension)!.label.toLowerCase();
+    const verb = optimised < baseline ? "falls" : optimised > baseline ? "rises" : "stays unchanged";
+    return `${subject[0]!.toUpperCase()}${subject.slice(1)} ${verb} from ${baseline} to ${optimised}.`;
+  }
+  if (explanation.code === "success_probability_tradeoff") {
+    const change = (threat.baseline.successProbability - threat.optimised.successProbability) * 100;
+    return `Supplied intercept success is ${Math.abs(change).toFixed(1)} percentage points ${change >= 0 ? "lower" : "higher"}.`;
+  }
+  if (explanation.code === "intercept_time_tradeoff") {
+    const change = threat.optimised.timeFromStartS - threat.baseline.timeFromStartS;
+    return `The selected intercept occurs ${Math.abs(change).toFixed(1)} seconds ${change >= 0 ? "later" : "earlier"}.`;
+  }
+  if (explanation.code === "hard_constraint_applied" && constraint) return `Applies the ${constraint} operating constraint.`;
+  const readableCode = explanation.code.replaceAll("_", " ");
+  return `${readableCode[0]!.toUpperCase()}${readableCode.slice(1)} (${explanation.sourceIds.join(", ")}).`;
 }
 
 function outcomeMarkers(canvas: SingaporeCanvas, threats: readonly ThreatComparison[]): MarkerLayer {
@@ -150,8 +187,8 @@ function outcomeMarkers(canvas: SingaporeCanvas, threats: readonly ThreatCompari
 
 export async function mountComparison(
   canvas: SingaporeCanvas,
-  setup: { ionToken?: string; googleApiKey?: string; lighting: LightingPreset; initiallyOpen?: boolean },
-): Promise<Comparison> {
+  _setup: { ionToken?: string; googleApiKey?: string; lighting: LightingPreset },
+): Promise<ComparisonView> {
   const root = el("aside", "comparison-panel");
   root.id = "comparison-panel";
   root.tabIndex = -1;
@@ -171,8 +208,7 @@ export async function mountComparison(
     root.querySelector<HTMLElement>(".source-error")!.textContent = error instanceof Error ? error.message : String(error);
     return { setBasemap() {}, setLighting() {}, dispose() { root.remove(); restorePanel.remove(); } };
   }
-  const { result, sourceLabel, usingFallback } = loaded;
-  root.dataset.source = usingFallback ? "bundled-retrospective" : "external-comparison";
+  const { result, usingFallback } = loaded;
   const threats = result.threats;
   const aggregate = aggregateComparison(result);
   const start = new Date(result.start);
@@ -196,7 +232,7 @@ export async function mountComparison(
   let stage: Stage = "baseline";
   let scope: "missile" | "all" = "missile";
   let comparisonExpanded = false;
-  let panelCollapsed = setup.initiallyOpen === false;
+  let panelCollapsed = false;
   let disposed = false;
   const activeStyle = { color: "#f4f7fb", trailColor: "rgba(244, 247, 251, 0.38)", width: 4, markerSize: 25, markerShape: "craft" as const, markerPulse: true };
   let activeTrack = canvas.addPath(samplesOf(threats[0]!, start), activeStyle);
@@ -277,19 +313,23 @@ export async function mountComparison(
 
   function metricList(outcome: Outcome): HTMLElement {
     const section = el("section", "outcome-metrics");
-    section.append(sectionTitle("Outcome estimates"));
+    section.append(sectionTitle("Outcome estimates"), el("p", "metric-guide", "The large number is the central estimate. The smaller range shows the plausible low and high values."));
     const list = el("dl");
     for (const metric of outcome.metrics) {
       const row = el("div", "metric-row");
+      const label = el("dt");
+      label.append(el("strong", undefined, metric.label), el("small", "metric-description", metric.description));
       const value = el("dd");
       value.append(el("strong", undefined, metricValue(metric)), el("small", undefined, metricRange(metric)));
-      row.append(el("dt", undefined, metric.label), value);
+      row.append(label, value);
       list.append(row);
     }
     const success = el("div", "metric-row");
+    const successLabel = el("dt");
+    successLabel.append(el("strong", undefined, "Intercept success"), el("small", "metric-description", "Modelled chance that this interception succeeds."));
     const successValue = el("dd");
-    successValue.append(el("strong", undefined, `${(outcome.successProbability * 100).toFixed(1)}%`), el("small", undefined, "Supplied synthetic probability"));
-    success.append(el("dt", undefined, "Intercept success"), successValue);
+    successValue.append(el("strong", undefined, `${(outcome.successProbability * 100).toFixed(1)}%`), el("small", undefined, "Supplied probability"));
+    success.append(successLabel, successValue);
     list.append(success);
     section.append(list);
     return section;
@@ -302,7 +342,7 @@ export async function mountComparison(
     for (const item of DIMENSIONS) {
       const value = outcome.vector[item.code];
       const row = el("div", "vector-row");
-      row.title = `${item.label}: ${value.low}-${value.high}, central ${value.central}`;
+      row.title = `${DIMENSION_DESCRIPTIONS[item.code]} Score ${value.low}-${value.high}, central ${value.central}. Lower is better.`;
       row.append(el("strong", "vector-code", item.code), el("span", "vector-label", item.label));
       const track = el("span", "vector-track");
       const fill = el("i");
@@ -330,23 +370,12 @@ export async function mountComparison(
     return section;
   }
 
-  function evidence(outcome: Outcome): HTMLElement {
-    const section = el("section", "evidence-section");
-    section.append(sectionTitle("Evidence quality"));
-    const bar = el("div", "evidence-bar");
-    const sourced = el("i"); sourced.style.width = `${outcome.sourcedPercent}%`;
-    const assumed = el("i"); assumed.style.width = `${outcome.assumedPercent}%`;
-    bar.append(sourced, assumed);
-    section.append(bar, el("p", undefined, `${outcome.sourcedPercent}% sourced / derived - ${outcome.assumedPercent}% assumed`));
-    return section;
-  }
-
   function outcomeView(threat: ThreatComparison, outcome: Outcome): DocumentFragment {
     const fragment = document.createDocumentFragment();
     const hero = el("section", "outcome-heading");
     hero.append(el("p", "outcome-kicker", stage === "baseline" ? "Unoptimised reference" : "Optimised result"));
     hero.append(el("h2", undefined, outcome.policyLabel), el("p", undefined, outcome.policyDetail));
-    fragment.append(hero, metricList(outcome), vector(outcome), categories(outcome), evidence(outcome));
+    fragment.append(hero, metricList(outcome), vector(outcome), categories(outcome));
     fragment.append(el("p", "synthetic-note", "Synthetic demonstration values. Not observed outcomes or operational estimates."), stageActions(threat));
     return fragment;
   }
@@ -357,7 +386,7 @@ export async function mountComparison(
     return row;
   }
 
-  function comparisonTable(threat: ThreatComparison): HTMLElement {
+  function comparisonTable(threat: Pick<ThreatComparison, "baseline" | "optimised">): HTMLElement {
     const wrap = el("div", "comparison-table-wrap");
     const table = el("table", "comparison-table");
     const head = el("thead");
@@ -371,7 +400,9 @@ export async function mountComparison(
     for (const baselineMetric of threat.baseline.metrics) {
       const optimisedMetric = metricById(threat.optimised, baselineMetric.id);
       const improvement = improvementText(baselineMetric.central, optimisedMetric.central, baselineMetric.unit);
-      body.append(tableRow(baselineMetric.label, metricValue(baselineMetric), metricValue(optimisedMetric), improvement.text, improvement.improved));
+      const row = tableRow(baselineMetric.label, metricValue(baselineMetric), metricValue(optimisedMetric), improvement.text, improvement.improved);
+      row.title = baselineMetric.description;
+      body.append(row);
     }
     const successDelta = (threat.optimised.successProbability - threat.baseline.successProbability) * 100;
     body.append(tableRow("Intercept success", `${(threat.baseline.successProbability * 100).toFixed(1)}%`, `${(threat.optimised.successProbability * 100).toFixed(1)}%`, `${Math.abs(successDelta).toFixed(1)} percentage points ${successDelta < 0 ? "lower" : "higher"}`, successDelta >= 0));
@@ -408,10 +439,19 @@ export async function mountComparison(
     expand.onclick = () => { comparisonExpanded = !comparisonExpanded; render(); };
     heading.append(expand);
     fragment.append(heading, comparisonTable(threat));
-    fragment.append(explanation("Why this was selected", threat.reasons, "benefits"), explanation("Accepted trade-offs", threat.tradeoffs, "tradeoffs"));
+    const benefits = threat.explanations.filter(item => item.kind !== "tradeoff").map(item => explanationText(threat, item));
+    const tradeoffs = threat.explanations.filter(item => item.kind === "tradeoff").map(item => explanationText(threat, item));
+    fragment.append(
+      explanation("Why this was selected", benefits, "benefits"),
+      explanation("Accepted trade-offs", tradeoffs.length ? tradeoffs : ["No material trade-off identified in the supplied comparison."], "tradeoffs"),
+    );
     const robustness = el("section", "robustness-section");
     robustness.append(sectionTitle("Robustness and evidence"));
-    robustness.append(el("strong", undefined, `Lower consequence in ${threat.robustnessPercent}% of simulations`), el("p", undefined, `${formatInteger(threat.simulationCount)} sampled scenarios - ${threat.optimised.sourcedPercent}% sourced / derived - ${threat.optimised.assumedPercent}% assumed`));
+    robustness.append(
+      el("strong", undefined, `Lower consequence in ${robustnessPercent(threat).toFixed(1)}% of simulations`),
+      el("p", undefined, `${formatInteger(threat.robustness.lowerConsequenceSamples)} of ${formatInteger(threat.robustness.sampleCount)} paired samples using ${threat.robustness.method}.`),
+      el("p", undefined, `${threat.optimised.sourcedPercent}% sourced / derived - ${threat.optimised.assumedPercent}% assumed - evidence ${threat.robustness.sourceIds.join(", ")}`),
+    );
     fragment.append(robustness, el("p", "synthetic-note", "Synthetic demonstration values. Not observed outcomes or operational estimates."), stageActions(threat));
     return fragment;
   }
@@ -448,7 +488,7 @@ export async function mountComparison(
         el("td", undefined, formatInteger(baseline)),
         el("td", undefined, formatInteger(optimised)),
         el("td", reduction.improved ? "delta-good" : "delta-cost", reduction.text),
-        el("td", undefined, `${threat.robustnessPercent}%`),
+        el("td", undefined, `${robustnessPercent(threat).toFixed(1)}%`),
       );
       body.append(row);
     }
@@ -467,27 +507,19 @@ export async function mountComparison(
     close.setAttribute("aria-label", "Close comparison panel and show the full map");
     close.onclick = () => {
       panelCollapsed = true;
-      canvas.time.pause();
       render();
       requestAnimationFrame(frameAll);
     };
     heading.append(close);
-    const method = el("p", "aggregation-note", "Aggregation: exposure, fatalities and service-person-hours are summed; recovery and delay use the scenario maximum; success and H/E/D/X/R/A use the mean. Exposure totals are not deduplicated across overlapping outcome areas.");
+    const method = el("p", "aggregation-note", "Aggregation: affected people, simulated fatalities and service-hours are summed; response delay uses the scenario maximum; success and H/E/D/X/R/A use the mean. People are not deduplicated across overlapping outcome areas.");
     fragment.append(heading, method, comparisonTable(aggregate), missileBreakdown());
     fragment.append(explanation("Why the combined result improved", aggregate.reasons, "benefits"), explanation("Combined trade-offs", aggregate.tradeoffs, "tradeoffs"));
-    const evidence = el("section", "robustness-section");
-    evidence.append(sectionTitle("Scenario robustness and provenance"));
-    evidence.append(
-      el("strong", undefined, `Weighted robustness: ${aggregate.robustnessPercent}% across ${formatInteger(aggregate.simulationCount)} samples`),
-      el("p", undefined, `Policy ${result.scorePolicy.id} v${result.scorePolicy.version} - ${sourceLabel}`),
-      el("p", undefined, result.provenance.limitations.join(" ")),
-    );
     const actions = el("footer", "stage-actions");
     const back = el("button", "secondary-action", `Back to ${threats[selectedIndex]!.displayId}`);
     back.type = "button";
     back.onclick = () => { scope = "missile"; render(); root.scrollTop = 0; };
     actions.append(back);
-    fragment.append(evidence, actions);
+    fragment.append(actions);
     return fragment;
   }
 
@@ -511,13 +543,11 @@ export async function mountComparison(
   }
 
   function renderMap(): void {
-    const mapVisible = !panelCollapsed;
     trackLayers.forEach((layer, index) => {
       const selected = index === selectedIndex;
-      layer.setVisible(mapVisible && (scope === "all" || !selected));
+      layer.setVisible(scope === "all" || !selected);
     });
-    activeTrack.setVisible(mapVisible && scope === "missile");
-    labels.setVisible(mapVisible);
+    activeTrack.setVisible(scope === "missile");
     const threat = threats[selectedIndex]!;
     const markerStyles = new Map<string, MarkerStyle>();
     const circleStyles = new Map<string, CircleStyle>();
@@ -536,8 +566,6 @@ export async function mountComparison(
     }
     markers.setStyles(markerStyles);
     circles.setStyles(circleStyles);
-    markers.setVisible(mapVisible);
-    circles.setVisible(mapVisible);
   }
 
   function render(): void {
@@ -546,12 +574,12 @@ export async function mountComparison(
     root.dataset.stage = scope === "all" ? "improvement" : stage;
     root.dataset.scope = scope;
     root.dataset.expanded = String(comparisonExpanded);
-    root.hidden = panelCollapsed;
-    restorePanel.hidden = !panelCollapsed;
+    root.hidden = scope === "all" && panelCollapsed;
+    restorePanel.hidden = scope !== "all" || !panelCollapsed;
     root.replaceChildren();
     const header = el("header", "comparison-header");
     const title = el("div");
-    title.append(el("span", "synthetic-badge", usingFallback ? "Bundled retrospective · not the live run" : "External comparison result"), el("h1", undefined, "Outcome comparison"));
+    title.append(el("span", "synthetic-badge", usingFallback ? "Bundled research fixture" : "Validated simulation result"), el("h1", undefined, "Outcome comparison"));
     const headerActions = el("div", "header-actions");
     const all = el("button", "all-missiles-button", scope === "all" ? "Selected missile" : `All missiles (${threats.length})`);
     all.type = "button";
@@ -561,7 +589,7 @@ export async function mountComparison(
     };
     const replay = el("button", "replay-button", "Replay tracks");
     replay.type = "button";
-    replay.onclick = () => { canvas.time.setRange(start, stop); canvas.time.seek(start); canvas.time.play(); };
+    replay.onclick = () => { canvas.time.seek(start); canvas.time.play(); };
     headerActions.append(all, replay);
     header.append(title, headerActions);
     const navigator = el("div", "threat-navigator");
@@ -601,19 +629,12 @@ export async function mountComparison(
   restorePanel.onclick = () => {
     panelCollapsed = false;
     render();
-    canvas.time.setRange(start, stop);
-    canvas.time.seek(start);
-    canvas.time.play();
-    frameAll();
     root.focus({ preventScroll: true });
   };
 
   render();
-  if (!panelCollapsed) {
-    frameAll();
-    canvas.time.setRange(start, stop);
-    canvas.time.play();
-  }
+  frameAll();
+  canvas.time.play();
   void circles.ready.then(() => {
     if (!disposed) renderMap();
   });

@@ -2,7 +2,7 @@ import { createSingaporeCanvas, FlightCancelled, PRESETS } from "../lib/index.js
 import { mountPopulation } from "./population.js";
 import { HOSPITALS, MILITARY, mountOsmAreas } from "./osm-areas.js";
 import { mountDecision } from "./decision.js";
-import { mountComparison, type Comparison } from "./comparison.js";
+import { mountComparison } from "./comparison.js";
 import { mountSimulationResult } from "./simulation.js";
 import type { BasemapKind, LightingPreset } from "../lib/index.js";
 import "./style.css";
@@ -35,6 +35,7 @@ const keys = {
 // Grey canvas is the default view. `plain` is only ever the fallback.
 const plainStartup = new URLSearchParams(location.search).get("basemap") === "plain";
 const acceptance = new URLSearchParams(location.search).get("acceptance") === "1";
+const planningMode = new URLSearchParams(location.search).get("mode") === "planning";
 const canvas = await createSingaporeCanvas(container, { ...keys, acceptance, basemap: plainStartup ? "plain" : "extruded" })
   .catch(() => createSingaporeCanvas(container, { basemap: "plain", acceptance }));
 
@@ -76,8 +77,7 @@ const VIEWS: readonly { id: View; label: string; basemap: BasemapKind }[] = [
 ];
 let view: View = "grey";
 // Mounted last; the panel can be used before it is ready.
-let decision: ReturnType<typeof mountDecision> | undefined;
-let comparison: Comparison | undefined;
+let decision: Awaited<ReturnType<typeof mountComparison>> | ReturnType<typeof mountDecision> | undefined;
 const viewButtons = new Map<View, HTMLButtonElement>();
 
 async function setView(next: (typeof VIEWS)[number]): Promise<void> {
@@ -125,7 +125,7 @@ const osmLayers = [MILITARY, HOSPITALS].map(layer => {
   panel.append(legend);
   return mountOsmAreas(canvas, layer, { labels: true });
 });
-const simulation = mountSimulationResult(canvas, panel);
+const simulation = planningMode ? mountSimulationResult(canvas, panel) : undefined;
 
 // Lighting
 let lighting: LightingPreset = "midday";
@@ -168,18 +168,23 @@ canvas.on("renderError", ({ message }) => setStatus(`Map rendering failed: ${mes
 
 // The promise resolving IS the ready signal — there is no "ready" event.
 setStatus(plainStartup ? "Singapore · plain basemap" : canvas.scene.basemap === "plain" ? FALLBACK_STATUS : "Singapore");
-decision = mountDecision(canvas, { ...keys, lighting });
-comparison = await mountComparison(canvas, { ...keys, lighting, initiallyOpen: false });
+decision = planningMode
+  ? mountDecision(canvas, { ...keys, lighting })
+  : await mountComparison(canvas, { ...keys, lighting });
 if (import.meta.hot) import.meta.hot.dispose(() => {
   window.clearTimeout(edgeTimer);
   decision?.dispose();
   comparison?.dispose();
   population.dispose();
-  simulation.dispose();
+  simulation?.dispose();
   canvas.destroy();
 });
 
 Object.assign(window, { __canvas: canvas });
 if (acceptance) Object.defineProperty(window, "__mvpAcceptance", { configurable: true, value: Object.freeze({
-  inspect: () => ({ canvas: canvas.inspect?.(), planning: decision?.snapshot(), simulation: simulation.snapshot() }),
+  inspect: () => ({
+    canvas: canvas.inspect?.(),
+    planning: planningMode && decision ? (decision as ReturnType<typeof mountDecision>).snapshot() : undefined,
+    simulation: simulation?.snapshot(),
+  }),
 }) });

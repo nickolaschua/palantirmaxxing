@@ -4,15 +4,16 @@ const metrics = (
   exposed: RangeValue,
   fatalities: RangeValue,
   service: RangeValue,
-  recovery: RangeValue,
   delay: RangeValue,
 ): readonly OutcomeMetric[] => [
-  { id: "exposed", label: "People potentially exposed", unit: "people", ...exposed },
-  { id: "fatalities", label: "Estimated fatalities", unit: "people", ...fatalities },
-  { id: "service", label: "Service disruption", unit: "person-hours", ...service },
-  { id: "recovery", label: "Time to 90% function", unit: "days", ...recovery },
-  { id: "delay", label: "Simulated response delay", unit: "minutes", ...delay },
+  { id: "exposed", label: "People potentially affected", description: "Estimated number of people inside the modelled outcome area.", unit: "people", ...exposed },
+  { id: "fatalities", label: "Simulated fatality estimate", description: "Modelled range for this synthetic scenario, not a prediction of actual deaths.", unit: "people", ...fatalities },
+  { id: "service", label: "Essential-service disruption", description: "People affected multiplied by the number of hours their service is unavailable.", unit: "person-hours", ...service },
+  { id: "delay", label: "Operational response delay", description: "Estimated additional time before the affected capability can respond.", unit: "minutes", ...delay },
 ];
+
+const sourceIds = ["frontend-synthetic-fixture-v2"] as const;
+const reference = (type: "metric" | "dimension" | "success_probability" | "intercept_time" | "category" | "constraint", id?: string) => ({ type, ...(id ? { id } : {}) });
 
 /**
  * Fictional presentation fixture. Values demonstrate the UI contract only and
@@ -40,7 +41,6 @@ export const SYNTHETIC_THREATS: readonly ThreatComparison[] = [
         { low: 8900, central: 10400, high: 12100 },
         { low: 21, central: 28, high: 35 },
         { low: 690000, central: 830000, high: 1010000 },
-        { low: 12, central: 15, high: 19 },
         { low: 3, central: 5, high: 8 },
       ),
       vector: {
@@ -66,7 +66,6 @@ export const SYNTHETIC_THREATS: readonly ThreatComparison[] = [
         { low: 3200, central: 4000, high: 4900 },
         { low: 7, central: 10, high: 14 },
         { low: 180000, central: 240000, high: 330000 },
-        { low: 3, central: 5, high: 7 },
         { low: 4, central: 7, high: 10 },
       ),
       vector: {
@@ -82,17 +81,15 @@ export const SYNTHETIC_THREATS: readonly ThreatComparison[] = [
       sourcedPercent: 82,
       assumedPercent: 18,
     },
-    reasons: [
-      "Reduces simulated population exposure by 6,400 people.",
-      "Avoids the largest water-service dependency in this scenario.",
-      "Lowers cascading consequence X from 58 to 24.",
+    explanations: [
+      { code: "human_exposure_reduced", kind: "benefit", references: [reference("metric", "exposed")], sourceIds },
+      { code: "essential_service_avoided", kind: "benefit", references: [reference("dimension", "E"), reference("category", "Water and drainage")], sourceIds },
+      { code: "cascade_reduced", kind: "benefit", references: [reference("dimension", "X")], sourceIds },
+      { code: "capability_continuity_tradeoff", kind: "tradeoff", references: [reference("dimension", "D")], sourceIds },
+      { code: "intercept_time_tradeoff", kind: "tradeoff", references: [reference("intercept_time")], sourceIds },
+      { code: "success_probability_tradeoff", kind: "tradeoff", references: [reference("success_probability")], sourceIds },
     ],
-    tradeoffs: [
-      "Capability-continuity score D increases from 35 to 41.",
-      "Intercept occurs 5.8 seconds later with 1.8 percentage points lower supplied success.",
-    ],
-    robustnessPercent: 89,
-    simulationCount: 50000,
+    robustness: { lowerConsequenceSamples: 44500, sampleCount: 50000, method: "paired scenario perturbations", sourceIds },
   },
   {
     id: "synthetic-threat-02",
@@ -111,7 +108,7 @@ export const SYNTHETIC_THREATS: readonly ThreatComparison[] = [
       position: { lon: 103.94, lat: 1.38, height: 6100 }, timeFromStartS: 10, successProbability: 0.95,
       metrics: metrics(
         { low: 14800, central: 17200, high: 20600 }, { low: 30, central: 41, high: 55 },
-        { low: 1200000, central: 1600000, high: 2300000 }, { low: 16, central: 24, high: 38 },
+        { low: 1200000, central: 1600000, high: 2300000 },
         { low: 8, central: 13, high: 21 },
       ),
       vector: {
@@ -131,7 +128,7 @@ export const SYNTHETIC_THREATS: readonly ThreatComparison[] = [
       position: { lon: 103.889, lat: 1.329, height: 3700 }, timeFromStartS: 16.4, successProbability: 0.918,
       metrics: metrics(
         { low: 5700, central: 6900, high: 8400 }, { low: 12, central: 17, high: 24 },
-        { low: 410000, central: 560000, high: 790000 }, { low: 6, central: 9, high: 14 },
+        { low: 410000, central: 560000, high: 790000 },
         { low: 3, central: 6, high: 9 },
       ),
       vector: {
@@ -145,16 +142,16 @@ export const SYNTHETIC_THREATS: readonly ThreatComparison[] = [
         { label: "Industrial and logistics", contribution: 12, mechanism: "Supply interruption" },
       ], sourcedPercent: 76, assumedPercent: 24,
     },
-    reasons: [
-      "Reduces simulated exposure by 10,300 people.",
-      "Preserves the scenario's aviation continuity threshold.",
-      "Cuts essential-service and cascading scores by more than 30 points.",
+    explanations: [
+      { code: "human_exposure_reduced", kind: "benefit", references: [reference("metric", "exposed")], sourceIds },
+      { code: "capability_continuity_preserved", kind: "benefit", references: [reference("dimension", "D"), reference("category", "Aviation")], sourceIds },
+      { code: "essential_service_avoided", kind: "benefit", references: [reference("dimension", "E"), reference("category", "Transport")], sourceIds },
+      { code: "cascade_reduced", kind: "benefit", references: [reference("dimension", "X")], sourceIds },
+      { code: "additional_hazard_tradeoff", kind: "tradeoff", references: [reference("dimension", "A")], sourceIds },
+      { code: "intercept_time_tradeoff", kind: "tradeoff", references: [reference("intercept_time")], sourceIds },
+      { code: "success_probability_tradeoff", kind: "tradeoff", references: [reference("success_probability")], sourceIds },
     ],
-    tradeoffs: [
-      "Additional-hazard score A increases from 29 to 34.",
-      "Intercept occurs 6.4 seconds later with 3.2 percentage points lower supplied success.",
-    ],
-    robustnessPercent: 86, simulationCount: 50000,
+    robustness: { lowerConsequenceSamples: 43000, sampleCount: 50000, method: "paired scenario perturbations", sourceIds },
   },
   {
     id: "synthetic-threat-03",
@@ -173,7 +170,7 @@ export const SYNTHETIC_THREATS: readonly ThreatComparison[] = [
       position: { lon: 103.82, lat: 1.27, height: 5500 }, timeFromStartS: 10, successProbability: 0.945,
       metrics: metrics(
         { low: 6200, central: 7800, high: 9900 }, { low: 14, central: 20, high: 29 },
-        { low: 330000, central: 480000, high: 710000 }, { low: 10, central: 17, high: 29 },
+        { low: 330000, central: 480000, high: 710000 },
         { low: 2, central: 4, high: 7 },
       ),
       vector: {
@@ -193,7 +190,7 @@ export const SYNTHETIC_THREATS: readonly ThreatComparison[] = [
       position: { lon: 103.847, lat: 1.338, height: 3000 }, timeFromStartS: 16.8, successProbability: 0.911,
       metrics: metrics(
         { low: 2500, central: 3300, high: 4300 }, { low: 5, central: 8, high: 12 },
-        { low: 160000, central: 230000, high: 350000 }, { low: 4, central: 7, high: 11 },
+        { low: 160000, central: 230000, high: 350000 },
         { low: 3, central: 5, high: 8 },
       ),
       vector: {
@@ -207,21 +204,20 @@ export const SYNTHETIC_THREATS: readonly ThreatComparison[] = [
         { label: "Commercial and civic", contribution: 10, mechanism: "Visitor displacement" },
       ], sourcedPercent: 69, assumedPercent: 31,
     },
-    reasons: [
-      "Moves away from the scenario's high additional-hazard band.",
-      "Reduces estimated exposure by 4,500 people.",
-      "Shortens central functional recovery from 17 to 7 days.",
+    explanations: [
+      { code: "additional_hazard_avoided", kind: "benefit", references: [reference("dimension", "A"), reference("category", "Industrial and logistics")], sourceIds },
+      { code: "human_exposure_reduced", kind: "benefit", references: [reference("metric", "exposed")], sourceIds },
+      { code: "recovery_effort_reduced", kind: "benefit", references: [reference("dimension", "R")], sourceIds },
+      { code: "capability_continuity_tradeoff", kind: "tradeoff", references: [reference("dimension", "D")], sourceIds },
+      { code: "intercept_time_tradeoff", kind: "tradeoff", references: [reference("intercept_time")], sourceIds },
+      { code: "success_probability_tradeoff", kind: "tradeoff", references: [reference("success_probability")], sourceIds },
     ],
-    tradeoffs: [
-      "Capability-continuity score D increases from 27 to 29.",
-      "Intercept occurs 6.8 seconds later with 3.4 percentage points lower supplied success.",
-    ],
-    robustnessPercent: 91, simulationCount: 50000,
+    robustness: { lowerConsequenceSamples: 45500, sampleCount: 50000, method: "paired scenario perturbations", sourceIds },
   },
 ];
 
 export const DEMO_COMPARISON_RESULT: MultiThreatComparisonResult = {
-  schemaVersion: "multi-threat-comparison/1",
+  schemaVersion: "multi-threat-comparison/2",
   scenarioId: "synthetic-singapore-multi-threat-demo",
   generatedAt: "2026-09-25T12:00:00+08:00",
   dataMode: "fixture",
@@ -233,7 +229,7 @@ export const DEMO_COMPARISON_RESULT: MultiThreatComparisonResult = {
   },
   threats: SYNTHETIC_THREATS,
   provenance: {
-    sourceIds: ["frontend-synthetic-fixture-v1"],
+    sourceIds,
     limitations: [
       "All values are fictional and demonstrate the frontend contract only.",
       "Aggregate totals do not deduplicate overlapping people or service effects.",

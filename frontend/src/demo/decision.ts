@@ -2,10 +2,12 @@ import { SINGAPORE_BOUNDS } from "../lib/index.js";
 import type { BasemapKind, CircleLayer, CircleStyle, LabelLayer, LightingPreset, MarkerLayer, MarkerStyle, PathLayer, SingaporeCanvas } from "../lib/index.js";
 import {
   advance, approachOrigin, categoryColour, categoryLabel, circleBounds, comparisonLines, consequenceRows, descentSamples, DESCENT_S, detect,
-  elapsedS, exposureGrade, fire, formatNumber, formatPercent, formatT, framePose, isOpen, optionColour, parseResult,
-  remainingS, select, shortId, STANDBY, successGrade, threatPositionAt, urgency, wording,
+  elapsedS, engagementOption, exposureGrade, formatNumber, formatPercent, formatT, framePose, isOpen, optionColour, parseResult,
+  remainingS, shortId, STANDBY, successGrade, threatPositionAt, urgency, wording,
 } from "./decision-model.js";
 import type { Flow, Grade, Option } from "./decision-model.js";
+import { BASES, chooseBase, INTERCEPTOR_SPEED_MPS, interceptorSamples } from "./interceptor-model.js";
+import type { InterceptorBase, LaunchPlan } from "./interceptor-model.js";
 import { mountInspector } from "./inspector.js";
 import { loadPlanningResult } from "./source.js";
 import { mountResultLoader } from "./result-loader.js";
@@ -153,6 +155,31 @@ function renderDecision(
   );
   // The fall into the chosen area, drawn only once that option is fired.
   let descent: PathLayer | undefined;
+
+  // --- friendly bases: always on the map; stock is kept across restarts, like the history ---
+  const stock = new Map(BASES.map(b => [b.id, b.stock]));
+  const baseMarkers = canvas.addMarkers(BASES.map(b => ({ id: `base-${b.id}`, position: { ...b.position, height: 0 } })));
+  const renderBases = (): void => baseMarkers.setStyles(new Map(BASES.map(b => [`base-${b.id}`, {
+    color: "#35c78a", size: 11, visible: true, label: `${b.label} · ${stock.get(b.id)}/${b.stock} ready`,
+  }])));
+  renderBases();
+  // Planned at detection: which base meets the lowest-exposure option, and when it must launch.
+  let engagement: { option: Option; base: InterceptorBase; plan: LaunchPlan & { feasible: true } } | null = null;
+  let noLaunch = ""; // why nothing launches, when engagement is null after detection
+  let interceptor: PathLayer | undefined; // hidden until its launch
+  function planEngagement(): void {
+    const option = engagementOption(result, options);
+    const pick = option && chooseBase(BASES, stock, option, 0);
+    engagement = option && pick ? { option, ...pick } : null;
+    noLaunch = !option ? "No lowest-exposure option in this result — no launch"
+      : ![...stock.values()].some(n => n > 0) ? "No interceptor available — every base is empty"
+      : `Lowest-exposure intercept out of range for ${BASES.filter(b => (stock.get(b.id) ?? 0) > 0).map(b => b.label).join(", ")} at ${INTERCEPTOR_SPEED_MPS} m/s — no launch`;
+    if (!engagement) return;
+    interceptor = canvas.addPath(interceptorSamples(engagement.base, engagement.option, engagement.plan, start), {
+      color: "#35c78a", trailColor: "rgba(53, 199, 138, 0.4)", width: 3, markerSize: 25, markerShape: "craft", markerPulse: true,
+    });
+    interceptor.setVisible(false);
+  }
   const inspector = mountInspector({
     keys: { ionToken: setup.ionToken, googleApiKey: setup.googleApiKey },
     basemap: canvas.scene.basemap,
@@ -170,6 +197,7 @@ function renderDecision(
     approach?.setVisible(visible);
     approachLabel?.setVisible(visible);
     descent?.setVisible(visible);
+    if (!visible) interceptor?.setVisible(false); // shown only by its own launch
     inspector.setRouteVisible(visible);
   };
   const setLayersVisible = (visible: boolean): void => {
@@ -267,7 +295,7 @@ function renderDecision(
       bottom: Math.max(0, (h - trayTop) / h),
     };
   };
-  const framePoints = [...samples, ...options.flatMap(o => circleBounds(o.position, o.footprint.radiusM))];
+  const framePoints = [...samples, ...options.flatMap(o => circleBounds(o.position, o.footprint.radiusM)), ...BASES.map(b => b.position)];
   const frameCorridor = (): void => {
     // Generous margin: the route flies 1,000 m nearer the camera than the ground, so it looks wider.
     canvas.camera.flyTo(framePose(framePoints, STANDBY_PITCH, innerWidth / innerHeight, 1.3, coveredInsets()), { duration: 1.2 }).catch(ignoreCancel);
@@ -293,7 +321,7 @@ function renderDecision(
     const pick = el("button", "pick");
     pick.type = "button";
     const titleEl = el("span", "card-title");
-    titleEl.append(el("kbd", undefined, String(i + 1)), ` Option ${i + 1} `, el("code", undefined, shortId(o.id)));
+    titleEl.append(`Option ${i + 1} `, el("code", undefined, shortId(o.id)));
     const badges = el("span", "badges");
     for (const c of o.categories.length ? o.categories : [""]) {
       const badge = el("span", "badge");
@@ -313,20 +341,11 @@ function renderDecision(
     bar.append(fill);
     const left = el("span", "left countdown");
     pick.append(titleEl, badges, dl, bar, left);
-    const fireBtn = el("button", "fire", `FIRE · Option ${i + 1}`);
-    fireBtn.type = "button";
-    fireBtn.title = "Click to fire. Keyboard firing is disabled.";
-    card.append(pick, fireBtn);
+    // Read-only: the base engages the lowest-exposure option on its own.
+    pick.disabled = true;
+    card.append(pick);
     cardsEl.append(card);
-
-    pick.onclick = () => { flow = select(flow, options, o.id, now()); render(); };
-    fireBtn.onclick = event => {
-      // Keyboard-generated clicks have detail 0: firing takes a real pointer click, never Enter or Space.
-      if (event.detail === 0) return;
-      flow = fire(flow, options, now());
-      render();
-    };
-    return { option: o, card, pick, fill, left, fireBtn };
+    return { option: o, card, pick, fill, left };
   });
 
   function showInspector(): void {
@@ -366,6 +385,7 @@ function renderDecision(
   function beginImpact(chosen: Option): void {
     if (descent) return;
     path.setMarkerVisible(false); // the threat leaves its supplied route here
+    interceptor?.setMarkerVisible(false); // and the interceptor has met it
     descent = canvas.addPath(descentSamples(chosen, start), {
       color: "#ff7043", trailColor: "#ff7043", width: 2, markerSize: 35, markerShape: "craft", markerPulse: true,
     });
@@ -377,8 +397,14 @@ function renderDecision(
   let lastMarkers = "";
   function render(): void {
     let elapsed = now();
-    const next = advance(flow, options, elapsed);
+    const next = advance(flow, options, elapsed, engagement?.plan.launchS ?? null);
     const firedOption = options.find(o => o.id === next.fired);
+    if (next.phase === "fired" && flow.phase === "live" && engagement) {
+      // Launch: the base spends one interceptor and it lifts off.
+      stock.set(engagement.base.id, (stock.get(engagement.base.id) ?? 0) - 1);
+      renderBases();
+      interceptor?.setVisible(true);
+    }
     if (next.phase === "impact" && firedOption) beginImpact(firedOption);
     if (next.phase === "outcome" && flow.phase !== "outcome" && firedOption) {
       // Hold everything at the moment it comes down.
@@ -406,7 +432,7 @@ function renderDecision(
         renderHistory();
       }, BURST_S * 1000);
       setRouteVisible(false); // the flight is over; the struck area stays as the mark
-      record(`Threat ${history.length + 1} · ${optionName(firedOption.id)} (${shortId(firedOption.id)}) · intercepted at ${formatT(firedOption.timeFromStartS)}`, firedOption);
+      record(`Threat ${history.length + 1} · ${engagement?.base.label ?? "Base"} → ${optionName(firedOption.id)} (${shortId(firedOption.id)}) · intercepted at ${formatT(firedOption.timeFromStartS)}`, firedOption);
     }
     if (next.phase === "expired" && flow.phase !== "expired") record(`Threat ${history.length + 1} · expired · nothing fired`);
     // Nothing was fired, so the supplied route simply runs out.
@@ -425,11 +451,13 @@ function renderDecision(
     clockEl.textContent = formatT(Math.max(0, elapsed));
     message.textContent =
       phase === "standby" ? (!options.length ? "No eligible options in this result — nothing to decide" : layersReady ? "Standby — press Space on detection" : "Preparing map layers…")
-      : phase === "live" ? (flow.selected ? `${optionName(flow.selected)} selected — click FIRE to commit` : `Threat live — select an option (1–${options.length})`)
-      : phase === "fired" ? `Fired ${optionName(flow.fired)} — intercept at ${formatT(chosen!.timeFromStartS)}`
+      : phase === "live" ? (engagement
+        ? `Threat detected — ${engagement.base.label} launches at ${formatT(engagement.plan.launchS)} toward ${optionName(engagement.option.id)} (lowest exposure)`
+        : noLaunch)
+      : phase === "fired" ? `Interceptor away from ${engagement?.base.label ?? "base"} — intercept at ${formatT(chosen!.timeFromStartS)}`
       : phase === "impact" ? `Intercepted at ${formatT(chosen!.timeFromStartS)} — coming down inside its ${words.area.toLowerCase()}`
       : phase === "outcome" ? `Outcome — ${optionName(flow.fired)}, intercept at ${formatT(chosen!.timeFromStartS)}, down inside its ${words.area.toLowerCase()}`
-      : "All engagement windows expired — nothing fired";
+      : noLaunch || "All engagement windows expired — nothing fired";
     cardsEl.hidden = phase === "standby";
     playBtn.disabled = phase !== "standby" || !layersReady;
     restartBtn.disabled = phase === "standby";
@@ -448,14 +476,18 @@ function renderDecision(
       const rem = remainingS(o, elapsed);
       const open = isOpen(o, elapsed);
       const selected = flow.selected === o.id;
-      c.card.dataset.state = flow.fired === o.id ? "fired" : locked || phase === "expired" || !open ? "closed" : selected ? "selected" : "open";
-      c.pick.disabled = phase !== "live" || !open;
+      // The engaged option waits for its launch, whatever the backend window says.
+      const pending = phase === "live" && selected && engagement !== null;
+      c.card.dataset.state = flow.fired === o.id ? "fired" : locked || phase === "expired" ? "closed" : selected ? "selected" : !open ? "closed" : "open";
       c.pick.setAttribute("aria-pressed", String(selected));
-      c.fill.style.width = `${o.timeMarginS && rem !== null ? Math.max(0, Math.min(1, rem / o.timeMarginS)) * 100 : 0}%`;
-      c.left.textContent = flow.fired === o.id ? "Fired" : locked ? "—" : rem === null ? "No window supplied" : open ? `${rem.toFixed(1)} s left` : "Window closed";
+      const toLaunch = pending ? Math.max(0, engagement!.plan.launchS - elapsed) : 0;
+      c.fill.style.width = `${pending ? (engagement!.plan.launchS > 0 ? Math.min(1, toLaunch / engagement!.plan.launchS) * 100 : 0)
+        : o.timeMarginS && rem !== null ? Math.max(0, Math.min(1, rem / o.timeMarginS)) * 100 : 0}%`;
+      c.left.textContent = flow.fired === o.id ? (phase === "fired" ? "Interceptor away" : "Intercepted")
+        : pending ? `Launch in ${toLaunch.toFixed(1)} s · ${engagement!.base.label}`
+        : locked ? "—" : rem === null ? "No window supplied" : open ? `${rem.toFixed(1)} s left` : "Window closed";
       // Reddens the countdown and its bar as the window closes.
-      c.card.style.setProperty("--urgency", String(phase === "live" && open ? urgency(o, elapsed) : 0));
-      c.fireBtn.hidden = !(phase === "live" && selected && open);
+      c.card.style.setProperty("--urgency", String(phase === "live" && open && !pending ? urgency(o, elapsed) : 0));
     }
 
     const circleStyles = new Map<string, CircleStyle>(options.map(o => {
@@ -468,7 +500,7 @@ function renderDecision(
       const gone = { ...faded, visible: false };
       // At the outcome the run's own area shows the mark only until the history copy has built.
       const chosenStyle = phase === "outcome" ? (runMarkReady ? gone : markStyle(o)) : phase === "impact" ? struck : strong;
-      const style = locked ? (flow.fired === o.id ? chosenStyle : phase === "outcome" ? gone : faded) : phase === "expired" || !isOpen(o, elapsed) ? faded : flow.selected === o.id ? strong : normal;
+      const style = locked ? (flow.fired === o.id ? chosenStyle : phase === "outcome" ? gone : faded) : phase === "expired" ? faded : flow.selected === o.id ? strong : !isOpen(o, elapsed) ? faded : normal;
       return [o.id, style];
     }));
     const circleKey = JSON.stringify([...circleStyles]);
@@ -504,7 +536,8 @@ function renderDecision(
   function detectNow(): void {
     if (flow.phase !== "standby" || !layersReady) return;
     closeSnapshot();
-    flow = detect(flow);
+    planEngagement();
+    flow = detect(flow, engagement?.option.id ?? null);
     setLayersVisible(true);
     canvas.time.seek(start);
     canvas.time.play();
@@ -523,6 +556,10 @@ function renderDecision(
     setLayersVisible(false);
     descent?.destroy();
     descent = undefined;
+    interceptor?.destroy();
+    interceptor = undefined;
+    engagement = null;
+    noLaunch = "";
     path.setMarkerVisible(true);
     for (const burst of bursts.values()) burst.setVisible(false);
     inspector.close();
@@ -538,9 +575,6 @@ function renderDecision(
     if (e.code === "Space") {
       e.preventDefault(); // also keeps Space from pressing whichever button has focus
       detectNow();
-    } else if (/^[1-9]$/.test(e.key)) {
-      const o = options[Number(e.key) - 1];
-      if (o) { flow = select(flow, options, o.id, now()); render(); }
     } else if (e.key === "r" || e.key === "R") {
       reset();
     }
@@ -569,6 +603,8 @@ function renderDecision(
       for (const burst of bursts.values()) burst.destroy();
       path.destroy();
       descent?.destroy();
+      interceptor?.destroy();
+      baseMarkers.destroy();
       approach?.destroy();
       approachLabel?.destroy();
       markers.destroy();

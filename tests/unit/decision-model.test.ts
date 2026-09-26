@@ -2,14 +2,14 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import {
-  advance, approachOrigin, comparisonLines, consequenceRows, descentSamples, DESCENT_S, detect, elapsedS, exposureGrade, fire, framePose,
-  isOpen, optionColour, parseResult, remainingS, select, STANDBY, successGrade, threatPositionAt, urgency,
+  advance, approachOrigin, comparisonLines, consequenceRows, descentSamples, DESCENT_S, detect, elapsedS, engagementOption, exposureGrade, framePose,
+  isOpen, optionColour, parseResult, remainingS, STANDBY, successGrade, threatPositionAt, urgency,
 } from "../../frontend/src/demo/decision-model.ts";
 
 const raw = JSON.parse(readFileSync(new URL("../../data/results/demo-planning-result.json", import.meta.url), "utf8"));
 const { result, options } = parseResult(raw);
 const byMargin = [...options].sort((a, b) => (a.timeMarginS ?? 0) - (b.timeMarginS ?? 0));
-const first = byMargin[0]!, last = byMargin.at(-1)!;
+const last = byMargin.at(-1)!;
 
 test("validation rejects a wrong schema, an unresolved representative and non-finite numbers", () => {
   assert.throws(() => parseResult({ ...raw, schemaVersion: "planning-result/2" }), /Unsupported schema/);
@@ -29,22 +29,27 @@ test("countdown and expiry follow timeMarginS − elapsed", () => {
   assert.equal(remainingS({ timeMarginS: null }, 1), null);
 });
 
-test("flow: detect, select, fire, outcome; closed windows clear selection; all closed expires", () => {
-  let flow = detect(STANDBY);
-  assert.equal(flow.phase, "live");
-  flow = select(flow, options, first.id, 0);
-  assert.equal(flow.selected, first.id);
-  flow = advance(flow, options, first.timeMarginS! + 0.01);
-  assert.equal(flow.selected, null, "selection clears when its window closes");
-  assert.equal(fire(flow, options, 1).phase, "live", "nothing selected, nothing fires");
-  assert.equal(select(flow, options, first.id, first.timeMarginS! + 1).selected, null, "a closed option cannot be selected");
-  assert.equal(advance(flow, options, last.timeMarginS!).phase, "expired");
-  const fired = fire(select(flow, options, last.id, 1), options, 1);
-  assert.deepEqual([fired.phase, fired.fired], ["fired", last.id]);
-  assert.equal(advance(fired, options, last.timeFromStartS - 0.1).phase, "fired");
-  assert.equal(advance(fired, options, last.timeFromStartS).phase, "impact", "the fall into the area comes first");
-  assert.equal(advance(fired, options, last.timeFromStartS + DESCENT_S).phase, "outcome");
-  assert.equal(advance(fired, options, last.timeMarginS! + 1).phase, "fired", "firing is not undone by windows closing");
+test("flow: detection fixes the engagement, it launches itself on time, then impact and outcome", () => {
+  const engaged = engagementOption(result, options)!;
+  assert.equal(engaged.id, result.categoryAssignments.lowestExposure);
+  const flow = detect(STANDBY, engaged.id);
+  assert.deepEqual([flow.phase, flow.selected, flow.fired], ["live", engaged.id, null]);
+  const launchS = engaged.timeMarginS! + 1; // later than the backend window, to show it still waits
+  assert.equal(advance(flow, options, launchS - 0.01, launchS).phase, "live", "waits for its launch time");
+  assert.equal(advance(flow, options, last.timeMarginS! + 0.5, last.timeMarginS! + 1).phase, "live", "a pending launch never expires");
+  const fired = advance(flow, options, launchS, launchS);
+  assert.deepEqual([fired.phase, fired.fired], ["fired", engaged.id]);
+  assert.equal(advance(fired, options, engaged.timeFromStartS - 0.1).phase, "fired");
+  assert.equal(advance(fired, options, engaged.timeFromStartS).phase, "impact", "the fall into the area comes first");
+  assert.equal(advance(fired, options, engaged.timeFromStartS + DESCENT_S).phase, "outcome");
+});
+
+test("flow: with no engagement nothing launches and closed windows expire", () => {
+  const idle = detect(STANDBY);
+  assert.deepEqual([idle.phase, idle.selected], ["live", null]);
+  assert.equal(advance(idle, options, 0).phase, "live");
+  assert.equal(advance(idle, options, last.timeMarginS!).phase, "expired");
+  assert.equal(advance(idle, options, 999, null).fired, null);
 });
 
 test("deadline positions: before the first sample pins to the start; otherwise interpolated", () => {

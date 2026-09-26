@@ -328,13 +328,11 @@ body {
   font-weight: 600;
 }
 
-.decision-tray kbd,
 .decision-tray code {
   font: var(--fs-sm)/var(--lh) var(--font);
   color: var(--muted);
 }
 
-.decision-tray kbd { padding: 0 4px; border: 1px solid var(--line); border-radius: 3px; }
 .decision-tray code { margin-left: auto; }
 
 .decision-tray .badges {
@@ -391,19 +389,6 @@ dd[data-grade="poor"] { color: var(--poor); }
 }
 
 .decision-tray dd { font-variant-numeric: tabular-nums; }
-
-.decision-tray .fire {
-  padding: 11px;
-  background: #b71c1c;
-  border: 1px solid #ff6b6b;
-  border-radius: 4px;
-  color: #fff;
-  font: 600 var(--fs-lg)/var(--lh) var(--font);
-  letter-spacing: 0.15em;
-  cursor: pointer;
-}
-
-.decision-tray .fire:hover { background: #d32f2f; }
 
 .decision-tray .summary { margin: 10px 0 0; padding-left: 18px; }
 .decision-tray .summary:empty { display: none; }

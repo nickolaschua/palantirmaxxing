@@ -352,19 +352,25 @@ export type Phase = "standby" | "live" | "fired" | "impact" | "outcome" | "expir
 export interface Flow { phase: Phase; selected: string | null; fired: string | null }
 export const STANDBY: Flow = { phase: "standby", selected: null, fired: null };
 
-export const detect = (flow: Flow): Flow => (flow.phase === "standby" ? { ...flow, phase: "live" } : flow);
+/** The backend's lowest-exposure option: the intercept a base engages on its own. */
+export const engagementOption = (result: PlanningResult, options: readonly Option[]): Option | undefined =>
+  options.find(o => o.id === result.categoryAssignments.lowestExposure);
 
-export const select = (flow: Flow, options: readonly Option[], id: string, elapsed: number): Flow =>
-  flow.phase === "live" && options.some(o => o.id === id && isOpen(o, elapsed)) ? { ...flow, selected: id } : flow;
+/** Detection fixes the engagement: `engagedId` is the option a base will meet, null if none can. */
+export const detect = (flow: Flow, engagedId: string | null = null): Flow =>
+  flow.phase === "standby" ? { ...flow, phase: "live", selected: engagedId } : flow;
 
-export const fire = (flow: Flow, options: readonly Option[], elapsed: number): Flow =>
-  flow.phase === "live" && flow.selected !== null && options.some(o => o.id === flow.selected && isOpen(o, elapsed))
-    ? { phase: "fired", selected: flow.selected, fired: flow.selected }
-    : flow;
-
-/** Time-driven transitions: closed windows clear selection, all closed expires, the intercept ends a firing. */
-export function advance(flow: Flow, options: readonly Option[], elapsed: number): Flow {
+/**
+ * Time-driven transitions. A planned engagement launches itself at `launchS`
+ * and does not expire while it waits: the options' windows describe the
+ * backend's own interceptor, not the base. Without one, all windows closed
+ * expires. The intercept ends a firing.
+ */
+export function advance(flow: Flow, options: readonly Option[], elapsed: number, launchS: number | null = null): Flow {
   if (flow.phase === "live") {
+    if (flow.selected !== null && launchS !== null) {
+      return elapsed >= launchS ? { phase: "fired", selected: flow.selected, fired: flow.selected } : flow;
+    }
     if (!options.some(o => isOpen(o, elapsed))) return { phase: "expired", selected: null, fired: null };
     const stillOpen = flow.selected !== null && options.some(o => o.id === flow.selected && isOpen(o, elapsed));
     return stillOpen || flow.selected === null ? flow : { ...flow, selected: null };

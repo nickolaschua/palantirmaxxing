@@ -1,6 +1,6 @@
 import { resultSource } from "./source.js";
 import type { ResultKind } from "./delivery.ts";
-import { filterScenarioEntries, parseScenarioManifest, POLICIES, POLICY_LABELS, POLICY_NOTES, PROFILES, SPLITS } from "./scenario-manifest-model.js";
+import { DEMO_POLICIES, DEMO_SCENARIO_REF, filterScenarioEntries, parseScenarioManifest, POLICIES, POLICY_LABELS, POLICY_NOTES, PROFILES, SPLITS } from "./scenario-manifest-model.js";
 import type { FrozenPolicy, FrozenProfile, FrozenSplit, ScenarioManifest } from "./scenario-manifest-model.js";
 
 type Run = { runId: string; status: "queued" | "running" | "succeeded" | "failed";
@@ -37,13 +37,14 @@ export function mountRunControls(parent: HTMLElement, kind: ResultKind, display:
   let frozen: HTMLElement | undefined, split: HTMLSelectElement | undefined, profile: HTMLSelectElement | undefined;
   let search: HTMLInputElement | undefined, scenario: HTMLSelectElement | undefined, policy: HTMLSelectElement | undefined;
   let selection: HTMLParagraphElement | undefined;
+  const demoButtons: HTMLButtonElement[] = [];
   let manifest: ScenarioManifest | undefined;
   if (kind === "simulation") {
     const mode = document.createElement("div"); mode.className = "run-mode";
     legacyMode = document.createElement("input"); legacyMode.type = "radio"; legacyMode.name = "simulation-run-mode";
-    legacyMode.value = "legacy"; legacyMode.checked = true;
+    legacyMode.value = "legacy";
     frozenMode = document.createElement("input"); frozenMode.type = "radio"; frozenMode.name = "simulation-run-mode";
-    frozenMode.value = "frozen";
+    frozenMode.value = "frozen"; frozenMode.checked = true;
     mode.append(labelled("Legacy seed", legacyMode), labelled("Frozen scenario", frozenMode));
     seed = document.createElement("input");
     seed.type = "number"; seed.min = "0"; seed.max = "2147483647"; seed.step = "1"; seed.value = "7";
@@ -61,9 +62,21 @@ export function mountRunControls(parent: HTMLElement, kind: ResultKind, display:
     policy = document.createElement("select"); policy.setAttribute("aria-label", "Simulation policy");
     policy.append(...POLICIES.map(value => option(value, POLICY_LABELS[value])));
     selection = document.createElement("p"); selection.className = "scenario-selection";
+    const demo = document.createElement("section"); demo.className = "demo-preset";
+    const demoTitle = document.createElement("strong"); demoTitle.textContent = "Rehearsed policy demo";
+    const demoCopy = document.createElement("p");
+    demoCopy.textContent = `${DEMO_SCENARIO_REF} · lower ordinal cost is better`;
+    const demoActions = document.createElement("div"); demoActions.className = "demo-policy-actions";
+    DEMO_POLICIES.forEach((value, index) => {
+      const button = document.createElement("button");
+      button.type = "button"; button.dataset.policy = value;
+      button.textContent = `${index + 1} · ${index === 0 ? "Naive" : index === 1 ? "Exact" : "Imitation"}`;
+      demoButtons.push(button); demoActions.append(button);
+    });
+    demo.append(demoTitle, demoCopy, demoActions);
     frozen.append(labelled("Split", split), labelled("Profile", profile), labelled("Reference search", search),
       labelled("Scenario", scenario), labelled("Policy", policy), selection);
-    root.append(mode, seedRow, frozen);
+    root.append(demo, mode, seedRow, frozen);
   }
   root.append(runButton, message, retry); parent.append(root);
   let disposed = false, active = false, polling = false, permanentlyDisabled = false;
@@ -76,6 +89,7 @@ export function mountRunControls(parent: HTMLElement, kind: ResultKind, display:
   const selectedEntry = () => manifest?.entries.find(row => row.scenarioRef === scenario?.value);
   const refreshDisabled = () => {
     runButton.disabled = permanentlyDisabled || active || (frozenSelected() && !selectedEntry());
+    for (const button of demoButtons) button.disabled = permanentlyDisabled || active || !manifest?.entries.some(row => row.scenarioRef === DEMO_SCENARIO_REF);
     if (seed) seed.disabled = permanentlyDisabled || active || frozenSelected();
     for (const control of [legacyMode, frozenMode, split, profile, search, scenario, policy]) {
       if (control) control.disabled = permanentlyDisabled || active || ((control === split || control === profile || control === search || control === scenario || control === policy) && !frozenSelected());
@@ -96,6 +110,16 @@ export function mountRunControls(parent: HTMLElement, kind: ResultKind, display:
     selection.textContent = entry ? `${entry.split} · ${entry.profile} · seed ${entry.seed} · ${entry.canonicalEpisodeHash} · ${policyNote}`
       : rows.length ? "Select a frozen scenario." : "No references match these filters.";
     refreshDisabled();
+  };
+  const selectDemoPreset = (selectedPolicy: FrozenPolicy) => {
+    if (!legacyMode || !frozenMode || !split || !profile || !search || !scenario || !policy) return false;
+    legacyMode.checked = false; frozenMode.checked = true;
+    split.value = "validation"; profile.value = ""; search.value = ""; policy.value = selectedPolicy;
+    refreshMode();
+    scenario.value = DEMO_SCENARIO_REF;
+    refreshSelection();
+    root.dataset.demoPolicy = selectedPolicy;
+    return selectedEntry()?.scenarioRef === DEMO_SCENARIO_REF;
   };
   const refreshMode = () => {
     const isFrozen = frozenSelected(); root.dataset.mode = isFrozen ? "frozen" : "legacy";
@@ -139,7 +163,7 @@ export function mountRunControls(parent: HTMLElement, kind: ResultKind, display:
     } finally { polling = false; }
   }
 
-  runButton.onclick = async () => {
+  const submit = async () => {
     if (disposed || active) return;
     const number = seed ? Number(seed.value) : undefined;
     if (seed && !frozenSelected() && (!seed.value.trim() || !Number.isInteger(number) || number! < 0 || number! > 2147483647)) {
@@ -161,6 +185,13 @@ export function mountRunControls(parent: HTMLElement, kind: ResultKind, display:
       if (!disposed) { message.textContent = `Run failed: ${errorText(error)}`; root.dataset.status = "failed"; setActive(false); }
     }
   };
+  runButton.onclick = () => { void submit(); };
+  demoButtons.forEach(button => {
+    button.onclick = () => {
+      const selectedPolicy = button.dataset.policy as FrozenPolicy;
+      if (selectDemoPreset(selectedPolicy)) void submit();
+    };
+  });
   retry.onclick = () => { void poll(); };
   if (legacyMode && frozenMode) { legacyMode.onchange = refreshMode; frozenMode.onchange = refreshMode; }
   for (const control of [split, profile, search, scenario, policy]) if (control) control.onchange = refreshSelection;
@@ -175,7 +206,8 @@ export function mountRunControls(parent: HTMLElement, kind: ResultKind, display:
           if (!response.ok) throw new Error(`HTTP ${response.status}: scenario manifest request failed`);
           const checked = parseScenarioManifest(value);
           if (disposed) return;
-          manifest = checked; refreshSelection();
+          manifest = checked;
+          if (!selectDemoPreset(DEMO_POLICIES[0]!)) refreshSelection();
         } catch (error) {
           if (!disposed && !manifestAbort.signal.aborted) {
             if (scenario) scenario.replaceChildren(option("", "Checked manifest unavailable"));
@@ -192,6 +224,7 @@ export function mountRunControls(parent: HTMLElement, kind: ResultKind, display:
       if (disposed) return;
       disposed = true; clearTimeout(timer); abort.abort(); manifestAbort.abort();
       runButton.onclick = retry.onclick = null;
+      for (const button of demoButtons) button.onclick = null;
       if (legacyMode) legacyMode.onchange = null; if (frozenMode) frozenMode.onchange = null;
       for (const control of [split, profile, search, scenario, policy]) if (control) control.onchange = null;
       root.remove();

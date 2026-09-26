@@ -18,6 +18,12 @@ export interface ScenarioManifest {
 export const SPLITS = new Set<FrozenSplit>(["validation", "held-out", "stress", "ood-geography", "ood-cadence", "assignment-reference"]);
 export const PROFILES = new Set<FrozenProfile>(["warmup", "balanced", "full-standard", "burst-contention", "low-slack", "consequence-contrast", "geographic-shift", "cadence-shift"]);
 export const POLICIES: readonly FrozenPolicy[] = ["naive-launch-on-detection/1", "structured-behavior-cloning/1", "optimal-fixed-rank-assignment/1", "feasible-immediate-matching/1"];
+export const DEMO_SCENARIO_REF = "sg2:validation:000000";
+export const DEMO_POLICIES: readonly FrozenPolicy[] = [
+  "naive-launch-on-detection/1",
+  "optimal-fixed-rank-assignment/1",
+  "structured-behavior-cloning/1",
+];
 export const POLICY_LABELS: Readonly<Record<FrozenPolicy, string>> = {
   "naive-launch-on-detection/1": "Naive online · safe fallback",
   "structured-behavior-cloning/1": "Structured imitation · experimental",

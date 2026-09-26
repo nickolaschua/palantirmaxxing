@@ -4,7 +4,7 @@ import type { SingaporeCanvas } from "../src/lib/index.js";
 
 vi.mock("../src/lib/index.js", () => ({ SINGAPORE_BOUNDS: { west: 103.6, east: 104.1, south: 1.2, north: 1.5 } }));
 
-import { mountDecision } from "../src/demo/decision.js";
+import { mountComparison } from "../src/demo/comparison.js";
 import { mountSimulationResult } from "../src/demo/simulation.js";
 
 function canvasMock() {
@@ -58,9 +58,10 @@ afterEach(() => {
 describe("multi-threat comparison view", () => {
   it("renders the bundled fallback, advances stages, and disposes every layer", async () => {
     const { canvas, live } = canvasMock();
-    const view = await mountDecision(canvas, { lighting: "midday" });
+    const view = await mountComparison(canvas, { lighting: "midday" });
 
     expect(document.body.textContent).toContain("Outcome comparison");
+    expect(document.body.textContent).toContain("Bundled retrospective · not the live run");
     expect(document.body.textContent).toContain("Baseline - earliest feasible");
     expect(live.size).toBeGreaterThan(0);
 
@@ -81,7 +82,7 @@ describe("multi-threat comparison view", () => {
 
   it("navigates across missiles and opens the aggregate comparison", async () => {
     const { canvas } = canvasMock();
-    const view = await mountDecision(canvas, { lighting: "midday" });
+    const view = await mountComparison(canvas, { lighting: "midday" });
 
     const nextThreat = [...document.querySelectorAll<HTMLButtonElement>("button")]
       .find(button => button.textContent === "Next");

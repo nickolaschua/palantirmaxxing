@@ -106,3 +106,30 @@ it("offers and submits every demo policy, including the imitation warning", asyn
       scenarioRef: "sg2:validation:000000", policy: value })));
   } finally { view.dispose(); }
 });
+
+it("runs the numbered golden-scenario sequence with one click per policy", async () => {
+  const bodies: unknown[] = [];
+  const fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+    if (String(input).endsWith("/api/v1/scenario-manifest")) return response(manifest);
+    if (init?.method === "POST") {
+      bodies.push(JSON.parse(String(init.body)));
+      return response({ runId: `demo-${bodies.length}`, status: "failed",
+        error: { code: "TEST_COMPLETE", message: "stop after submission" } }, 202);
+    }
+    throw new Error("unexpected request");
+  });
+  vi.stubGlobal("fetch", fetch);
+  const view = mountRunControls(document.body, "simulation", async () => {});
+  try {
+    await settle();
+    expect(document.querySelector<HTMLElement>('.run-controls')?.dataset.mode).toBe("frozen");
+    const buttons = [...document.querySelectorAll<HTMLButtonElement>(".demo-policy-actions button")];
+    expect(buttons.map(button => button.textContent)).toEqual(["1 · Naive", "2 · Exact", "3 · Imitation"]);
+    for (const button of buttons) { button.click(); await settle(); }
+    expect(bodies).toEqual([
+      { kind: "simulation", scenarioRef: "sg2:validation:000000", policy: "naive-launch-on-detection/1" },
+      { kind: "simulation", scenarioRef: "sg2:validation:000000", policy: "optimal-fixed-rank-assignment/1" },
+      { kind: "simulation", scenarioRef: "sg2:validation:000000", policy: "structured-behavior-cloning/1" },
+    ]);
+  } finally { view.dispose(); }
+});

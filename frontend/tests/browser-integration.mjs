@@ -265,7 +265,10 @@ try {
     await page.route('**/api/v1/runs/*', race);
     const baselineCount = (await inspect()).canvas.layerCount;
     for (const kind of ['planning', 'simulation']) {
-      if (kind === 'simulation') await page.getByRole('spinbutton', { name: 'Simulation seed' }).fill('17');
+      if (kind === 'simulation') {
+        await page.getByLabel('Legacy seed', { exact: true }).check();
+        await page.getByRole('spinbutton', { name: 'Simulation seed' }).fill('17');
+      }
       const control = page.locator(`.run-controls[data-kind="${kind}"]`);
       const before = submissions.length;
       await page.getByRole('button', { name: `Run ${kind}`, exact: true }).evaluate(button => { button.click(); button.click(); });
@@ -297,6 +300,7 @@ try {
     const splitControl = page.getByRole('combobox', { name: 'Scenario split' });
     const scenarioControl = page.getByRole('combobox', { name: 'Scenario reference', exact: true });
     const policyControl = page.getByRole('combobox', { name: 'Simulation policy' });
+    await splitControl.selectOption('');
     await until(async () => (await scenarioControl.locator('option').count()) === manifest.entries.length,
       'Frozen manifest options loaded into the controls');
     await policyControl.selectOption('naive-launch-on-detection/1');
@@ -320,14 +324,15 @@ try {
         && JSON.stringify(layer.circles.map(row => row.id).sort()) === JSON.stringify(expectedIds));
       check(footprintLayer?.circles.length === expectedIds.length,
         `${payload.trajectories.length}-threat result creates the exact footprint count`);
-      const base = canvas.layerCount - paths.length - 1;
+      const base = canvas.layerCount - paths.length - 2;
+      const replayPreRenderBase = canvas.preRenderListeners - paths.length * 2;
       if (simulationLayerBase === undefined) {
         simulationLayerBase = base;
-        simulationListeners = { pre: canvas.preRenderListeners, events: canvas.eventListeners };
+        simulationListeners = { pre: replayPreRenderBase, events: canvas.eventListeners };
       } else {
         check(base === simulationLayerBase, 'Switching scenarios disposes preceding Cesium layers');
-        check(canvas.preRenderListeners === simulationListeners.pre && canvas.eventListeners === simulationListeners.events,
-          'Switching scenarios preserves Cesium listener counts');
+        check(replayPreRenderBase === simulationListeners.pre && canvas.eventListeners === simulationListeners.events,
+          `Switching scenarios preserves normalized Cesium listener counts (${replayPreRenderBase}/${canvas.eventListeners} vs ${simulationListeners.pre}/${simulationListeners.events})`);
       }
     };
     const frozenSubmissionStart = submissions.length;
@@ -419,6 +424,12 @@ try {
     const finishedPolls = polls.length;
     await delay(1250);
     check(polls.length === finishedPolls, 'Polling stops after terminal results');
+    const planningControls = page.locator('.run-controls[data-kind="planning"]');
+    check(!(await planningControls.isVisible()), 'Live policy replay focuses the UI by hiding planning controls');
+    const restoredSimulation = await publish('simulation', ready.initial.simulation.result);
+    await page.getByRole('button', { name: 'Refresh simulation', exact: true }).click();
+    await loaded('simulation', restoredSimulation.resultId);
+    await until(() => planningControls.isVisible(), 'Planning controls return after leaving live policy replay');
     const previous = (await inspect()).planning.resultId;
     await command('fail-next');
     await page.getByRole('button', { name: 'Run planning', exact: true }).click();
@@ -471,7 +482,8 @@ try {
       window.__lateRunDisplays = 0;
       const view = mountRunControls(host, 'simulation', async () => { ++window.__lateRunDisplays; });
       window.__disposeTestRun = () => { view.dispose(); host.remove(); };
-      host.querySelector('button').click();
+      host.querySelector('input[value="legacy"]').click();
+      [...host.querySelectorAll('button')].find(button => button.textContent === 'Run simulation').click();
     });
     await until(() => held, 'A status response in flight');
     await page.evaluate(() => window.__disposeTestRun());
@@ -548,6 +560,8 @@ try {
       await until(() => status.isHidden(), `${kind} retries after API recovery`);
     }
     await page.screenshot({ path: resolve(evidence, 'api-recovered.png'), fullPage: true });
+    await page.getByLabel('Legacy seed', { exact: true }).check();
+    await page.getByRole('spinbutton', { name: 'Simulation seed' }).fill('7');
     await page.getByRole('button', { name: 'Run simulation', exact: true }).click();
     await until(async () => (await page.locator('.run-controls[data-kind="simulation"]').getAttribute('data-status')) === 'succeeded', 'Real run completion', 60000);
     await until(async () => (await inspect()).simulation.resultId !== evidenceResult.resultId, 'Run result loaded');

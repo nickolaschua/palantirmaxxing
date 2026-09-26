@@ -22,6 +22,10 @@ selects the labelled illustrative fixtures; `?basemap=plain` avoids remote basem
 Simulation controls retain the seed-based legacy mode and add a checked frozen
 scenario mode with split/profile/reference filters and fixed policy selection.
 
+For the demo-ready fallback, follow the [deterministic policy demo
+runbook](docs/demo-runbook.md). It pins one immutable validation scenario and
+rehearses Naive → Exact → Structured Imitation through the live backend pipeline.
+
 Verify independently, with fresh outputs, isolated stores, real Chromium/WebGL,
 and retained logs, traces, and screenshots:
 

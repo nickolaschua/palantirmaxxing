@@ -5,11 +5,13 @@ import type { CanvasEvents } from "./types.js";
 export interface TimeModule {
   /** Seeks to `start` and pauses. Playback stops at `stop`; it never loops. */
   setRange(start: Date, stop: Date): void;
-  /** Actual speed, 1×. */
-  play(): void;
+  /** Play at the supplied positive real-time multiplier (1× by default). */
+  play(speed?: number): void;
   pause(): void;
   /** Clamped to the range. */
   seek(t: Date): void;
+  /** Copies of the active host-time bounds. */
+  readonly range: { start: Date; stop: Date };
   readonly current: Date;
   readonly playing: boolean;
 }
@@ -75,11 +77,18 @@ export function createTime(viewer: Viewer, emit: Emitter<CanvasEvents>): TimeInt
         stop = JulianDate.fromDate(rangeStop);
         place(start);
       },
-      play() { clock.shouldAnimate = true; },
+      play(speed = 1) {
+        if (!Number.isFinite(speed) || speed <= 0) throw new Error("Playback speed must be positive and finite");
+        clock.multiplier = speed;
+        clock.shouldAnimate = true;
+      },
       pause() { clock.shouldAnimate = false; },
       seek(t) {
         if (!Number.isFinite(t.getTime())) throw new Error("Cannot seek to an invalid date");
         place(JulianDate.fromDate(t));
+      },
+      get range() {
+        return { start: JulianDate.toDate(start), stop: JulianDate.toDate(stop) };
       },
       get current() { return JulianDate.toDate(toHost(clock.currentTime)); },
       get playing() { return clock.shouldAnimate; },

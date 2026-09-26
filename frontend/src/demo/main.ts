@@ -1,7 +1,8 @@
 import { createSingaporeCanvas, FlightCancelled, PRESETS } from "../lib/index.js";
 import { mountPopulation } from "./population.js";
 import { HOSPITALS, MILITARY, mountOsmAreas } from "./osm-areas.js";
-import { mountDecision, type Decision } from "./decision.js";
+import { mountDecision } from "./decision.js";
+import { mountComparison, type Comparison } from "./comparison.js";
 import { mountSimulationResult } from "./simulation.js";
 import type { BasemapKind, LightingPreset } from "../lib/index.js";
 import "./style.css";
@@ -75,7 +76,8 @@ const VIEWS: readonly { id: View; label: string; basemap: BasemapKind }[] = [
 ];
 let view: View = "grey";
 // Mounted last; the panel can be used before it is ready.
-let decision: Decision | undefined;
+let decision: ReturnType<typeof mountDecision> | undefined;
+let comparison: Comparison | undefined;
 const viewButtons = new Map<View, HTMLButtonElement>();
 
 async function setView(next: (typeof VIEWS)[number]): Promise<void> {
@@ -99,6 +101,7 @@ async function setView(next: (typeof VIEWS)[number]): Promise<void> {
   population.setActive(view === "population");
   for (const layer of osmLayers) layer.setVisible(view !== "population"); // that view has its own labels and colours
   decision?.setBasemap(canvas.scene.basemap);
+  comparison?.setBasemap(canvas.scene.basemap);
   for (const [id, b] of viewButtons) b.setAttribute("aria-pressed", String(id === view));
 }
 
@@ -130,6 +133,7 @@ const lightBtn = button(`Light: ${lighting}`, () => {
   lighting = lighting === "midday" ? "blue-hour" : "midday";
   canvas.scene.setLighting(lighting);
   decision?.setLighting(lighting);
+  comparison?.setLighting(lighting);
   lightBtn.textContent = `Light: ${lighting}`;
 });
 panel.append(group("Lighting"), lightBtn);
@@ -164,10 +168,12 @@ canvas.on("renderError", ({ message }) => setStatus(`Map rendering failed: ${mes
 
 // The promise resolving IS the ready signal — there is no "ready" event.
 setStatus(plainStartup ? "Singapore · plain basemap" : canvas.scene.basemap === "plain" ? FALLBACK_STATUS : "Singapore");
-decision = await mountDecision(canvas, { ...keys, lighting });
+decision = mountDecision(canvas, { ...keys, lighting });
+comparison = await mountComparison(canvas, { ...keys, lighting, initiallyOpen: false });
 if (import.meta.hot) import.meta.hot.dispose(() => {
   window.clearTimeout(edgeTimer);
   decision?.dispose();
+  comparison?.dispose();
   population.dispose();
   simulation.dispose();
   canvas.destroy();
@@ -175,5 +181,5 @@ if (import.meta.hot) import.meta.hot.dispose(() => {
 
 Object.assign(window, { __canvas: canvas });
 if (acceptance) Object.defineProperty(window, "__mvpAcceptance", { configurable: true, value: Object.freeze({
-  inspect: () => ({ canvas: canvas.inspect?.(), simulation: simulation.snapshot() }),
+  inspect: () => ({ canvas: canvas.inspect?.(), planning: decision?.snapshot(), simulation: simulation.snapshot() }),
 }) });

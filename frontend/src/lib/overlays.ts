@@ -149,6 +149,7 @@ export function addPath(
     lines.show = layerVisible;
     if (points) points.show = layerVisible && markerVisible;
     craft?.setVisible(layerVisible && markerVisible);
+    scene.requestRender();
   };
   return {
     setVisible(visible) {
@@ -166,6 +167,7 @@ export function addPath(
       scene.primitives.remove(lines);
       if (points) scene.primitives.remove(points);
       craft?.destroy();
+      scene.requestRender();
     },
   };
 }
@@ -182,7 +184,7 @@ export function addMarkers(viewer: Viewer, markers: readonly { id: string; posit
     byId.set(id, {
       point: points.add({ position, pixelSize: 8, color: Color.WHITE, disableDepthTestDistance: Number.POSITIVE_INFINITY }),
       label: labels.add({
-        position, show: false, font: "12px sans-serif", ...LABEL_LOOK,
+        position, show: false, ...LABEL_LOOK,
         verticalOrigin: VerticalOrigin.BOTTOM, pixelOffset: new Cartesian2(0, -10),
       }),
     });
@@ -201,16 +203,19 @@ export function addMarkers(viewer: Viewer, markers: readonly { id: string; posit
         label.pixelOffset = new Cartesian2(0, -(style.size / 2 + 4));
         if (style.label) label.text = style.label;
       }
+      scene.requestRender();
     },
     setVisible(visible) {
       points.show = visible;
       labels.show = visible;
+      scene.requestRender();
     },
     destroy() {
       if (destroyed) return;
       destroyed = true;
       scene.primitives.remove(points);
       scene.primitives.remove(labels);
+      scene.requestRender();
     },
   };
 }
@@ -268,7 +273,9 @@ export function addGroundCircles(
   let markReady: () => void;
   const ready = new Promise<void>(resolve => { markReady = resolve; }); // never settles if destroyed first
   const applyPending = (): void => {
-    if (!fills.ready || !outlines.ready) return;
+    // Readiness lands in an afterRender that asks for no frame, so keep frames coming until it does.
+    // With no circles Cesium never builds them, so they never become ready: don't ask then.
+    if (!fills.ready || !outlines.ready) { if (circles.length) scene.requestRender(); return; }
     markReady();
     if (!pending) return;
     for (const { id } of circles) {
@@ -314,12 +321,14 @@ export function addGroundCircles(
     setStyles(styles) {
       pending = styles;
       applyPending();
+      scene.requestRender(); // applies on the next frame if the geometry is still building
     },
     setVisible(value) {
       visible = value;
       fills.show = value;
       outlines.show = value;
       if (!value) leave();
+      scene.requestRender();
     },
     destroy() {
       if (destroyed) return;
@@ -329,6 +338,7 @@ export function addGroundCircles(
       scene.preRender.removeEventListener(applyPending);
       scene.primitives.remove(fills);
       scene.primitives.remove(outlines);
+      scene.requestRender();
     },
   };
 }

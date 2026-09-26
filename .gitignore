@@ -24,6 +24,7 @@ Thumbs.db
 # AI assistant instructions — kept local, not shared
 CLAUDE.md
 claude-code-prompt.md
+/docs/superpowers/
 
 # Generated assessment outputs; keep directories and Markdown documentation trackable
 /data/results/**

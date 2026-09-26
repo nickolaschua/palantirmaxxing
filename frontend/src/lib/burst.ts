@@ -158,6 +158,7 @@ export function addBurst(
     core.show = on;
     shell.show = on;
     ground.show = on;
+    scene.requestRender();
   };
 
   const coreColor = new Color();
@@ -191,6 +192,7 @@ export function addBurst(
     const elapsed = performance.now() - startMs;
     if (reducedMotion ? elapsed >= STILL_MS : elapsed >= durationMs) { stop(); return; }
     render(reducedMotion ? STILL_AT : elapsed / durationMs);
+    scene.requestRender(); // wall clock: ask for the next frame until it finishes
   };
 
   let destroyed = false;

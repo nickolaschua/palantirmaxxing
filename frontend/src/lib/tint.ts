@@ -103,11 +103,13 @@ export function addBuildingTint(
       visible = value;
       version++;
       if (outline) outline.show = value;
+      scene.requestRender();
     },
     destroy() {
       offTileset();
       if (current && !current.isDestroyed()) current.tileVisible.removeEventListener(paint);
       if (outline) scene.primitives.remove(outline);
+      scene.requestRender();
       // ponytail: buildings already painted keep their colour until their tile reloads.
     },
   };

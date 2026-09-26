@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import {
-  advance, approachOrigin, comparisonLines, descentSamples, DESCENT_S, detect, elapsedS, exposureGrade, fire, framePose,
+  advance, approachOrigin, comparisonLines, consequenceRows, descentSamples, DESCENT_S, detect, elapsedS, exposureGrade, fire, framePose,
   isOpen, optionColour, parseResult, remainingS, select, STANDBY, successGrade, threatPositionAt, urgency,
 } from "../../frontend/src/demo/decision-model.ts";
 
@@ -112,4 +112,41 @@ test("grades: success against fixed marks, exposure only relative to the result,
   assert.equal(urgency(o, 5), 0.5);
   assert.equal(urgency(o, 12), 1);
   assert.equal(urgency({ timeMarginS: null }, 3), 0);
+});
+
+test("consequence: optional, validated, and rendered with unavailable kept apart from zero", () => {
+  const withConsequence = (consequence: unknown) => {
+    const r = structuredClone(raw);
+    r.candidates.find((c: { id: string }) => c.id === last.id).consequence = consequence;
+    return r;
+  };
+  const good = { total: null, scenario: "Weekday evening", dimensions: [
+    { id: "H", weight: 0.35, value: { low: 30, central: 42, high: 55, confidence: "C", source: "SingStat" } },
+    { id: "D", weight: 0.2, value: null },
+    { id: "R", weight: 0.05, value: { low: 0, central: 0, high: 0 } },
+  ] };
+  assert.equal(parseResult(raw).options.every(o => o.consequence === undefined), true, "absent is fine");
+  const parsedOption = parseResult(withConsequence(good)).options.find(o => o.id === last.id)!;
+  const rows = consequenceRows(parsedOption.consequence!);
+  assert.deepEqual(rows.map(r => r.value), ["Unavailable", "42 (30–55)", "Unavailable", "0"]);
+  assert.deepEqual(rows.map(r => r.weight), ["", "35%", "20%", "5%"]);
+  assert.deepEqual(rows[1]!.bar, { low: 0.3, central: 0.42, high: 0.55 });
+  assert.equal(rows[2]!.bar, null, "unavailable draws no bar");
+  assert.deepEqual(rows[3]!.bar, { low: 0, central: 0, high: 0 }, "zero is a value");
+  assert.equal(rows[1]!.detail, "Confidence C · Source: SingStat");
+  assert.equal(consequenceRows({ total: { low: null, central: 150, high: null }, dimensions: [] })[0]!.bar?.central, 1, "bar clamps to the scale");
+
+  assert.throws(() => parseResult(withConsequence({ ...good, dimensions: [{ id: "Q", weight: 1, value: null }] })), /unknown dimension/);
+  assert.throws(() => parseResult(withConsequence({ ...good, dimensions: [{ id: "H", weight: 1 }] })), /use null for unavailable/);
+  assert.throws(() => parseResult(withConsequence({ ...good, total: { low: 50, central: 40, high: 60 } })), /low ≤ central ≤ high/);
+  assert.throws(() => parseResult(withConsequence({ ...good, dimensions: undefined })), /no dimensions list/);
+});
+
+test("framing into the uncovered area: panels push the view away and back the camera off", () => {
+  const points = [{ lon: 103.8, lat: 1.37 }, { lon: 103.9, lat: 1.38 }];
+  const open = framePose(points, 70, 16 / 10);
+  const covered = framePose(points, 70, 16 / 10, 1.2, { left: 0.15, right: 0.28, top: 0, bottom: 0.4 });
+  assert.ok(covered.height! > open.height!, "less free screen, so the camera stands further back");
+  assert.ok(covered.lon > open.lon, "a wider right panel moves the view east so the points sit left of it");
+  assert.ok(covered.lat < open.lat, "the bottom tray moves the view south so the points sit above it");
 });

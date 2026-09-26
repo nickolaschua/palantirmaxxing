@@ -1,7 +1,7 @@
 # RL optimisation implementation handoff
 
-Date: 26 September 2026  
-Machine: Apple M5 Pro, 24 GB unified memory  
+Date: 26 September 2026
+Machine: Apple M5 Pro, 24 GB unified memory
 Scope: semantics-preserving performance work for centralized MaskablePPO training, including Singapore-v2 benchmarking support.
 
 ## Outcome

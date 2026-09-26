@@ -1029,4 +1029,3 @@ running experiment.
 - `scripts/verify_singapore_backend.py`
 - `contracts/simulation-result.md`
 - `contracts/frontend-backend-api.md`
-

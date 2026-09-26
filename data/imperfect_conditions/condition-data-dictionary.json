@@ -1,0 +1,170 @@
+{
+  "schema_version": "imperfect-condition-data-dictionary/1",
+  "records": [
+    {
+      "field": "episode_id",
+      "kind": "join_key",
+      "scope": "decision",
+      "type": "string",
+      "nullable": false,
+      "description": "Stable identifier of the base simulated episode."
+    },
+    {
+      "field": "decision_index",
+      "kind": "join_key",
+      "scope": "decision",
+      "type": "nonnegative_integer",
+      "nullable": false,
+      "description": "Zero-based decision position within the episode."
+    },
+    {
+      "field": "heavy_rain",
+      "kind": "externally_supplied_flag",
+      "scope": "state",
+      "type": "boolean",
+      "nullable": false,
+      "description": "Scenario-generator or labelled-dataset classification; the contract does not infer a threshold."
+    },
+    {
+      "field": "mist",
+      "kind": "externally_supplied_flag",
+      "scope": "state",
+      "type": "boolean",
+      "nullable": false,
+      "description": "Scenario-generator or labelled-dataset classification; the contract does not infer a threshold."
+    },
+    {
+      "field": "strong_wind",
+      "kind": "externally_supplied_flag",
+      "scope": "state",
+      "type": "boolean",
+      "nullable": false,
+      "description": "Scenario-generator or labelled-dataset classification; the contract does not infer a threshold."
+    },
+    {
+      "field": "sensor_outage",
+      "kind": "derived_consistency_flag",
+      "scope": "state",
+      "type": "boolean",
+      "nullable": false,
+      "description": "True exactly when unavailable_sensor_ids is nonempty."
+    },
+    {
+      "field": "communication_delay",
+      "kind": "externally_supplied_flag",
+      "scope": "state",
+      "type": "boolean",
+      "nullable": false,
+      "description": "True when the scenario models delayed information delivery."
+    },
+    {
+      "field": "rainfall_rate_mm_h",
+      "kind": "source_native_measurement",
+      "scope": "state",
+      "type": "nonnegative_number",
+      "unit": "millimetres_per_hour",
+      "nullable": true,
+      "missing_value_rule": "Use null when no aligned measurement exists; never replace missing with zero."
+    },
+    {
+      "field": "visibility_m",
+      "kind": "source_native_measurement",
+      "scope": "state",
+      "type": "nonnegative_number",
+      "unit": "metres",
+      "nullable": true,
+      "missing_value_rule": "Use null when no aligned measurement exists; never infer it from mist alone."
+    },
+    {
+      "field": "wind_speed_mps",
+      "kind": "source_native_measurement",
+      "scope": "state",
+      "type": "nonnegative_number",
+      "unit": "metres_per_second",
+      "nullable": true,
+      "missing_value_rule": "Use null when no aligned measurement exists; preserve the source averaging period separately in provenance."
+    },
+    {
+      "field": "communication_delay_s",
+      "kind": "measured_or_simulated_value",
+      "scope": "state",
+      "type": "nonnegative_number",
+      "unit": "seconds",
+      "nullable": true,
+      "description": "End-to-end age or delay used by the joined scenario; a numeric value requires communication_delay=true."
+    },
+    {
+      "field": "unavailable_sensor_ids",
+      "kind": "scenario_evidence",
+      "scope": "state",
+      "type": "unique_string_array",
+      "nullable": false,
+      "description": "Identifiers of unavailable simulated or test sensors. Empty means no sensor outage."
+    },
+    {
+      "field": "building_path_intersection",
+      "kind": "derived_geometry_flag",
+      "scope": "candidate_action",
+      "type": "boolean",
+      "nullable": false,
+      "description": "True exactly when the candidate path intersects one or more buildings in the selected geometry source."
+    },
+    {
+      "field": "intersected_building_ids",
+      "kind": "derived_geometry_evidence",
+      "scope": "candidate_action",
+      "type": "unique_string_array",
+      "nullable": false,
+      "description": "Identifiers returned by the geometry intersection. Empty means the candidate path is clear."
+    },
+    {
+      "field": "acceptable_action_indices",
+      "kind": "expert_label",
+      "scope": "decision",
+      "type": "nonempty_unique_nonnegative_integer_array",
+      "nullable": false,
+      "description": "Set-valued teacher label. Building-intersecting candidates cannot be included."
+    },
+    {
+      "field": "selected_action_index",
+      "kind": "expert_label",
+      "scope": "decision",
+      "type": "nonnegative_integer",
+      "nullable": false,
+      "description": "Teacher-selected action; must belong to acceptable_action_indices."
+    },
+    {
+      "field": "explanation_codes",
+      "kind": "expert_label_evidence",
+      "scope": "decision",
+      "type": "nonempty_unique_enum_array",
+      "nullable": false,
+      "description": "Factual reason codes validated against recorded conditions; not free-form model rationale."
+    },
+    {
+      "field": "replanning_margin_delta_s",
+      "kind": "teacher_or_simulator_evidence",
+      "scope": "decision",
+      "type": "nonnegative_number",
+      "unit": "seconds",
+      "nullable": true,
+      "description": "Measured margin difference supporting a margin-related explanation; required only when such an explanation is claimed."
+    },
+    {
+      "field": "source_ids",
+      "kind": "provenance",
+      "scope": "state_candidate_and_decision",
+      "type": "unique_string_array",
+      "nullable": false,
+      "description": "Keys into source-registry.json. Every nested source identifier must also appear at record level."
+    },
+    {
+      "field": "synthetic",
+      "kind": "provenance",
+      "scope": "state",
+      "type": "boolean",
+      "nullable": false,
+      "description": "True when condition values were generated rather than taken directly from an observation feed."
+    }
+  ]
+}

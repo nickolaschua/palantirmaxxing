@@ -54,3 +54,18 @@ are not accepted by that API.
 `load_policy()` dispatches by metadata to either structured imitation or PPO.
 Metadata without an `algorithm` remains legacy PPO. `load_normalized_policy()`
 is unchanged for explicit PPO callers.
+
+## Imperfect-condition extension
+
+The proposed [`imperfect-condition-demonstration/1`](../../contracts/imperfect-condition-demonstration.md)
+sidecar adds five student-observable state flags: heavy rain, mist, strong wind,
+sensor outage, and communication delay. A sixth, action-local flag records
+whether a candidate path intersects a mapped building. Optional source-native
+measurements and expert reason codes are preserved without inventing
+condition-to-performance multipliers.
+
+The currently checked structured-imitation artifact was trained without these
+features and is not condition-aware. Activation requires a regenerated scenario
+pool and demonstrations, a versioned student feature-layout update, retraining,
+and separate condition-stratified evaluation evidence. Building-intersecting
+candidate actions are forbidden in the expert acceptable-action set.

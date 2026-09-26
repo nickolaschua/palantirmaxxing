@@ -1,0 +1,77 @@
+{
+  "candidates": [
+    {
+      "action_index": 10,
+      "building_path_intersection": false,
+      "candidate_id": "candidate-clear",
+      "intersected_building_ids": [],
+      "source_ids": [
+        "synthetic-building-map-v1"
+      ]
+    },
+    {
+      "action_index": 11,
+      "building_path_intersection": true,
+      "candidate_id": "candidate-blocked",
+      "intersected_building_ids": [
+        "synthetic-building-17"
+      ],
+      "source_ids": [
+        "synthetic-building-map-v1"
+      ]
+    }
+  ],
+  "conditions": {
+    "communication_delay": true,
+    "communication_delay_s": 1.2,
+    "heavy_rain": true,
+    "mist": false,
+    "rainfall_rate_mm_h": 42.0,
+    "sensor_outage": true,
+    "source_ids": [
+      "synthetic-weather-v1"
+    ],
+    "strong_wind": false,
+    "synthetic": true,
+    "unavailable_sensor_ids": [
+      "synthetic-sensor-b"
+    ],
+    "visibility_m": null,
+    "wind_speed_mps": null
+  },
+  "decision_index": 0,
+  "episode_id": "synthetic-imperfect-episode-1",
+  "expert_label": {
+    "acceptable_action_indices": [
+      10
+    ],
+    "explanation_codes": [
+      "rain_preserved_replanning_margin",
+      "building_path_excluded",
+      "sensor_outage_reduced_coverage",
+      "communication_delay_preserved_margin"
+    ],
+    "replanning_margin_delta_s": 3.5,
+    "selected_action_index": 10
+  },
+  "feature_schema": {
+    "action_feature_order": [
+      "building_path_intersection"
+    ],
+    "semantics": "binary externally supplied observations; no inferred thresholds",
+    "state_feature_order": [
+      "heavy_rain",
+      "mist",
+      "strong_wind",
+      "sensor_outage",
+      "communication_delay"
+    ],
+    "version": "imperfect-condition-features/1"
+  },
+  "feature_schema_checksum": "sha256:b06e1b2b3d8243b59e7005ee6819e69db49631ff003c67149f7a3655de3f30f2",
+  "schema_version": "imperfect-condition-demonstration/1",
+  "source_ids": [
+    "synthetic-weather-v1",
+    "synthetic-building-map-v1"
+  ]
+}

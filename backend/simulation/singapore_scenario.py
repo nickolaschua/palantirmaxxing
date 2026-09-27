@@ -47,7 +47,7 @@ class SingaporeScenarioConfig:
     detection_time_min_s: float = 0.0
     detection_time_max_s: float = 10.0
     horizontal_crs: str = 'EPSG:3414'
-    detection_boundary_offset_m: float = 10_000.0
+    detection_boundary_offset_m: float = 5_000.0
     altitude_min_m: float = 5_000.0
     altitude_mode_m: float = 10_000.0
     altitude_max_m: float = 15_000.0
@@ -55,7 +55,7 @@ class SingaporeScenarioConfig:
     gravity_mps2: float = 9.80665
     supplied_footprint_radius_m: float = 100.0
     consequence_condition: str = 'weekday_midday'
-    interceptor_speed_mps: float = 500.0
+    interceptor_speed_mps: float = 150.0
     interceptor_turn_rate_deg_s: float = 15.0
     max_generation_attempts: int = 100
     vertical_reference: str = 'height above the synthetic terminal ground plane'

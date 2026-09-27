@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  changeText, clockEndS, flattenSnapshot, interceptTargetOf, lockTimeOf, naiveCostMismatch, outcomesOf, pairFailure, pairPhase, pairProblem,
+  changeText, clockEndS, DESCENT_S, descentSamples, flattenSnapshot, interceptTargetOf, lockTimeOf, naiveCostMismatch, outcomesOf, pairFailure, pairPhase, pairProblem,
   planIntercepts, positionAt, REACTION_S, summaryRows, threatDetail, threatStateAt,
 } from "../../frontend/src/demo/engagement-model.ts";
 import { BASES, INTERCEPTOR_SPEED_MPS } from "../../frontend/src/demo/interceptor-model.ts";
@@ -171,4 +171,16 @@ test("planIntercepts: nearest base, reaction delay, fitted speed when 400 m/s ca
   const short = planIntercepts(two, one);
   assert.equal(short.plans.size, 1);
   assert.equal(short.stock.get("paya-lebar"), 0);
+});
+
+test("descent: from the meet down onto the supplied area's centre over DESCENT_S, accelerating", () => {
+  const start = new Date("2026-09-26T04:00:00Z");
+  const arc = descentSamples({ lon: 103.86, lat: 1.36, height: 12_000 }, { lon: 103.861, lat: 1.361 }, 8, start);
+  const [first, last] = [arc[0]!, arc.at(-1)!];
+  assert.deepEqual([first.lon, first.lat, first.height], [103.86, 1.36, 12_000]);
+  assert.equal(first.time.getTime(), start.getTime() + 8_000);
+  assert.deepEqual([last.lon, last.lat, last.height], [103.861, 1.361, 0]);
+  assert.equal(last.time.getTime(), start.getTime() + (8 + DESCENT_S) * 1000);
+  assert.ok(arc.every((s, i) => i === 0 || s.height < arc[i - 1]!.height), "always falling");
+  assert.ok(12_000 - arc[1]!.height < arc.at(-1)!.height + (arc.at(-2)!.height - arc.at(-1)!.height), "slow at first, fast at the end");
 });

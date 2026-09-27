@@ -1,8 +1,8 @@
 import type { CircleStyle, MarkerStyle, SingaporeCanvas } from "../lib/index.js";
 import { circleBounds, formatT, framePose } from "./decision-model.js";
 import {
-  BASELINE_POLICY, clockEndS, elapsedOf, lockTimeOf, mapInsets, outcomesOf, pairFailure, pairPhase, pairProblem, planIntercepts,
-  POLICY_NAMES, positionAt, STATE_LABELS, threatStateAt, viewAspect,
+  BASELINE_POLICY, clockEndS, DESCENT_S, descentSamples, elapsedOf, lockTimeOf, mapInsets, outcomesOf, pairFailure, pairPhase, pairProblem,
+  planIntercepts, POLICY_NAMES, positionAt, STATE_LABELS, threatStateAt, viewAspect,
 } from "./engagement-model.js";
 import { BASES } from "./interceptor-model.js";
 import type { RunPair, RunRef, ThreatState } from "./engagement-model.js";
@@ -90,7 +90,16 @@ function renderScenario(
   const flights = new Map([...plans.values()].map(p => [p.threatId, canvas.addPath(p.samples, {
     color: INTERCEPTOR, trailColor: alpha(INTERCEPTOR, 0.4), width: 3, markerSize: 25, markerShape: "craft", markerPulse: true,
   })]));
-  const bursts = new Map([...plans.values()].map(p => [p.threatId, canvas.addBurst(p.target.position, { color: "#ff7043", radiusM: 600, durationS: 2.2 })]));
+  // After the meet the threat falls onto its supplied area; the burst is on the ground, where it lands.
+  const landing = new Map([...plans.values()].map(p => {
+    const f = result.selectedFootprints.find(row => row.threatId === p.threatId);
+    return [p.threatId, f ? { lon: f.center.lon, lat: f.center.lat } : { lon: p.target.position.lon, lat: p.target.position.lat }];
+  }));
+  const descents = new Map([...plans.values()].map(p => [p.threatId, canvas.addPath(
+    descentSamples(p.target.position, landing.get(p.threatId)!, p.interceptS, start),
+    { color: "#ff7043", trailColor: "#ff7043", width: 2, markerSize: 30, markerShape: "craft", markerPulse: true },
+  )]));
+  const bursts = new Map([...plans.values()].map(p => [p.threatId, canvas.addBurst(landing.get(p.threatId)!, { color: "#ff7043", radiusM: 600, durationS: 2.2 })]));
 
   // Rows, built once; the list shows the detected ones in detection order.
   const rows = new Map(threats.map(({ t, colour }) => {
@@ -112,7 +121,8 @@ function renderScenario(
 
   const shown = new Map<string, boolean>();
   const flightShown = new Map<string, boolean>();
-  const previous = new Map<string, ThreatState>();
+  const descentShown = new Map<string, boolean>();
+  const landed = new Set<string>();
   let lastOrder = "", lastCircles = "", lastMarkers = "", lastBases = "";
   const stateOf = (threatId: string, elapsed: number, live = true): ThreatState | undefined => {
     const x = byId.get(threatId);
@@ -125,14 +135,15 @@ function renderScenario(
       const s = states.get(x.t.threatId)!;
       const flying = s === "detected" || s === "locked";
       if (shown.get(x.t.threatId) !== flying) { shown.set(x.t.threatId, flying); paths.get(x.t.threatId)!.setVisible(flying); }
-      // The interceptor flies from its launch to the meet; the burst plays once, when the threat resolves as intercepted.
+      // The interceptor flies from its launch to the meet; the struck threat then falls for DESCENT_S and bursts where it lands.
       const plan = plans.get(x.t.threatId);
       if (plan) {
         const away = live && elapsed >= plan.launchS && elapsed < plan.interceptS;
         if (flightShown.get(x.t.threatId) !== away) { flightShown.set(x.t.threatId, away); flights.get(x.t.threatId)!.setVisible(away); }
-        if (live && s === "intercepted" && previous.get(x.t.threatId) !== "intercepted") { const b = bursts.get(x.t.threatId)!; b.setVisible(true); b.play(); }
+        const falling = live && elapsed >= plan.interceptS && elapsed < plan.interceptS + DESCENT_S;
+        if (descentShown.get(x.t.threatId) !== falling) { descentShown.set(x.t.threatId, falling); descents.get(x.t.threatId)!.setVisible(falling); }
+        if (live && elapsed >= plan.interceptS + DESCENT_S && !landed.has(x.t.threatId)) { landed.add(x.t.threatId); const b = bursts.get(x.t.threatId)!; b.setVisible(true); b.play(); }
       }
-      previous.set(x.t.threatId, s);
     }
     // Base labels: stock left once every launch up to now has gone.
     const baseStyles = new Map<string, MarkerStyle>(BASES.map(b => {
@@ -183,9 +194,10 @@ function renderScenario(
   }
 
   function reset(): void {
-    shown.clear(); flightShown.clear(); previous.clear();
+    shown.clear(); flightShown.clear(); descentShown.clear(); landed.clear();
     for (const p of paths.values()) p.setVisible(false);
     for (const f of flights.values()) f.setVisible(false);
+    for (const d of descents.values()) d.setVisible(false);
     for (const b of bursts.values()) b.setVisible(false);
     lastCircles = lastMarkers = lastOrder = lastBases = "";
     circles.setStyles(new Map());

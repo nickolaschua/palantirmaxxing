@@ -226,3 +226,24 @@ export function planIntercepts(result: SimulationResult, bases: readonly Interce
   }
   return { plans, stock };
 }
+
+/** Seconds the struck threat takes to fall from the meet to the supplied area. */
+export const DESCENT_S = 3;
+
+/**
+ * Where the threat falls after the meet: from the intercept point onto the supplied area's centre,
+ * easing into the drop. Illustration: the result supplies no debris model, only the area.
+ */
+export function descentSamples(
+  from: { lon: number; lat: number; height: number }, to: { lon: number; lat: number }, atS: number, start: Date, steps = 6,
+): { lon: number; lat: number; height: number; time: Date }[] {
+  return Array.from({ length: steps + 1 }, (_, i) => {
+    const f = i / steps;
+    return {
+      lon: from.lon + (to.lon - from.lon) * f,
+      lat: from.lat + (to.lat - from.lat) * f,
+      height: from.height * (1 - f * f), // accelerating fall
+      time: new Date(start.getTime() + (atS + f * DESCENT_S) * 1000),
+    };
+  });
+}

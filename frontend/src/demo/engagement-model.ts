@@ -247,3 +247,14 @@ export function descentSamples(
     };
   });
 }
+
+/** Height and 3-D speed of a threat at `atS`, from the second before it (or after, at the very start). */
+export function kinematicsAt(t: SimulationTrajectory, atS: number): { heightM: number; speedMps: number } {
+  const here = positionAt(t, atS);
+  const before = atS - 1 >= t.samples[0]!.timeFromEpisodeStartS ? positionAt(t, atS - 1) : positionAt(t, atS + 1);
+  const mPerDegLon = 111_320 * Math.cos((here.lat * Math.PI) / 180);
+  const d = Math.hypot((here.lon - before.lon) * mPerDegLon, (here.lat - before.lat) * 110_574, here.height - before.height);
+  return { heightM: here.height, speedMps: d };
+}
+export const formatHeight = (m: number): string => (m < 1000 ? `${Math.round(m / 10) * 10} m` : `${(m / 1000).toFixed(1)} km`);
+export const formatSpeed = (mps: number): string => `${Math.round(mps / 10) * 10} m/s`;

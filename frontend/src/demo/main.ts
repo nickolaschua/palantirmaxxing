@@ -85,6 +85,7 @@ async function setView(next: (typeof VIEWS)[number]): Promise<void> {
   view = next.id;
   population.setActive(view === "population");
   for (const layer of osmLayers) layer.setVisible(view !== "population");
+  engagement.setBasemap(canvas.scene.basemap);
   for (const [id, b] of viewButtons) b.setAttribute("aria-pressed", String(id === view));
 }
 
@@ -109,12 +110,13 @@ const osmLayers = [MILITARY, HOSPITALS].map(layer => {
 });
 
 // The simulation loader, run controls and rehearsed demo live in the drawer; the screen they feed is fixed.
-const engagement = mountEngagement(canvas, panel);
+const engagement = mountEngagement(canvas, panel, undefined, { keys, lighting: "midday" });
 
 let lighting: LightingPreset = "midday";
 const lightBtn = button(`Light: ${lighting}`, () => {
   lighting = lighting === "midday" ? "blue-hour" : "midday";
   canvas.scene.setLighting(lighting);
+  engagement.setLighting(lighting);
   lightBtn.textContent = `Light: ${lighting}`;
 });
 panel.append(group("Lighting"), lightBtn);

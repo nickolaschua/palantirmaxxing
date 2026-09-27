@@ -1,9 +1,11 @@
-import type { CircleStyle, MarkerStyle, SingaporeCanvas } from "../lib/index.js";
+import type { BasemapKind, CircleStyle, LightingPreset, MarkerStyle, SingaporeCanvas } from "../lib/index.js";
 import { circleBounds, formatT, framePose } from "./decision-model.js";
 import {
-  BASELINE_POLICY, clockEndS, DESCENT_S, descentSamples, elapsedOf, lockTimeOf, mapInsets, outcomesOf, pairFailure, pairPhase, pairProblem,
-  planIntercepts, POLICY_NAMES, positionAt, STATE_LABELS, threatStateAt, viewAspect,
+  BASELINE_POLICY, clockEndS, DESCENT_S, descentSamples, elapsedOf, flattenSnapshot, formatHeight, formatSpeed, kinematicsAt, lockTimeOf, mapInsets,
+  outcomesOf, pairFailure, pairPhase, pairProblem, planIntercepts, POLICY_NAMES, positionAt, STATE_LABELS, threatDetail, threatStateAt, viewAspect,
 } from "./engagement-model.js";
+import { mountFocusWindow } from "./focus-window.js";
+import type { FocusWindow } from "./focus-window.js";
 import { BASES } from "./interceptor-model.js";
 import type { RunPair, RunRef, ThreatState } from "./engagement-model.js";
 import { mountOutcomePanel } from "./outcome-panel.js";
@@ -16,7 +18,11 @@ import type { SimulationResult, SimulationResultV2 } from "./simulation-model.js
 import { isSnapshot, loadSimulationResult } from "./source.js";
 import type { ResultLoader, Snapshot } from "./source.js";
 
-export interface Engagement { retry(): void; snapshot(): Snapshot | undefined; dispose(): void }
+export interface Engagement {
+  retry(): void; snapshot(): Snapshot | undefined; dispose(): void;
+  setBasemap(kind: BasemapKind): void; setLighting(preset: LightingPreset): void;
+}
+export interface EngagementSetup { keys: { ionToken?: string; googleApiKey?: string }; lighting: LightingPreset }
 
 const REPLAY_SPEED = 1; // real time, as the frontend branch played it
 const STANDBY_PITCH = -70;
@@ -56,12 +62,17 @@ interface ScenarioView {
   reset(): void;
   stateOf(threatId: string, elapsed: number): ThreatState | undefined;
   positionOf(threatId: string, elapsed: number): { lon: number; lat: number; height: number } | undefined;
+  /** The focus window: rows for `focus` at `elapsed`, or idle when there is none. */
+  showFocus(focus: string | null, elapsed: number, live: boolean): void;
+  hideFocus(): void;
+  focus: FocusWindow;
   dispose(): void;
 }
 
 function renderScenario(
   canvas: SingaporeCanvas, result: SimulationResult, resources: ResultResources,
   list: { threatList: HTMLOListElement; listEmpty: HTMLElement }, onPick: (threatId: string) => void,
+  focusSetup: { parent: HTMLElement; keys: EngagementSetup["keys"]; basemap: BasemapKind; lighting: LightingPreset },
 ): ScenarioView {
   const start = new Date(result.start);
   const endS = clockEndS(result);
@@ -101,6 +112,19 @@ function renderScenario(
   )]));
   const bursts = new Map([...plans.values()].map(p => [p.threatId, canvas.addBurst(landing.get(p.threatId)!, { color: "#ff7043", radiusM: 600, durationS: 2.2 })]));
 
+  // The missile focus window: its own zoomed map of the selected threat's area, plus live readings.
+  const focusWin = mountFocusWindow({
+    parent: focusSetup.parent, keys: focusSetup.keys, basemap: focusSetup.basemap, lighting: focusSetup.lighting,
+    range: [start, new Date(start.getTime() + endS * 1000)],
+    threats: threats.map(({ t, colour }) => {
+      const f = result.selectedFootprints.find(row => row.threatId === t.threatId);
+      const last = t.samples.at(-1)!.position;
+      return { id: t.threatId, colour, radiusM: f?.radiusM ?? 100, target: f ? { lon: f.center.lon, lat: f.center.lat } : { lon: last.lon, lat: last.lat },
+        samples: t.samples.map(s => ({ lon: s.position.lon, lat: s.position.lat, height: s.position.heightM, time: new Date(s.time) })) };
+    }),
+  });
+  resources.use(() => focusWin.dispose());
+
   // Rows, built once; the list shows the detected ones in detection order.
   const rows = new Map(threats.map(({ t, colour }) => {
     const li = el("li");
@@ -134,7 +158,7 @@ function renderScenario(
     for (const x of threats) {
       const s = states.get(x.t.threatId)!;
       const flying = s === "detected" || s === "locked";
-      if (shown.get(x.t.threatId) !== flying) { shown.set(x.t.threatId, flying); paths.get(x.t.threatId)!.setVisible(flying); }
+      if (shown.get(x.t.threatId) !== flying) { shown.set(x.t.threatId, flying); paths.get(x.t.threatId)!.setVisible(flying); focusWin.setRouteVisible(x.t.threatId, flying); }
       // The interceptor flies from its launch to the meet; the struck threat then falls for DESCENT_S and bursts where it lands.
       const plan = plans.get(x.t.threatId);
       if (plan) {
@@ -160,7 +184,10 @@ function renderScenario(
       return [f.id, { fill: alpha(colour, strong ? 0.5 : 0.3), outline: strong ? "#ffffff" : colour, visible }];
     }));
     const circleKey = JSON.stringify([...circleStyles]);
-    if (circleKey !== lastCircles) { lastCircles = circleKey; circles.setStyles(circleStyles); }
+    if (circleKey !== lastCircles) {
+      lastCircles = circleKey; circles.setStyles(circleStyles);
+      focusWin.setCircleStyles(new Map(footprints.filter(f => f.kind === "selected").map(f => [f.threatId, circleStyles.get(f.id)!])));
+    }
     const markerStyles = new Map<string, MarkerStyle>(footprints.map(f => {
       const s = states.get(f.threatId)!;
       const visible = f.kind === "selected" ? s === "locked" || s === "intercepted" : s === "unhandled";
@@ -211,12 +238,36 @@ function renderScenario(
     ...footprints.flatMap(f => circleBounds({ lon: f.center.lon, lat: f.center.lat }, f.radiusM)),
     ...BASES.map(b => b.position),
   ];
+  function showFocus(id: string | null, elapsed: number, live: boolean): void {
+    const x = id ? byId.get(id) : undefined;
+    if (!x) { focusWin.idle(); return; }
+    const s = live ? threatStateAt(x.t, x.outcome, x.lockAtS, elapsed) : "unseen";
+    const plan = plans.get(x.t.threatId);
+    const d = threatDetail(result, x.t.threatId);
+    const k = kinematicsAt(x.t, elapsed);
+    const rows: { label: string; value: string }[] = [
+      { label: "Status", value: STATE_LABELS[s] },
+      { label: "Detected", value: formatT(x.t.detectionTimeS) },
+    ];
+    if (s === "detected" || s === "locked") rows.push({ label: "Altitude · speed", value: `${formatHeight(k.heightM)} · ${formatSpeed(k.speedMps)}` });
+    if (plan) {
+      rows.push({ label: "Interceptor", value: `${plan.base.label} · launch ${formatT(plan.launchS)}` });
+      if (elapsed < plan.launchS && live) rows.push({ label: "Launch in", value: `${(plan.launchS - elapsed).toFixed(1)} s` });
+      else if (elapsed < plan.interceptS && live) rows.push({ label: "Meet in", value: `${(plan.interceptS - elapsed).toFixed(1)} s` });
+      else rows.push({ label: "Met at", value: `${formatT(plan.interceptS)} · ${formatHeight(plan.target.position.height)}` });
+    } else if (x.outcome?.outcome === "unhandled") rows.push({ label: "Interceptor", value: "none · unhandled" });
+    rows.push({ label: "Outcome", value: d.outcome }, { label: "Backend interceptor", value: d.interceptorId ?? "unavailable" }, { label: "Opportunity", value: d.opportunityId ?? "unavailable" });
+    if (d.footprint) rows.push({ label: "Supplied 100 m area", value: `${d.footprint.center.lon.toFixed(4)}, ${d.footprint.center.lat.toFixed(4)}` },
+      ...flattenSnapshot(d.footprint.consequence).slice(0, 12).map(r => ({ label: r.key, value: r.value })));
+    focusWin.open(x.t.threatId, { title: x.t.threatId, colour: x.colour, rows });
+  }
   reset();
   // Last, once every layer has built: a construction that throws must leave the shared clock alone.
   canvas.time.setRange(start, new Date(start.getTime() + endS * 1000));
   return {
     result, start, endS, framePoints, render, reset,
     stateOf: (id, elapsed) => stateOf(id, elapsed),
+    showFocus, hideFocus: () => focusWin.close(), focus: focusWin,
     positionOf: (id, elapsed) => { const x = byId.get(id); return x ? positionAt(x.t, elapsed) : undefined; },
     dispose: () => resources.dispose(),
   };
@@ -227,7 +278,7 @@ function renderScenario(
  * scenario, loads both, then replays the optimised result: threats appear as the clock passes their
  * detection. Space after a finished replay starts over. History lists this session's run pairs.
  */
-export function mountEngagement(canvas: SingaporeCanvas, panel: HTMLElement, loader: ResultLoader = loadSimulationResult): Engagement {
+export function mountEngagement(canvas: SingaporeCanvas, panel: HTMLElement, loader: ResultLoader = loadSimulationResult, setup: EngagementSetup = { keys: {}, lighting: "midday" }): Engagement {
   // --- fixed screen ---
   const ops = el("aside"); ops.id = "ops"; ops.dataset.view = "live"; ops.setAttribute("aria-label", "Threats and history");
   const listArea = el("section", "list-area"); listArea.setAttribute("aria-label", "Threats");
@@ -254,7 +305,14 @@ export function mountEngagement(canvas: SingaporeCanvas, panel: HTMLElement, loa
   const head = el("header"); head.append(phaseEl, clockEl);
   const message = el("p", "message"); message.setAttribute("role", "status");
   standby.append(head, message);
-  document.body.append(ops, presenter, birdsEyeBtn, standby);
+  // Right column: Focus or Comparison, one at a time.
+  const tabs = el("div"); tabs.id = "right-tabs"; tabs.setAttribute("role", "tablist"); tabs.setAttribute("aria-label", "Right panel");
+  const focusTab = el("button", undefined, "Missile focus"), comparisonTab = el("button", undefined, "Outcome comparison");
+  focusTab.type = comparisonTab.type = "button"; tabs.append(focusTab, comparisonTab);
+  const focusHost = el("div"); focusHost.id = "focus-host";
+  document.body.append(ops, presenter, birdsEyeBtn, standby, tabs, focusHost);
+  let rightTab: "focus" | "comparison" = "comparison";
+  let basemap: BasemapKind = canvas.scene.basemap, lighting = setup.lighting;
 
   const setView = (view: "live" | "history"): void => { ops.dataset.view = view; historyBtn.setAttribute("aria-expanded", String(view === "history")); };
   historyBtn.onclick = () => setView(ops.dataset.view === "history" ? "live" : "history");
@@ -269,12 +327,21 @@ export function mountEngagement(canvas: SingaporeCanvas, panel: HTMLElement, loa
   let abort = new AbortController();
   let disposed = false;
 
-  const outcome = mountOutcomePanel(canvas, { onSelect: id => pick(id), onReplay: () => { if (phase === "done") reset(); startReplay(); } });
+  const outcome = mountOutcomePanel(canvas, { onSelect: id => pick(id, false), onReplay: () => { if (phase === "done") reset(); startReplay(); } });
+  const outcomeRoot = document.getElementById("comparison-panel")!;
+  function setTab(next: "focus" | "comparison"): void {
+    rightTab = next;
+    focusTab.setAttribute("aria-selected", String(next === "focus")); comparisonTab.setAttribute("aria-selected", String(next === "comparison"));
+    outcomeRoot.hidden = next !== "comparison";
+    if (next === "comparison") scenario?.hideFocus();
+    render();
+  }
+  focusTab.onclick = () => setTab("focus"); comparisonTab.onclick = () => setTab("comparison");
 
   const loading = mountResultLoader(panel, "Simulation", loader, parseSimulationResult, (result, snapshot) => {
     const resources = new ResultResources(canvas);
     try {
-      const view = renderScenario(resources.canvas, result, resources, { threatList, listEmpty }, pick);
+      const view = renderScenario(resources.canvas, result, resources, { threatList, listEmpty }, pick, { parent: focusHost, keys: setup.keys, basemap, lighting });
       scenario = view; focus = null; follow = false;
       standby.dataset.resultId = snapshot?.resultId ?? "";
       // A pair in flight keeps its phase. Otherwise a result that is not the active pair's optimised run
@@ -310,11 +377,12 @@ export function mountEngagement(canvas: SingaporeCanvas, panel: HTMLElement, loa
     if (state === "intercepted" || state === "unhandled") follow = false; // hold the last pose
     canvas.camera.flyTo(framePose([p, ...circleBounds(p, FOLLOW_RADIUS_M)], -45, aspect, 1), { duration: 0 }).catch(ignoreCancel);
   }
-  function pick(threatId: string): void {
+  function pick(threatId: string, toFocus = true): void {
     if (!scenario?.result.trajectories.some(t => t.threatId === threatId)) return;
     focus = threatId; follow = true;
     measure();
     outcome.selectThreat(threatId);
+    if (toFocus && rightTab !== "focus") setTab("focus");
     followFocus(elapsedOf(scenario.result, canvas.time.current));
     render();
   }
@@ -467,6 +535,7 @@ export function mountEngagement(canvas: SingaporeCanvas, panel: HTMLElement, loa
     const counts = scenario.render(elapsed, live, focus);
     if (phase === "live" && live && counts.resolved === counts.total && counts.total > 0) { phase = "done"; canvas.time.pause(); setPhaseAttr(); }
     if (follow && phase === "live") followFocus(elapsed);
+    if (rightTab === "focus") { scenario.showFocus(focus, elapsed, live); scenario.focus.syncTime(canvas.time.current); }
     setText(clockEl, formatT(Math.max(0, live ? elapsed : 0)));
     setText(phaseEl, phase === "live" ? (focus ? `FOCUS · ${focus}` : "LIVE") : phase.toUpperCase());
     setText(message, standbyText(counts));
@@ -485,11 +554,13 @@ export function mountEngagement(canvas: SingaporeCanvas, panel: HTMLElement, loa
   mapEl?.addEventListener("pointerdown", letGo);
   mapEl?.addEventListener("wheel", letGo, { passive: true });
   const offTick = canvas.on("clockTick", () => render());
-  render();
+  setTab("comparison");
 
   return {
     retry: loading.retry,
     snapshot: loading.snapshot,
+    setBasemap(kind) { basemap = kind; scenario?.focus.setBasemap(kind); },
+    setLighting(preset) { lighting = preset; scenario?.focus.setLighting(preset); },
     dispose() {
       if (disposed) return;
       disposed = true;
@@ -502,7 +573,7 @@ export function mountEngagement(canvas: SingaporeCanvas, panel: HTMLElement, loa
       outcome.dispose();
       runs.dispose();
       loading.dispose();
-      for (const node of [ops, presenter, birdsEyeBtn, standby]) node.remove();
+      for (const node of [ops, presenter, birdsEyeBtn, standby, tabs, focusHost]) node.remove();
     },
   };
 }

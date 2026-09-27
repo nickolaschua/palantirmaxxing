@@ -257,7 +257,7 @@ dd[data-grade="poor"] { color: var(--poor); }
 #comparison-panel {
   position: absolute;
   z-index: 2;
-  top: 16px;
+  top: 58px;
   right: 16px;
   bottom: 16px;
   box-sizing: border-box;
@@ -841,3 +841,55 @@ body > .result-metadata { position: fixed; top: 12px; right: 12px; z-index: 20; 
 #comparison-panel dl.facts dt { color: var(--muted); }
 #comparison-panel dl.facts dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 #comparison-panel .limitations { margin: 6px 0 0; padding-left: 18px; color: var(--muted); font-size: var(--fs-xs); }
+
+/* Right column tabs: Missile focus or Outcome comparison, one at a time. */
+#right-tabs {
+  position: absolute;
+  z-index: 3;
+  top: 16px;
+  right: 16px;
+  width: calc(var(--side) - 32px);
+  box-sizing: border-box;
+  display: flex;
+  gap: 6px;
+}
+#right-tabs button {
+  flex: 1;
+  padding: 7px 10px;
+  background: var(--panel);
+  border: 1px dashed rgba(255, 255, 255, 0.35);
+  border-radius: 4px;
+  color: var(--text);
+  font: var(--fs-sm)/var(--lh) var(--font);
+  cursor: pointer;
+}
+#right-tabs button[aria-selected="true"] { background: rgba(255, 255, 255, 0.12); border-style: solid; border-color: rgba(255, 255, 255, 0.5); }
+
+/* Missile focus: the zoomed second canvas and one threat's readings, in the right column under the tabs. */
+#focus {
+  position: absolute;
+  z-index: 2;
+  top: 58px;
+  right: 16px;
+  bottom: 16px;
+  box-sizing: border-box;
+  width: calc(var(--side) - 32px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 14px;
+  background: var(--panel);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--text);
+  font: var(--fs-sm)/var(--lh) var(--font);
+  scrollbar-width: thin;
+}
+#focus .eyebrow { margin: 0; font-size: var(--fs-xs); font-weight: 600; letter-spacing: 0.15em; color: var(--muted); }
+#focus h2 { display: flex; align-items: center; gap: 8px; margin: 6px 0 8px; font-size: var(--fs-lg); font-weight: 600; }
+#focus h2 i { width: 10px; height: 10px; border-radius: 50%; }
+#focus .empty { margin: 8px 0; color: var(--muted); }
+#focus .inspector-map { position: relative; height: clamp(170px, 26vh, 300px); overflow: hidden; border: 1px solid var(--line); border-radius: 4px; }
+#focus dl { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; margin: 10px 0 0; font-size: var(--fs-sm); }
+#focus dt { color: var(--muted); }
+#focus dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }

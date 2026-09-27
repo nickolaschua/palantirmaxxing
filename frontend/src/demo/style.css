@@ -890,6 +890,7 @@ body > .result-metadata { position: fixed; top: 12px; right: 12px; z-index: 20; 
 #focus h2 i { width: 10px; height: 10px; border-radius: 50%; }
 #focus .empty { margin: 8px 0; color: var(--muted); }
 #focus .inspector-map { position: relative; height: clamp(170px, 26vh, 300px); overflow: hidden; border: 1px solid var(--line); border-radius: 4px; }
-#focus dl { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; margin: 10px 0 0; font-size: var(--fs-sm); }
-#focus dt { color: var(--muted); }
-#focus dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+/* Labels get at most two fifths of the width: long snapshot keys wrap instead of squeezing the values. */
+#focus dl { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); gap: 4px 12px; margin: 10px 0 0; font-size: var(--fs-sm); }
+#focus dt { color: var(--muted); overflow-wrap: anywhere; }
+#focus dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; overflow-wrap: break-word; }

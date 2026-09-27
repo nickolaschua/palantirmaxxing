@@ -18,7 +18,7 @@ import type { ResultLoader, Snapshot } from "./source.js";
 
 export interface Engagement { retry(): void; snapshot(): Snapshot | undefined; dispose(): void }
 
-const REPLAY_SPEED = 12; // main's replay multiplier
+const REPLAY_SPEED = 1; // real time, as the frontend branch played it
 const STANDBY_PITCH = -70;
 const FOLLOW_RADIUS_M = 3000;
 const BIRDS_EYE_S = 0.6;
